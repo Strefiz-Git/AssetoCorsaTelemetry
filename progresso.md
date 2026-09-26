@@ -401,10 +401,19 @@ visível nas definições, e a marcação manual fica disponível.
 verificação é um pedido de `/api/state` que devolve um instante — e é
 exatamente num instante que se tiram as conclusões erradas.
 
-O que não percebi ainda, e está anotado em `ideia.md`: o combustível não
-mexe dentro da volta (30,0 L constantes em duas voltas), o `wheelSlip`
-chega a 177.5 sem se saber a unidade, e a delta chega a **−37 s** porque
-a volta de referência é a da largada parada.
+O que não percebi ainda, e está anotado em `ideia.md`: o `wheelSlip`
+chega a 177.5 sem se saber a unidade, e `carDamage` e `turbo` não são
+mostrados.
+
+Duas coisas que pareciam bugs e **não são**, para não voltar a elas:
+
+- **O combustível não mexia dentro da volta** (30,0 L constantes em duas
+  voltas) porque o **consumo estava desligado no jogo**. Opção do AC, não
+  erro de leitura.
+- **A delta a −37 s no início** porque a volta de referência foi a da
+  largada parada, que é muito mais lenta. É o comportamento certo, e é o
+  que se quer: a referência passa a ser a melhor volta e a comparação faz
+  sentido ao fim de uma volta.
 
 ---
 

@@ -276,16 +276,6 @@ Fica por decidir. Enquanto isso, o traço aparece mas vazio.
 
 ## Perguntas em aberto
 
-- **A primeira volta como referência da delta.** Numa corrida com
-  largada parada, a volta 1 inclui a saída e fica 1:56 contra as 1:20 de
-  um F1. A delta chega a mostrar **−37 s** até essa volta ser batida.
-  É aritmeticamente correcto e completamente inútil. A regra usual é não
-  aceitar a primeira volta como referência. Falta decidir se isso se
-  aplica sempre (custa uma volta de delta em todas as sessões) ou só
-  quando a volta é muito mais lenta do que a seguinte.
-- **O combustível não mexe dentro da volta.** 30,0 L constantes em 4502
-  amostras ao longo de duas voltas. Pode ser a resolução do valor no AC
-  ou pode ser o AC só o atualizar na mudança de volta. Não sei.
 - **`wheelSlip` chega a 177,5** numa roda. Não se sabe se é percentagem
   ou ângulo, e não é mostrado. Com 177% de derrapagem, ou a unidade não
   é percentagem ou o valor é um ângulo. Fica por investigar.
@@ -296,6 +286,20 @@ Fica por decidir. Enquanto isso, o traço aparece mas vazio.
   entre derivar das rodas traseiras (heurístico, pode falhar em curvas
   de baixa velocidade) ou escrever uma app Python no Content Manager que
   o publique. Está a ser mostrado como traço vazio, sem inventar valor.
+
+## Não são problemas (já esclarecidos)
+
+- **O combustível não mexer dentro da volta.** Cheguei a registar isto
+  como dúvida: 30,0 L constantes em 4502 amostras ao longo de duas
+  voltas. **O consumo de combustível estava desligado no jogo** — é uma
+  opção do AC, não um erro de leitura. Com o consumo ligado o valor
+  desce. Não investigar mais.
+- **A delta mostrar −37 s no início.** Numa corrida com largada parada a
+  volta 1 inclui a saída e fica muito mais lenta, por isso a delta
+  aparecer muito negativa até essa volta ser batida. **Isto é o
+  comportamento certo e é o que se quer.** A referência passa logo a ser
+  a melhor volta, e a comparação deixa de ter sentido ao fim de uma
+  volta. Não mexer.
 - **O sentido da embraiagem.** A documentação diz que `clutch` é a
   posição do pedal, 1 = totalmente premido. Mas a medir: parado o valor
   é ~0.1, e a 250 km/h é 1.0. Isso só faz sentido como **engate**
