@@ -315,14 +315,6 @@ body{
 }
 .grip-row{margin-top:5px;padding-top:0;border-bottom:0}
 
-/* Vida do pneu: o texto e' longo ("~12 voltas (3.4% por volta)"), por
-   isso vai numa linha so e com o corpo menor. O "--" e o "a medir" saem
-   a cinza, nunca a vermelho: nao ha' estimativa, nao ha' alarme. */
-.tyre-life-row{margin-top:5px;padding-top:0;border-bottom:0}
-.tyre-life-row b{font-size:12px;font-weight:700;white-space:nowrap}
-.tyre-life-row b.warn{color:var(--orange)}
-.tyre-life-row b.bad{color:var(--red)}
-
 /* luzes de estado */
 .lights{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:7px;margin-top:9px;flex:0 0 auto}
 .light{
@@ -402,17 +394,44 @@ body{
 .empty{color:#394042!important;font-weight:700!important}
 
 /* ------------------------------------------------------------ pneus */
-.tyres{flex:1 1 auto;display:grid;grid-template-columns:1fr 1fr;gap:6px;min-height:0}
-.tyre{background:var(--block);border-radius:6px;padding:5px 8px;display:flex;align-items:center;gap:8px;min-width:0}
-.tyre-name{font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--grey);flex:0 0 auto;width:22px}
-.tyre-mid{display:flex;flex-direction:column;flex:0 0 auto;line-height:1}
-.tyre-temp{font-weight:900;font-size:clamp(17px,1.9vw,24px);font-variant-numeric:tabular-nums}
-.tyre-worn{font-size:12px;font-weight:800;color:var(--white)}
+/* Vida do pneu: o numero ACCIONAVEL da seccao, por isso grande e no
+   topo. Antes era uma linha de 12 px no fundo do cartao, ao lado da
+   aderencia, e passava completamente despercebida. */
+.stint{
+  flex:0 0 auto;margin:2px 0 8px;padding:7px 10px;
+  background:var(--block);border-radius:7px;
+  border-left:3px solid var(--gold);
+}
+.stint.warn{border-left-color:var(--orange)}
+.stint.bad{border-left-color:var(--red)}
+.stint-lbl{font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--grey)}
+.stint-val{font-weight:900;font-size:clamp(24px,2.6vw,34px);line-height:1.05;font-variant-numeric:tabular-nums}
+.stint-val.warn{color:var(--orange)}
+.stint-val.bad{color:var(--red)}
+.stint-note{font-size:11px;font-weight:600;color:var(--grey);font-variant-numeric:tabular-nums;margin-top:1px}
+
+.tyres{flex:1 1 auto;display:grid;grid-template-columns:1fr 1fr;gap:7px;min-height:0}
+/* Cada pneu e' um bloco: o canto no topo-esquerda como etiqueta, a
+   temperatura como numero heroi, e o resto em corpo pequeno por baixo.
+   Era uma fila horizontal de tres coisas lado a lado, e a temperatura --
+   o numero que se quer ver a correr -- ficava espremida. */
+.tyre{
+  background:var(--block);border-radius:7px;padding:6px 9px 7px;
+  display:grid;grid-template-columns:auto 1fr;grid-template-areas:"nome temp" "nome sub";
+  align-items:center;column-gap:9px;row-gap:1px;min-width:0;
+}
+.tyre-name{
+  grid-area:nome;font-size:11px;font-weight:700;letter-spacing:.1em;
+  color:var(--grey);align-self:center;
+}
+.tyre-mid{grid-area:temp;display:flex;flex-direction:column;line-height:1;min-width:0}
+.tyre-temp{font-weight:900;font-size:clamp(20px,2.3vw,28px);font-variant-numeric:tabular-nums}
+.tyre-worn{font-size:12px;font-weight:800;color:var(--white);margin-top:2px}
 .tyre-worn.warn{color:var(--orange)}
 .tyre-worn.bad{color:var(--red)}
-.tyre-bar-wrap{flex:1 1 auto;display:flex;flex-direction:column;gap:3px;min-width:0}
-.tyre-bar{width:100%;height:7px;display:block;min-width:0}
-.tyre-press{font-size:11px;font-weight:700;color:var(--grey);text-align:right;font-variant-numeric:tabular-nums}
+.tyre-bar-wrap{grid-area:sub;display:flex;align-items:center;gap:7px;min-width:0}
+.tyre-bar{width:100%;height:8px;display:block;min-width:0}
+.tyre-press{font-size:11px;font-weight:700;color:var(--grey);text-align:right;font-variant-numeric:tabular-nums;flex:0 0 auto;white-space:nowrap}
 .brake-row{
   display:flex;align-items:baseline;gap:8px;
   margin-top:7px;padding-top:6px;border-top:1px solid var(--line);flex:0 0 auto;
@@ -463,9 +482,16 @@ body{
 .mini-speed{font-weight:900;font-size:clamp(34px,3.6vw,52px);line-height:1;display:flex;align-items:baseline;gap:3px}
 .mini-speed small{font-size:.3em;color:var(--grey)}
 .mini-gear{font-weight:900;font-size:clamp(40px,4.2vw,60px);color:var(--gold);line-height:1}
-/* pneus na faixa lateral: versao compacta, sem as barras, sem esticar */
+/* pneus na faixa lateral: versao compacta, sem as barras, sem esticar.
+   O .tyre passou a ser uma grelha de duas areas, por isso o compacto
+   declara as areas todas -- se nao, a barra cai para uma terceira linha
+   implicita e o bloco da altura dispara. */
 .tyres-mini{margin-top:9px;gap:4px;flex:0 0 auto;grid-auto-rows:min-content}
-.tyres-mini .tyre{padding:4px 7px;gap:6px}
+.tyres-mini .tyre{
+  padding:4px 7px;gap:6px;
+  grid-template-columns:auto 1fr;
+  grid-template-areas:"nome temp" "nome sub";
+}
 .tyres-mini .tyre-temp{font-size:17px}
 .tyres-mini .tyre-bar-wrap{display:none}
 
@@ -504,6 +530,16 @@ body.paused .app{opacity:.6;filter:saturate(.5)}
      deixa de se ler. Medido: a 1100 px ficava com 69 px. */
   .c-pedals{min-height:260px}
   .grid-both .c-pedals{min-height:300px}
+  /* O bloco da vida do pneu, em tamanho grande, empurrava os cartoes
+     vizinhos: as linhas da grelha sao 1.1fr / 1fr / 1fr, entao um cartao
+     mais alto ENCOLHE os outros -- e o dos pedais ficava a transbordar
+     (medido: 349 px de conteudo num cartao de 260, a 1100 px).
+     Nesta zona de duas colunas o bloco passa a uma linha: o numero
+     continua grande, mas deixa de custar 79 px de altura. */
+  .stint{display:flex;align-items:baseline;gap:9px;padding:5px 9px;margin:0 0 6px}
+  .stint-lbl{flex:0 0 auto}
+  .stint-val{font-size:clamp(20px,2.2vw,27px);flex:0 0 auto}
+  .stint-note{margin-left:auto;text-align:right;flex:0 1 auto;min-width:0}
 }
 @media (max-width:860px){
   body{overflow:auto}

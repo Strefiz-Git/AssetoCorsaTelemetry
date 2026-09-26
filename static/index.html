@@ -302,6 +302,19 @@
           <h2 data-i18n="tyres.title">PNEUS E TRAVÕES</h2>
           <span class="compound" id="compound-code" hidden></span>
         </div>
+
+        <!-- Quantas voltas de vida faltam, medido pelo desgaste que ja
+             aconteceu. E' o numero ACCIONAVEL da seccao, por isso vai
+             em grande e em cima, e nao numa linha pequena no fundo.
+             Nao e' um numero do jogo: o AC nao publica a vida do
+             composto. Antes de haver duas voltas medidas escreve
+             "a medir" em vez de um numero inventado. -->
+        <div class="stint" id="tyre-life-box">
+          <div class="stint-lbl" data-i18n="tyres.life">Vida do pneu</div>
+          <div class="stint-val" id="tyre-life">—</div>
+          <div class="stint-note" id="tyre-life-note"></div>
+        </div>
+
         <p class="compound-name" id="compound-name">—</p>
         <div class="tyres" id="tyres"></div>
         <div class="brake-row">
@@ -311,14 +324,6 @@
         <div class="kv grip-row">
           <span data-i18n="wx.grip">ADERÊNCIA</span>
           <b id="wx-grip">—</b>
-        </div>
-        <!-- Quantas voltas de vida faltam, medido pelo desgaste que ja
-             aconteceu. Nao e' um numero do jogo: o AC nao publica a vida
-             do composto. Antes de haver duas voltas medidas escreve
-             "a medir" em vez de um numero inventado. -->
-        <div class="kv tyre-life-row">
-          <span data-i18n="tyres.life">Vida do pneu</span>
-          <b id="tyre-life">—</b>
         </div>
       </section>
 

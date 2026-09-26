@@ -501,6 +501,46 @@ certo; com 132 m está errado. Ver `tests\mapa.py analisa`.
 
 ---
 
+## Em aberto — o desenho dos pedais e o transbordo do cartão dos pedais
+
+**O transbordo é ANTERIOR, provado com o CSS antigo.** Medido nas cinco
+larguras da zona de duas colunas (861–1240 px), com o `style.css` do
+`HEAD` e com o actual, lado a lado:
+
+| largura | CSS antigo | CSS actual |
+|---|---|---|
+| 1240 px | pedais 358 > 260 **transborda** | 358 > 260 **transborda** |
+| 1100 px | pedais 349 > 260 **transborda** | 349 > 260 **transborda** |
+| 1000 px | pedais 342 > 260 **transborda** | 342 > 260 **transborda** |
+| 900 px | pedais 335 > 260 **transborda** | 335 > 260 **transborda** |
+| 880 px | pedais 334 > 260 **transborda** | 334 > 260 **transborda** |
+
+O cartão dos pneus está `ok` nos dois. Nada disto veio da vida do pneu.
+
+**Porque acontece.** As linhas da grelha são `1.1fr 1fr 1fr` — dependem
+das fracções, não do conteúdo dos cartões. Com a janela a 900 px de
+altura sobram ~260 px para a linha do meio, e o cartão dos pedais
+precisa de ~350: título 15 + gráfico 170 + volante 89 + teclas 38 +
+enchimento 22.
+
+**Já se tentou e não deu:** repartir a diferença nas fracções
+(`1fr 1.28fr 1fr`) e encolher o gráfico para 132 px. Resolve o dos pedais
+por pouco, mas faz o cartão dos pneus transbordar (243 > 234 a 1240 px) —
+troca-se um problema por outro. revertedido.
+
+**As saídas que fazem sentido, por ordem de custo:**
+
+1. A zona de duas colunas é que não cabe. A 861–1240 px o painel tem
+   3 linhas; abaixo de ~1000 px de altura isso é impossible. A solução
+   honesta é deixar a página rolar, como já acontece abaixo de 860 px.
+2. Esconder a linha das teclas dos pedais nessa zona (poupa 38 px) e
+   encolher o volante. Custa informação.
+3. Passar a zona de duas colunas a ter duas linhas em vez de três.
+
+Fica para decidir com o piloto, porque as três mexem no que se vê.
+
+---
+
 ## Ficheiros
 
 | | |

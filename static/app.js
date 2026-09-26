@@ -57,7 +57,7 @@ const I18N = {
     'laps.last': 'ANTERIOR', 'laps.delta': 'DELTA',
     'tyres.title': 'PNEUS E TRAVÕES', 'tyres.worn': 'gasto',
     'tyres.life': 'Vida do pneu', 'tyres.lapsLeft': 'voltas',
-    'tyres.measuring': 'a medir', 'tyres.used': 'gasto', 'tyres.perLap': 'por volta',
+    'tyres.measuring': 'a medir', 'tyres.used': 'gasto', 'tyres.perLap': 'por volta', 'tyres.needTwoLaps': 'Faltam 2 voltas para estimar', 'tyres.lapsOnThisSet': 'voltas neste jogo',
     'tyres.lifeNote': 'Estimativa feita do desgaste que já aconteceu neste stint, não de uma tabela do jogo: o Assetto Corsa não publica a vida do composto. Depois de duas voltas medidas o número já significa alguma coisa; antes disso é um palpite.',
     'brakes.title': 'TRAVÕES', 'fuel.title': 'COMBUSTÍVEL',
     'wx.air': 'AR', 'wx.road': 'PISTA', 'wx.wind': 'VENTO', 'wx.density': 'DENSIDADE', 'wx.grip': 'ADERENCIA', 'unit.c': '°C',
@@ -119,7 +119,7 @@ const I18N = {
     'laps.last': 'ANTERIOR', 'laps.delta': 'DELTA',
     'tyres.title': 'PNEUS E FREIOS', 'tyres.worn': 'usado',
     'tyres.life': 'Vida do pneu', 'tyres.lapsLeft': 'voltas',
-    'tyres.measuring': 'medindo', 'tyres.used': 'usado', 'tyres.perLap': 'por volta',
+    'tyres.measuring': 'medindo', 'tyres.used': 'usado', 'tyres.perLap': 'por volta', 'tyres.needTwoLaps': 'Faltam 2 voltas para estimar', 'tyres.lapsOnThisSet': 'voltas neste stint',
     'tyres.lifeNote': 'Estimativa feita do desgaste que já aconteceu neste stint, não de uma tabela do jogo: o Assetto Corsa não publica a vida do pneu. Depois de duas voltas medidas o número já significa alguma coisa; antes disso é um palpite.',
     'brakes.title': 'FREIOS', 'fuel.title': 'COMBUSTÍVEL',
     'wx.air': 'AR', 'wx.road': 'PISTA', 'wx.wind': 'VENTO', 'wx.density': 'DENSIDADE', 'wx.grip': 'ADERENCIA', 'unit.c': '°C',
@@ -180,7 +180,7 @@ const I18N = {
     'laps.last': 'ANTERIOR', 'laps.delta': 'DELTA',
     'tyres.title': 'NEUMÁTICOS Y FRENOS', 'tyres.worn': 'gastado',
     'tyres.life': 'Vida del neumático', 'tyres.lapsLeft': 'vueltas',
-    'tyres.measuring': 'midiendo', 'tyres.used': 'gastado', 'tyres.perLap': 'por vuelta',
+    'tyres.measuring': 'midiendo', 'tyres.used': 'gastado', 'tyres.perLap': 'por vuelta', 'tyres.needTwoLaps': 'Faltan 2 vueltas para poder estimar', 'tyres.lapsOnThisSet': 'vueltas en este stint',
     'tyres.lifeNote': 'Estimación a partir del desgaste que ya ha ocurrido en este stint, no de una tabla del juego: Assetto Corsa no publica la vida del compuesto. Tras dos vueltas medidas el número ya significa algo; antes es una suposición.',
     'brakes.title': 'FRENOS', 'fuel.title': 'COMBUSTIBLE',
     'wx.air': 'AIRE', 'wx.road': 'PISTA', 'wx.wind': 'VIENTO', 'wx.density': 'DENSIDAD', 'wx.grip': 'ADHERENCIA', 'unit.c': '°C',
@@ -244,7 +244,7 @@ const I18N = {
     'laps.last': 'LAST', 'laps.delta': 'DELTA',
     'tyres.title': 'TYRES AND BRAKES', 'tyres.worn': 'worn',
     'tyres.life': 'Tyre life', 'tyres.lapsLeft': 'laps',
-    'tyres.measuring': 'measuring', 'tyres.used': 'worn', 'tyres.perLap': 'per lap',
+    'tyres.measuring': 'measuring', 'tyres.used': 'worn', 'tyres.perLap': 'per lap', 'tyres.needTwoLaps': 'Needs 2 laps before it can estimate', 'tyres.lapsOnThisSet': 'laps on this set',
     'tyres.lifeNote': 'Estimated from the wear that has already happened on this stint, not from a game table: Assetto Corsa does not publish the compound life. After two measured laps the number means something; before that it is a guess.',
     'brakes.title': 'BRAKES', 'fuel.title': 'FUEL',
     'wx.air': 'AIR', 'wx.road': 'TRACK', 'wx.wind': 'WIND', 'wx.density': 'DENSITY', 'wx.grip': 'GRIP', 'unit.c': '°C',
@@ -1328,14 +1328,23 @@ function renderTyres(hostId, d) {
 /* ------------------------------------------------- vida do pneu (medida) */
 function renderTyreLife(d) {
   const el = $('tyre-life');
+  const note = $('tyre-life-note');
+  const box = $('tyre-life-box');
   if (!el) return;
-  // so' faz sentido em corrida: em treino nao ha' stint para medir
-  const restante = (d.tyreWear || []).filter((v) => typeof v === 'number');
-  if (!d.connected || restante.length === 0) {
-    el.textContent = '--';
-    el.className = '';
-    return;
-  }
+  const porMedir = (msg) => {
+    el.textContent = msg;
+    el.className = 'stint-val';
+    if (note) note.textContent = '';
+    if (box) box.classList.remove('warn', 'bad');
+  };
+  // Mede-se a partir do 'gasto', que vem com 2 casas decimais, e nao do
+  // 'restante', que o acshm.py arredonda a 1. Dez vezes mais resolucao:
+  // um stint que gasta 0,4% por volta, ao fim de uma volta da 0,0 com
+  // uma casa e nunca media nada.
+  const usado = (d.tyreWearUsed || []).filter((v) => typeof v === 'number' && isFinite(v));
+  if (!d.connected || usado.length === 0) { porMedir('—'); return; }
+  const restante = usado.map((u) => 100 - u);
+
   const r = Pneus.estimarPneus(S.pneuStint, {
     compound: d.compound || '',
     volta: d.lap,
@@ -1343,15 +1352,20 @@ function renderTyreLife(d) {
   });
   S.pneuStint = r.estado;
   if (!r.valido) {
-    el.textContent = t('tyres.measuring');
-    el.className = '';
+    porMedir(t('tyres.measuring'));
+    if (note) note.textContent = t('tyres.needTwoLaps');
     return;
   }
   const voltas = Math.floor(r.voltasRestantes);
   // arredondar para baixo nunca promete uma volta a mais do que existe
-  el.textContent = '~' + voltas + ' ' + t('tyres.lapsLeft')
-    + '  (' + r.porVolta.toFixed(1) + '% ' + t('tyres.perLap') + ')';
-  el.className = voltas <= 2 ? 'bad' : voltas <= 5 ? 'warn' : '';
+  el.textContent = '~' + voltas;
+  const cls = voltas <= 2 ? 'bad' : voltas <= 5 ? 'warn' : '';
+  el.className = 'stint-val' + (cls ? ' ' + cls : '');
+  if (box) box.className = 'stint' + (cls ? ' ' + cls : '');
+  if (note) {
+    note.textContent = r.voltasNoStint + ' ' + t('tyres.lapsOnThisSet')
+      + ' · ' + r.porVolta.toFixed(1) + '% ' + t('tyres.perLap');
+  }
   el.title = t('tyres.lifeNote');
 }
 
