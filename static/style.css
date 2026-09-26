@@ -13,9 +13,25 @@
 
 :root{
   --bg:#000; --panel:#151C1D; --block:#171717; --line:#22292a;
-  --white:#fff; --grey:#555C5D;
+  /* O cinzento estava em #555C5D, que mede 2,53:1 sobre o painel -- quase
+     metade do minimo AA de 4,5:1, e estava em 43 regras. Subi para
+     #7A8486, que da 4,53:1 sobre o painel e 4,53:1 sobre o bloco.
+     Medido, nao estimado: ver acessibilidade.md, secao 1.
+
+     --vazio e' o tom do estado sem valor ("--:--.---", o "—" dos campos
+     que ainda nao chegaram). #7D8586 da 4,58:1 sobre o painel. A janela
+     para um tom NAO VALE separado e' quase nenhuma: o --grey normal
+     esta a 4,53:1 e o vazio a 4,58:1. Por isso o "nao ha valor" se
+     diz pelos tracos ("--:--.---") e nao por estar mais escuro. */
+  --white:#fff; --grey:#7A8486; --vazio:#7D8586;
   --gold:#FFD700; --orange:#F58020; --green:#23CF16; --red:#FF0000;
+  /* O vermelho puro e' bom como CHEIO (a barra, o ponto) e mau como
+     TEXTO: #FF0000 da 4,32:1 sobre o painel, e o minimo para texto e'
+     4,5:1. Portanto ha dois vermelhos. O mesmo vale para o azul, que
+     com texto branco por cima dava 4,48:1 -- quase a falhar. */
+  --red-txt:#FF3C3C;        /* 4,91:1 no painel, 5,09:1 no bloco */
   --blue:#2B6CFF;
+  --badge-blue:#265CE0;     /* 5,69:1 com branco por cima */
   --gap:10px;
   --r:8px;
 }
@@ -147,7 +163,7 @@ body{
 }
 .h-flag.f-yellow{background:var(--gold);color:#000}
 .h-flag.f-red{background:var(--red);color:#fff}
-.h-flag.f-blue{background:var(--blue);color:#fff}
+.h-flag.f-blue{background:var(--badge-blue);color:#fff}
 .h-flag.f-checkered{background:#fff;color:#000}
 .h-pos{font-weight:900;font-size:26px;color:var(--gold);line-height:1}
 .h-lap{color:var(--grey);font-weight:700;font-size:12px;white-space:nowrap}
@@ -164,7 +180,7 @@ body{
   background:#1a1e1f;flex:0 0 auto;
   transition:background .1s,box-shadow .1s;
 }
-.drs-txt{font-weight:900;font-size:17px;letter-spacing:.12em;color:#3c4344;transition:color .12s}
+.drs-txt{font-weight:900;font-size:17px;letter-spacing:.12em;color:var(--vazio);transition:color .12s}
 
 /* versao junto da velocidade/rpm: banda larga em vez de pilula, para
    ser vista a reolho enquanto se olha para a velocidade e nao para o
@@ -194,6 +210,52 @@ body{
 @keyframes drs-box-flash{
   0%,49%{background:rgba(35,207,22,.32)}
   50%,100%{background:var(--block)}
+}
+
+/* ------------------------------------------------------------ movimento
+ *
+ * Quatro animacoes infinitas e nenhuma forma de as desligar. Quem tem
+ * uma perturbacao do equilibrio, enxaquecas ou enjoo com animacao
+ * recebe as quatro sem poder parar.
+ *
+ * O DRS e' requisito: pisca verde quando esta disponivel e ainda nao foi
+ * ligado, solido quando esta aberto. Nao se tira isso. O que se faz e'
+ * dar a mesma informacao SEM movimento, e a diferenca passa a ser a
+ * forma em vez do piscar: "disponivel" fica com o contorno tracejado e
+ * o ponto oco, "aberto" fica com a caixa cheia e o ponto solido. Ninguem
+ * perde a informacao; so deixa de haver movimento.
+ *
+ * A preferencia e' do sistema operativo (Windows: Definicoes >
+ * Acessibilidade > Efeitos visuais > Animacoes). */
+@media (prefers-reduced-motion:reduce){
+  .spinner{animation:none;border-top-color:var(--gold)}
+  .wide-btn.mark{animation:none;box-shadow:0 0 0 2px var(--green)}
+
+  .drs.avail{animation:none;background:#122a10;border-style:dashed}
+  .drs.avail .drs-dot{animation:none;background:transparent;box-shadow:inset 0 0 0 3px var(--green)}
+  .drs.open{background:#122a10}
+  .drs.open .drs-dot{box-shadow:0 0 0 3px var(--green)}
+
+  /* o resto das transicoes: mantem o antes/depois, tira a duracao */
+  *{transition-duration:.01ms!important}
+}
+
+/* --------------------------------------------------- alto contraste
+ *
+ * O modo de alto contraste do Windows substitui as cores declaradas
+ * pelas do sistema. Como aqui quase tudo e' pintado -- fundos, barras,
+ * canvas, pontos do mapa -- sem isto o modo de alto contraste
+ * desconstroi a aplicacao. O que se declara sao as cores de sistema
+ * apenas onde a COR TRANSPORTA INFORMACAO. */
+@media (forced-colors:active){
+  .drs,.drs-dot{border-color:Highlight;forced-color-adjust:none;background:Canvas;color:Highlight}
+  .drs.open{background:Highlight;color:HighlightText}
+  .l-bar i,.bar-fill,.rpm-fill{background:Highlight;forced-color-adjust:none}
+  .l-bar,.bar-track,.rpm-track{border:1px solid CanvasText}
+  .empty{color:CanvasText!important}
+  .lb-row.me{outline:2px solid Highlight}
+  .dmg-bar b{background:Highlight;forced-color-adjust:none}
+  .dmg-bar{border:1px solid CanvasText}
 }
 
 /* ------------------------------------------------------------ grelhas */
@@ -391,7 +453,7 @@ body{
 .bar-fill.fuel{background:linear-gradient(90deg,var(--orange),var(--gold))}
 
 /* valores vazios: "--" em Titillium Black sai como um bloco pesado */
-.empty{color:#394042!important;font-weight:700!important}
+.empty{color:var(--vazio)!important;font-weight:700!important}
 
 /* ------------------------------------------------------------ pneus */
 /* Vida do pneu: o numero ACCIONAVEL da seccao, por isso grande e no
@@ -439,7 +501,11 @@ body{
   font-variant-numeric:tabular-nums;
 }
 .tyre-press b{font-size:11px;font-weight:700;color:var(--grey)}
-.tyre-press span{font-size:11px;font-weight:700;color:#3F4647;text-align:right}
+/* A pressao e' o numero medido, e o desvio (no <b>) e' o secundario.
+   Estava ao contrario: a pressao num tom quase invisivel (1,86:1) e o
+   desvio a cinzento. A pressao vai a branco e fica pequena; o desvio
+   fica a cinzento, que e' o que lhe compete. */
+.tyre-press span{font-size:11px;font-weight:700;color:var(--white);text-align:right}
 .brake-row{
   display:flex;align-items:baseline;gap:8px;
   margin-top:7px;padding-top:6px;border-top:1px solid var(--line);flex:0 0 auto;
