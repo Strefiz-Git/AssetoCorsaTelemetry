@@ -1,171 +1,348 @@
 <!DOCTYPE html>
-<html lang="pt">
+<html lang="pt-PT">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Telemetria AC</title>
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#000000">
+<title data-i18n="app.title">Telemetria AC</title>
 <link rel="stylesheet" href="/style.css">
 </head>
-<body>
+<body class="booting">
 
-<div id="offline" class="offline">
-  <div class="offline-box">
+<!-- ================================================== espera / arranque -->
+<div id="boot" class="boot">
+  <div class="boot-box">
     <div class="spinner"></div>
-    <h1>A aguardar o Assetto Corsa</h1>
-    <p id="offline-msg">A ler a telemetria directamente do jogo&hellip;</p>
+    <h1 data-i18n="boot.waiting">A aguardar o Assetto Corsa</h1>
+    <p id="boot-msg" data-i18n="boot.reading">A ler a telemetria directamente do jogo…</p>
   </div>
 </div>
 
+<!-- ================================================== menu inicial -->
+<div id="menu" class="overlay hidden">
+  <div class="menu-box">
+    <h1 data-i18n="menu.title">O que queres ver?</h1>
+    <p class="menu-sub" data-i18n="menu.sub">Podes mudar a qualquer momento nas definições.</p>
+
+    <div class="menu-cards">
+      <button class="menu-card" data-mode="telemetry">
+        <span class="mc-ico" aria-hidden="true">
+          <svg viewBox="0 0 40 28"><path d="M2 14a12 12 0 0 1 24 0 12 12 0 0 1-24 0" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M20 14l7-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+        </span>
+        <b data-i18n="menu.telemetry">Telemetria</b>
+        <small data-i18n="menu.telemetryDesc">Velocidade, rpm, pedais, pneus, combustível</small>
+      </button>
+
+      <button class="menu-card" data-mode="leaderboard">
+        <span class="mc-ico" aria-hidden="true">
+          <svg viewBox="0 0 40 28"><path d="M5 6h30M5 14h22M5 22h26" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>
+        </span>
+        <b data-i18n="menu.leaderboard">Leaderboard</b>
+        <small data-i18n="menu.leaderboardDesc">Classificação de todos os carros</small>
+      </button>
+
+      <button class="menu-card" data-mode="both">
+        <span class="mc-ico" aria-hidden="true">
+          <svg viewBox="0 0 40 28"><rect x="2" y="4" width="17" height="20" rx="2" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M24 9h14M24 15h11M24 21h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+        </span>
+        <b data-i18n="menu.both">Misto</b>
+        <small data-i18n="menu.bothDesc">Telemetria e leaderboard ao mesmo tempo</small>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================== definições -->
+<div id="settings" class="drawer hidden">
+  <div class="drawer-head">
+    <h2 data-i18n="set.title">Definições</h2>
+    <button id="set-close" class="icon-btn" aria-label="Fechar">✕</button>
+  </div>
+
+  <div class="set-body">
+    <section class="set-group">
+      <h3 data-i18n="set.mode">Vista</h3>
+      <div class="seg" id="set-mode">
+        <button data-mode="telemetry" data-i18n="menu.telemetry">Telemetria</button>
+        <button data-mode="leaderboard" data-i18n="menu.leaderboard">Leaderboard</button>
+        <button data-mode="both" data-i18n="menu.both">Misto</button>
+      </div>
+    </section>
+
+    <section class="set-group">
+      <h3 data-i18n="set.units">Unidades</h3>
+      <div class="seg" id="set-temp">
+        <button data-v="C">°C</button>
+        <button data-v="F">°F</button>
+      </div>
+      <div class="seg" id="set-speed">
+        <button data-v="kmh">km/h</button>
+        <button data-v="mph">mph</button>
+      </div>
+    </section>
+
+    <section class="set-group">
+      <h3 data-i18n="set.lang">Idioma</h3>
+      <div class="seg col" id="set-lang">
+        <button data-v="pt-PT">Português (Portugal)</button>
+        <button data-v="pt-BR">Português (Brasil)</button>
+        <button data-v="es">Español</button>
+        <button data-v="en">English</button>
+      </div>
+    </section>
+
+    <section class="set-group">
+      <h3 data-i18n="set.map">Mapa</h3>
+      <div class="seg" id="set-map">
+        <button data-v="on" data-i18n="set.mapOn">Mostrar</button>
+        <button data-v="off" data-i18n="set.mapOff">Esconder</button>
+      </div>
+      <button id="set-clear" class="wide-btn" data-i18n="set.clearMap">Apagar o mapa desenhado</button>
+    </section>
+
+    <section class="set-group">
+      <h3 data-i18n="set.about">Sobre</h3>
+      <p class="set-note" data-i18n="set.aboutBody">Telemetria lida directamente da memória do Assetto Corsa. Sem SimHub.</p>
+    </section>
+  </div>
+</div>
+
+<!-- ================================================== aplicação -->
 <main id="app" class="app hidden">
 
   <!-- ------------------------------------------------ cabeçalho -->
-  <header class="bar">
-    <div class="bar-l">
-      <span class="track" id="track">—</span>
-      <span class="sep"></span>
-      <span class="car" id="car">—</span>
+  <header class="head">
+    <button id="btn-menu" class="icon-btn" aria-label="Menu">
+      <svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+    </button>
+
+    <!-- luz de DRS: a maior coisa do cabeçalho, tem de ser vista de relance -->
+    <div class="drs" id="drs-light">
+      <span class="drs-dot"></span>
+      <span class="drs-txt" data-i18n="drs.short">DRS</span>
     </div>
-    <div class="bar-c">
-      <span class="flag" id="flag">LIMPA</span>
-      <span class="session" id="session">—</span>
+
+    <div class="head-id">
+      <span class="h-track" id="track">—</span>
+      <span class="h-car" id="car">—</span>
     </div>
-    <div class="bar-r">
-      <span class="pos" id="pos">—</span>
-      <span class="lap" id="lap">—</span>
+
+    <div class="head-session">
+      <span id="session">—</span>
+      <span class="dot-sep"></span>
+      <span id="compound">—</span>
+    </div>
+
+    <div class="head-right">
+      <span class="h-flag" id="flag">—</span>
+      <span class="h-pos" id="pos">—</span>
+      <span class="h-lap" id="lap">—</span>
+      <button id="btn-set" class="icon-btn" aria-label="Definições">
+        <svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
     </div>
   </header>
 
-  <div class="grid">
+  <!-- ============================ MODO TELEMETRIA ==================== -->
+  <div class="view view-tel" data-view="telemetry">
+    <div class="grid-tel">
 
-    <!-- -------------------------------------------- mapa -->
-    <section class="card map-card">
-      <h2>MAPA DA PISTA</h2>
-      <canvas id="map"></canvas>
-      <div class="map-info">
-        <span id="trackpct">—</span>
-        <span id="sector">S—</span>
-        <button id="map-clear" title="apagar o mapa desenhado">limpar</button>
-      </div>
-    </section>
-
-    <!-- -------------------------------------------- central -->
-    <section class="card main-card">
-      <div class="gear-strip">
-        <div class="gear" id="gear">N</div>
-        <div class="pedals">
-          <div class="pedal"><label>TRAVA</label><i id="brake-bar"></i></div>
-          <div class="pedal"><label>ACEL.</label><i id="throttle-bar"></i></div>
+      <section class="card c-map">
+        <h2 data-i18n="map.title">MAPA DA PISTA</h2>
+        <canvas id="map"></canvas>
+        <div class="map-legend">
+          <span id="trackpct">—</span>
+          <span id="sector">—</span>
         </div>
-      </div>
+      </section>
 
-      <div class="speed-block">
-        <div class="speed" id="speed">0</div>
-        <div class="speed-unit">km/h</div>
-      </div>
-
-      <div class="rpm-block">
-        <div class="rpm-track">
-          <div class="rpm-fill" id="rpm-fill"></div>
-          <div class="rpm-redline" id="rpm-redline"></div>
+      <section class="card c-main">
+        <div class="cluster">
+          <div class="gear-box">
+            <div class="gear" id="gear">N</div>
+            <div class="gear-lbl" data-i18n="gear.label">CAIXA</div>
+          </div>
+          <div class="speed-box">
+            <div class="speed" id="speed">0</div>
+            <div class="speed-unit"><span data-i18n="unit.kmh">km/h</span></div>
+          </div>
         </div>
-        <div class="rpm-text"><span id="rpm">0</span> rpm</div>
-      </div>
 
-      <div class="chips">
-        <div class="chip" id="chip-drs"><label>DRS</label><b>—</b></div>
-        <div class="chip" id="chip-ers"><label>ERS</label><b>—</b></div>
-        <div class="chip" id="chip-pen"><label>PEN</label><b>—</b></div>
-        <div class="chip" id="chip-abs"><label>ABS</label><b>—</b></div>
-        <div class="chip" id="chip-tc"><label>TC</label><b>—</b></div>
-        <div class="chip" id="chip-pit"><label>PIT</label><b>—</b></div>
-      </div>
-    </section>
-
-    <!-- -------------------------------------------- tempos -->
-    <section class="card times-card">
-      <h2>VOLTAS</h2>
-      <div class="time-row big">
-        <label>ATUAL</label>
-        <div class="val" id="t-current">--:--.---</div>
-      </div>
-      <div class="time-row">
-        <label>MELHOR</label>
-        <div class="val gold" id="t-best">--:--.---</div>
-      </div>
-      <div class="time-row">
-        <label>ANTERIOR</label>
-        <div class="val" id="t-last">--:--.---</div>
-      </div>
-      <div class="time-row delta-row">
-        <label>DELTA</label>
-        <div class="val" id="t-delta">+0.000</div>
-      </div>
-      <div class="bar-track" title="progresso da volta">
-        <div class="bar-fill" id="lap-progress"></div>
-      </div>
-    </section>
-
-    <!-- -------------------------------------------- pneus -->
-    <section class="card tyres-card">
-      <h2>PNEUS</h2>
-      <div class="tyres">
-        <div class="tyre" data-i="0">
-          <div class="tyre-name">FL</div>
-          <div class="tyre-temp" id="tt-0">--</div>
-          <canvas class="tyre-bar" id="tb-0" width="120" height="8"></canvas>
-          <div class="tyre-sub"><span id="tw-0">--</span> worn</div>
+        <div class="rpm">
+          <div class="rpm-track">
+            <div class="rpm-fill" id="rpm-fill"></div>
+            <div class="rpm-mark" id="rpm-mark"></div>
+          </div>
+          <div class="rpm-foot">
+            <span id="rpm">0</span> <span data-i18n="unit.rpm">rpm</span>
+            <span class="rpm-gear-hint" id="shift-hint"></span>
+          </div>
         </div>
-        <div class="tyre" data-i="1">
-          <div class="tyre-name">FR</div>
-          <div class="tyre-temp" id="tt-1">--</div>
-          <canvas class="tyre-bar" id="tb-1" width="120" height="8"></canvas>
-          <div class="tyre-sub"><span id="tw-1">--</span> worn</div>
-        </div>
-        <div class="tyre" data-i="2">
-          <div class="tyre-name">RL</div>
-          <div class="tyre-temp" id="tt-2">--</div>
-          <canvas class="tyre-bar" id="tb-2" width="120" height="8"></canvas>
-          <div class="tyre-sub"><span id="tw-2">--</span> worn</div>
-        </div>
-        <div class="tyre" data-i="3">
-          <div class="tyre-name">RR</div>
-          <div class="tyre-temp" id="tt-3">--</div>
-          <canvas class="tyre-bar" id="tb-3" width="120" height="8"></canvas>
-          <div class="tyre-sub"><span id="tw-3">--</span> worn</div>
-        </div>
-      </div>
-    </section>
 
-    <!-- -------------------------------------------- travões -->
-    <section class="card brakes-card">
-      <h2>TRAVÕES</h2>
-      <div class="brakes">
-        <div class="brake"><div class="brake-v" id="bt-0">--</div><span>FL</span></div>
-        <div class="brake"><div class="brake-v" id="bt-1">--</div><span>FR</span></div>
-        <div class="brake"><div class="brake-v" id="bt-2">--</div><span>RL</span></div>
-        <div class="brake"><div class="brake-v" id="bt-3">--</div><span>RR</span></div>
-      </div>
-    </section>
+        <div class="lights">
+          <div class="light" id="l-ers">
+            <span class="l-lbl" data-i18n="ers.short">ERS</span>
+            <span class="l-val">—</span>
+            <div class="l-bar"><i id="ers-bar"></i></div>
+          </div>
+          <div class="light" id="l-abs">
+            <span class="l-lbl">ABS</span>
+            <span class="l-val" data-i18n="state.off">OFF</span>
+          </div>
+          <div class="light" id="l-tc">
+            <span class="l-lbl">TC</span>
+            <span class="l-val" data-i18n="state.off">OFF</span>
+          </div>
+          <div class="light" id="l-pit">
+            <span class="l-lbl" data-i18n="pit.short">PIT</span>
+            <span class="l-val">—</span>
+          </div>
+        </div>
+      </section>
 
-    <!-- -------------------------------------------- combustível -->
-    <section class="card fuel-card">
-      <h2>COMBUSTÍVEL</h2>
-      <div class="fuel-num"><span id="fuel-pct">0</span><small>%</small></div>
-      <div class="bar-track tall">
-        <div class="bar-fill fuel" id="fuel-bar"></div>
-      </div>
-      <div class="kv"><span>na reserva</span><b id="fuel-l">0.0 L</b></div>
-      <div class="kv"><span>capacidade</span><b id="fuel-max">0 L</b></div>
-      <div class="kv"><span>ar / pista</span><b id="temps">-- / --</b></div>
-      <div class="kv"><span>penalidade</span><b id="pen-time">—</b></div>
-    </section>
+      <section class="card c-pedals">
+        <h2 data-i18n="pedals.title">PEDAIS</h2>
+        <canvas id="pedals"></canvas>
+        <div class="pedal-keys">
+          <span><i style="background:var(--green)"></i><span data-i18n="pedals.throttle">ACEL.</span><b id="v-throttle">0</b></span>
+          <span><i style="background:var(--red)"></i><span data-i18n="pedals.brake">TRAVA</span><b id="v-brake">0</b></span>
+          <span><i style="background:var(--blue)"></i><span data-i18n="pedals.clutch">EMBRAIAGEM</span><b id="v-clutch">0</b></span>
+          <span id="hb-key"><i style="background:var(--gold)"></i><span data-i18n="pedals.handbrake">FREIO DE MÃO</span><b id="v-handbrake">—</b></span>
+        </div>
+      </section>
 
+      <section class="card c-laps">
+        <h2 data-i18n="laps.title">VOLTAS</h2>
+        <div class="laps-now">
+          <span class="ln-lbl" data-i18n="laps.current">ATUAL</span>
+          <span class="ln-val" id="t-current">--:--.---</span>
+        </div>
+        <div class="laps-grid">
+          <div><span data-i18n="laps.best">MELHOR</span><b class="gold" id="t-best">--:--.---</b></div>
+          <div><span data-i18n="laps.last">ANTERIOR</span><b id="t-last">--:--.---</b></div>
+          <div class="wide"><span data-i18n="laps.delta">DELTA</span><b id="t-delta">+0.000</b></div>
+        </div>
+        <div class="sectors" id="sectors"></div>
+        <div class="bar-track"><div class="bar-fill" id="lap-progress"></div></div>
+      </section>
+
+      <section class="card c-tyres">
+        <h2 data-i18n="tyres.title">PNEUS E TRAVÕES</h2>
+        <div class="tyres" id="tyres"></div>
+        <div class="brake-row">
+          <span data-i18n="brakes.title">TRAVÕES</span>
+          <b id="brake-temp">—</b>
+        </div>
+      </section>
+
+      <section class="card c-fuel">
+        <h2 data-i18n="fuel.title">COMBUSTÍVEL</h2>
+        <div class="fuel-big"><span id="fuel-pct">0</span><small>%</small></div>
+        <div class="bar-track tall"><div class="bar-fill fuel" id="fuel-bar"></div></div>
+        <div class="kv"><span data-i18n="fuel.inTank">Na reserva</span><b id="fuel-l">0.0 L</b></div>
+        <div class="kv"><span data-i18n="fuel.lapsLeft">Voltas</span><b id="fuel-laps">—</b></div>
+        <div class="kv"><span data-i18n="fuel.ambient">Ar / pista</span><b id="temps">—</b></div>
+        <div class="kv"><span data-i18n="fuel.penalty">Penalidade</span><b id="pen-time">—</b></div>
+        <div class="kv"><span data-i18n="fuel.ersUsed">ERS na volta</span><b id="ers-used">—</b></div>
+      </section>
+
+    </div>
+  </div>
+
+  <!-- ============================ MODO LEADERBOARD ================== -->
+  <div class="view view-lb hidden" data-view="leaderboard">
+    <div class="grid-lb">
+      <section class="card c-lb">
+        <h2 data-i18n="lb.title">CLASSIFICAÇÃO</h2>
+        <div class="lb-head">
+          <span class="lb-pos" data-i18n="lb.pos">P</span>
+          <span class="lb-name" data-i18n="lb.name">PILOTO</span>
+          <span class="lb-lap" data-i18n="lb.lap">VOLTA</span>
+          <span class="lb-time" data-i18n="lb.time">TEMPO</span>
+          <span class="lb-best" data-i18n="lb.best">MELHOR</span>
+          <span class="lb-gap" data-i18n="lb.gap">DIF.</span>
+        </div>
+        <div class="lb-rows" id="lb-rows"></div>
+        <div class="lb-note hidden" id="lb-note"></div>
+      </section>
+
+      <section class="card c-lbtel">
+        <h2 data-i18n="lb.telTitle">TEU CARRO</h2>
+        <div class="mini">
+          <div class="mini-speed"><span id="m-speed">0</span><small data-i18n="unit.kmh">km/h</small></div>
+          <div class="mini-gear" id="m-gear">N</div>
+        </div>
+        <div class="bar-track"><div class="bar-fill" id="m-rpm"></div></div>
+        <div class="kv"><span data-i18n="laps.current">ATUAL</span><b id="m-current">--:--.---</b></div>
+        <div class="kv"><span data-i18n="laps.delta">DELTA</span><b id="m-delta">+0.000</b></div>
+        <div class="kv"><span data-i18n="lb.penalty">Penalidade</span><b id="m-pen">—</b></div>
+        <div class="kv"><span data-i18n="lb.drs">DRS</span><b id="m-drs">—</b></div>
+      </section>
+    </div>
+  </div>
+
+  <!-- ============================ MODO MISTO ======================== -->
+  <div class="view view-both hidden" data-view="both">
+    <div class="grid-both">
+      <section class="card c-map">
+        <h2 data-i18n="map.title">MAPA DA PISTA</h2>
+        <canvas id="map2"></canvas>
+        <div class="map-legend"><span id="b-trackpct">—</span><span id="b-sector">—</span></div>
+      </section>
+
+      <section class="card c-main">
+        <div class="cluster">
+          <div class="gear-box">
+            <div class="gear" id="b-gear">N</div>
+            <div class="gear-lbl" data-i18n="gear.label">CAIXA</div>
+          </div>
+          <div class="speed-box">
+            <div class="speed" id="b-speed">0</div>
+            <div class="speed-unit"><span data-i18n="unit.kmh">km/h</span></div>
+          </div>
+        </div>
+        <div class="rpm">
+          <div class="rpm-track"><div class="rpm-fill" id="b-rpm-fill"></div><div class="rpm-mark"></div></div>
+          <div class="rpm-foot"><span id="b-rpm">0</span> <span data-i18n="unit.rpm">rpm</span></div>
+        </div>
+        <div class="lights">
+          <div class="light" id="b-l-ers"><span class="l-lbl" data-i18n="ers.short">ERS</span><span class="l-val">—</span><div class="l-bar"><i id="b-ers-bar"></i></div></div>
+          <div class="light" id="b-l-pit"><span class="l-lbl" data-i18n="pit.short">PIT</span><span class="l-val">—</span></div>
+        </div>
+      </section>
+
+      <section class="card c-pedals">
+        <h2 data-i18n="pedals.title">PEDAIS</h2>
+        <canvas id="pedals2"></canvas>
+      </section>
+
+      <section class="card c-lbtel c-lb">
+        <h2 data-i18n="lb.title">CLASSIFICAÇÃO</h2>
+        <div class="lb-head">
+          <span class="lb-pos">P</span>
+          <span class="lb-name" data-i18n="lb.name">PILOTO</span>
+          <span class="lb-lap" data-i18n="lb.lap">VOLTA</span>
+          <span class="lb-best" data-i18n="lb.best">MELHOR</span>
+        </div>
+        <div class="lb-rows" id="lb-rows2"></div>
+        <div class="lb-note hidden" id="lb-note2"></div>
+      </section>
+
+      <section class="card c-tyres">
+        <h2 data-i18n="tyres.title">PNEUS E TRAVÕES</h2>
+        <div class="tyres" id="tyres2"></div>
+        <div class="brake-row"><span data-i18n="brakes.title">TRAVÕES</span><b id="brake-temp2">—</b></div>
+      </section>
+    </div>
   </div>
 
   <footer class="foot">
     <span id="fps">—</span>
-    <span class="sep"></span>
-    <span id="src">fonte: shared memory do Assetto Corsa (sem SimHub)</span>
+    <span class="dot-sep"></span>
+    <span id="status">—</span>
+    <span class="grow"></span>
+    <span class="src" data-i18n="foot.src">memória do AC, sem SimHub</span>
   </footer>
 </main>
 

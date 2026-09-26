@@ -159,6 +159,158 @@ class SPageFileStatic(ctypes.Structure):
     ]
 
 
+# ------------------------------------------------- adversarios (opponents)
+# So o AC nao poe os outros carros nas suas paginas. Quem o faz e' a app em
+# Python do SimHub, que corre DENTRO do jogo e escreve esta pagina com os
+# 128 carros. Nao e' uma ligacao de rede: e' mais uma pagina de memoria
+# partilhada, que se le tal e qual as outras.
+#
+# A app tem de estar activa no Content Manager (Settings -> Python Apps ->
+# "SimHub"). Confirma-se pelo log do AC: "SimHub Was Here!".
+
+
+class vec3(ctypes.Structure):
+    _pack_ = 4
+    _fields_ = [("x", c_float), ("y", c_float), ("z", c_float)]
+
+
+class acsVehicleInfo(ctypes.Structure):
+    _pack_ = 4
+    _fields_ = [
+        ("carId", c_int32),
+        ("driverName", c_char * 64),
+        ("carModel", c_char * 64),
+        ("speedMS", c_float),
+        ("bestLapMS", c_int32),
+        ("lapCount", c_int32),
+        ("currentLapInvalid", c_int32),
+        ("currentLapTimeMS", c_int32),
+        ("lastLapTimeMS", c_int32),
+        ("worldPosition", vec3),
+        ("isCarInPitline", c_int32),
+        ("isCarInPit", c_int32),
+        ("carLeaderboardPosition", c_int32),
+        ("carRealTimeLeaderboardPosition", c_int32),
+        ("spLineLength", c_float),
+        ("isConnected", c_int32),
+        ("suspensionDamage", c_float * 4),
+        ("engineLifeLeft", c_float),
+        ("tyreInflation", c_float * 4),
+    ]
+
+
+class SPageFileSimHub(ctypes.Structure):
+    _pack_ = 4
+    _fields_ = [
+        ("numVehicles", c_int32),
+        ("focusVehicle", c_int32),
+        ("serverName", c_char * 512),
+        ("vehicleInfo", acsVehicleInfo * 128),
+        ("acInstallPath", c_char * 512),
+        ("isInternalMemoryModuleLoaded", c_int32),
+        ("pluginVersion", c_char * 32),
+    ]
+
+
+def _b(v):
+    """c_char array -> str limpo; '' se estiver vazio."""
+    if not v:
+        return ""
+    if isinstance(v, bytes):
+        return v.split(b"\x00", 1)[0].decode("utf-8", "ignore").strip()
+    return str(v).split("\x00", 1)[0].strip()
+
+
+class Opponents:
+    """Leitor da pagina que a app Python do SimHub preenche."""
+
+    NAME = "acpmf_simhub_v2"
+
+    def __init__(self):
+        self._h = None
+        self._addr = None
+        self._view = None
+        self.available = False
+        self.pluginVersion = ""
+        self.open()
+
+    def open(self):
+        self.close()
+        h = k32.OpenFileMappingW(FILE_MAP_READ, False, self.NAME)
+        if not h:
+            return False
+        addr = k32.MapViewOfFile(h, FILE_MAP_READ, 0, 0,
+                                 ctypes.sizeof(SPageFileSimHub))
+        if not addr:
+            k32.CloseHandle(h)
+            return False
+        self._h, self._addr = h, addr
+        self._view = SPageFileSimHub.from_address(addr)
+        self.available = True
+        try:
+            self.pluginVersion = _b(self._view.pluginVersion)
+        except Exception:
+            self.pluginVersion = ""
+        return True
+
+    def close(self):
+        if self._addr:
+            try:
+                k32.UnmapViewOfFile(ctypes.c_void_p(self._addr))
+            except Exception:
+                pass
+        if self._h:
+            try:
+                k32.CloseHandle(self._h)
+            except Exception:
+                pass
+        self._h = self._addr = self._view = None
+        self.available = False
+
+    def snapshot(self):
+        if not self.available and not self.open():
+            return {"available": False, "cars": []}
+        try:
+            v = self._view
+            n = min(int(v.numVehicles), 128)
+            if n <= 0:
+                return {"available": True, "pluginVersion": self.pluginVersion,
+                        "focus": int(v.focusVehicle), "count": 0, "cars": []}
+            cars = []
+            for i in range(n):
+                c = v.vehicleInfo[i]
+                name = _b(c.driverName)
+                if not name:
+                    continue
+                cars.append({
+                    "id": int(c.carId),
+                    "name": name,
+                    "car": _b(c.carModel),
+                    "pos": int(c.carLeaderboardPosition),
+                    "livePos": int(c.carRealTimeLeaderboardPosition),
+                    "lap": int(c.lapCount),
+                    "speed": round(c.speedMS * 3.6, 1),      # m/s -> km/h
+                    "best": _ms(c.bestLapMS),
+                    "last": _ms(c.lastLapTimeMS),
+                    "cur": _ms(c.currentLapTimeMS),
+                    "invalid": bool(c.currentLapInvalid),
+                    "pct": round(c.spLineLength, 4),
+                    "x": round(c.worldPosition.x, 2),
+                    "y": round(c.worldPosition.y, 2),
+                    "z": round(c.worldPosition.z, 2),
+                    "inPit": bool(c.isCarInPit),
+                    "inPitLane": bool(c.isCarInPitline),
+                    "connected": bool(c.isConnected),
+                })
+            cars.sort(key=lambda d: (d["pos"] if d["pos"] > 0 else 999, d["name"]))
+            return {"available": True, "pluginVersion": self.pluginVersion,
+                    "focus": int(v.focusVehicle), "count": len(cars),
+                    "cars": cars}
+        except Exception as e:
+            self.close()
+            return {"available": False, "cars": [], "error": str(e)}
+
+
 # ---------------------------------------------------------------- mapeamento
 # Constantes do Windows. Cuidado: em MapViewOfFile o segundo parametro e'
 # dwDesiredAccess (valores FILE_MAP_*), nao a proteccao de pagina (PAGE_*).

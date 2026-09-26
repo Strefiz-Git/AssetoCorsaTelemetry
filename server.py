@@ -38,10 +38,12 @@ MIME = {
 class Hub:
     """Estado partilhado: um unico thread le a memoria, varios clientes leem."""
 
-    def __init__(self, rate_hz=200):
+    def __init__(self, rate_hz=200, opp_rate_hz=10):
         self.rate = 1.0 / rate_hz
+        self.opp_rate = 1.0 / opp_rate_hz
         self.lock = threading.Lock()
         self.latest = {"connected": False, "live": False}
+        self.opponents = {"available": False, "cars": []}
         self.frames = 0
         self._stop = threading.Event()
         self._thread = None
@@ -55,6 +57,8 @@ class Hub:
 
     def _loop(self):
         tel = acshm.ACTelemetry()
+        opp = acshm.Opponents()
+        next_opp = 0.0
         while not self._stop.is_set():
             try:
                 snap = tel.snapshot()
@@ -64,11 +68,26 @@ class Hub:
                 self.latest = snap
                 if snap.get("connected"):
                     self.frames += 1
+            # os adversarios nao precisam de 60 Hz: 10 chega para o
+            # leaderboard e evita 128 carros a cada frame
+            now = time.time()
+            if now >= next_opp:
+                next_opp = now + self.opp_rate
+                try:
+                    osnap = opp.snapshot()
+                except Exception as e:
+                    osnap = {"available": False, "cars": [], "error": str(e)}
+                with self.lock:
+                    self.opponents = osnap
             time.sleep(self.rate)
 
     def get(self):
         with self.lock:
             return self.latest
+
+    def get_opponents(self):
+        with self.lock:
+            return self.opponents
 
 
 # ------------------------------------------------------------------ server
