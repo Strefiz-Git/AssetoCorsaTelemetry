@@ -490,6 +490,78 @@ sairia torto — `ek_irohazaka` (`WIDTH` 2368 numa imagem de 1993 px) e
 
 ---
 
+## Regra nº 18 — o `tyreWear` da API Lua e o da memória partilhada são campos diferentes
+
+O jogo tem **duas interfaces** completamente distintas, e campos com o
+**mesmo nome** significam coisas diferentes em cada uma:
+
+| | memória partilhada | API Lua (`ac.getCar`) |
+|---|---|---|
+| `tyreWear` | **0..100**, 100 = novo | **fracção 0..1**, 1 = novo |
+| como se mostra | o valor | `(1 - tyreWear) * 100` = **gasto** |
+
+O HUD do Content Manager faz exactamente isso:
+
+```lua
+local wear_string = string.format("%d%%", (1 - wheel.tyreWear) * 100)
+```
+
+Portanto **não se podem comparar os dois números**, e quem copiar a
+fórmula da Lua para o `acshm.py` passa a mostrar o desgaste ao contrário.
+
+### O que a Lua mostra e a memória partilhada não tem
+
+Lendo os 16 módulos do `CMRT-Complete-HUD` (16 módulos, 73 ficheiros)
+e cruzando os nomes de campo com as minhas três structs, **só três dos
+campos úteis da Lua existem na memória partilhada** — e todos três já
+estavam no `acshm.py`, dois deles por decifrar:
+
+| Campo Lua | Na shm? | O que se ganhou |
+|---|---|---|
+| `brakeBias` | **sim**, na física, nunca extraído | B. TRAVA, em % |
+| `damage[4]` | **sim**, `carDamage` | danos por canto |
+| `suspensionDamage[4]` | sim, mas na struct dos **adversários** | só via índice 0 |
+| `tyreConsumptionRate` | **não** | vida do pneu: fora de alcance |
+| `fuelPerLap` | **não** | voltas de combustível: fora de alcance |
+| `isWeatherFXActive`, `weatherType` | **não** | **confirma a Regra nº 15** |
+| `isLapValid`, `isLastLapValid` | **não** | validade da volta |
+| `absModes`, `tractionControlModes` | **não** | "ABS 1 de 5" |
+| `mgukRecovery`, `mgukDelivery`, `mguhChargingBatteries` | **não** | repartição de energia |
+| `engineLifeLeft`, `gearboxDamage` | **não** | vida do motor |
+
+**Três decisões antigas fecham-se aqui.** O `isWeatherFXActive` e o
+`weatherType` existem, mas **na API Lua** — o que torna a conclusão
+"o AC não publica chuva" (Regra nº 15) correcta quanto à **memória
+partilhada**, e não um artigo de fé. E `tyreConsumptionRate` e
+`fuelPerLap`explicam porque é que a estimativa de vida do pneu é
+impossível de fazer bem: o jogo tem o número, e é precisamente esse
+número que não chega.
+
+Isto é a Regra nº 15 pelo outro lado: uma lista de campos que **eu**
+escrevi não prova o que não existe, mas ler o código de um HUD de
+terceiros que usa a **outra** interface, campo a campo, prova.
+
+### `brakeBias` e `carDamage`, já decifrados
+
+```lua
+bump_damage[i] = car.damage[i] / 60          -- 0..60 -> 0..1
+engine_damage   = 1 - car.engineLifeLeft / 1000
+```
+
+- **`brakeBias` é uma fracção 0..1.** Medido **0,58** num Toyota TS040
+  sem nada mexido, e a Lua mostra-o ×100 e ajusta-o de 0,5 em 0,5.
+  Não estava no `snapshot()`; estava na struct, por ler.
+- **`carDamage` são 5 floats** e a Lua usa **4**, e o desenho do painel
+  diz a ordem: **frente, trás, lado esquerdo, lado direito**. Dividir por
+  60 é o que a Lua faz, logo 60 é o máximo. O **quinto valor não é usado
+  por ninguém** que eu tenha encontrado — fica por explicar e não é
+  mostrado.
+
+Um painel de danos vazio é ruído, e o HUD do jogo também só o mostra
+quando algo parte. Por isso a linha só aparece com dano > 0.
+
+---
+
 ## Regra nº 6 — ctypes em Windows: armadilhas
 
 Todas as quatro happened durante a construção deste projecto:

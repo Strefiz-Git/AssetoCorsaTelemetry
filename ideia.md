@@ -185,7 +185,8 @@ cerca de 25 KB por frame, e a 10 Hz chega perfeitamente para uma tabela.
 
 velocidade · rpm · caixa · pedais (acelerador, travão, embragagem) ·
 ABS · TC · pit limiter · DRS · ERS · temperaturas de pneu em 3 zonas ·
-desgaste · pressão · temperatura dos travões · combustível · ar e pista ·
+desgaste · pressão · temperatura dos travões · **distribuição da
+travagem** · **danos por canto** · combustível · ar e pista ·
 tempos de volta · delta · sectores · mapa com zona de DRS · bandeira ·
 penalidade · posição · adversário (leaderboard)
 
@@ -200,7 +201,6 @@ penalidade · posição · adversário (leaderboard)
 | `camberRAD` | física | cambagem, para setup |
 | `tyreContactPoint/Normal/Heading` | física | **o carro inteiro** — suspensão em 3D |
 | `steerAngle` · `localVelocity` | física | predição de trajectória, replay |
-| `carDamage[5]` | física | avarias por zona |
 | `surfaceGrip` | gráficos | aderência, correlaciona com o delta |
 | `idealLineOn` | gráficos | se a racing line está ligada |
 | `windSpeed/Direction` | gráficos | vento |
@@ -208,13 +208,45 @@ penalidade · posição · adversário (leaderboard)
 | `mandatoryPitDone` | gráficos | paragem obrigatória |
 | `trackSPlineLength` | estática | comprimento da racing line |
 
+### Feito a 2026-09-26, lido no HUD do Content Manager
+
+| Dado | Onde | O que se descobriu |
+|---|---|---|
+| `brakeBias` | física | **fracção 0..1**, medida 0,58 num TS040 sem nada mexido. A Lua mostra ×100 e ajusta de 0,5 em 0,5. **Estava na struct, nunca lido.** |
+| `carDamage[5]` | física | A Lua usa **4** e divide por **60**. Ordem pelo desenho do painel: **fronte, trás, lado esquerdo, lado direito**. O 5.º valor é usado por ninguém. Só aparece com dano > 0. |
+| `suspensionDamage[4]` | adversários | Existe, mas na struct dos **adversários** — o carro local só pelo índice 0. |
+
+`turbo` e `wheelSlip` continuam **por explicar**: o HUD do Content
+Manager também não os usa em nenhum dos 16 módulos, portanto não há
+onde os decifrar.
+
 ### Fora do alcance da memória partilhada
+
+Confirmado a 2026-09-26, lendo os 16 módulos do `CMRT-Complete-HUD`
+(73 ficheiros Lua) e cruzando campo a campo com as minhas três structs.
+Ver a Regra nº 18 do `AGENTS.md` para a lista completa.
 
 | Queria | Situação |
 |---|---|
 | **Travão de mão** | **Não existe** na shared memory do AC. A documentação só tem `gas`, `brake` e `clutch`. Ver a nota abaixo. |
+| **Vida do pneu, pelo jogo** | `sim_info.tyreConsumptionRate` **existe na API Lua** e não na shm. Era o número que eu queria. |
+| **Combustível por volta** | `fuelPerLap` **só na API Lua.** "Voltas restantes" fica por fazer. |
+| **Chuva / tempo** | `isWeatherFXActive` e `weatherType` **só na API Lua.** Isto *confirma* a conclusão de que o AC não publica chuva na shm. |
+| **Validade da volta** | `isLapValid` / `isLastLapValid` **só na API Lua.** |
+| **ABS/TC por escalão** | `absModes` / `tractionControlModes` **só na API Lua.** Só há o nível 0..1. |
+| **Repartição de energia** | `mgukRecovery`, `mgukDelivery`, `mguhChargingBatteries` **só na API Lua.** |
+| **Vida do motor / caixa** | `engineLifeLeft` (÷1000), `gearboxDamage` **só na API Lua.** |
 | **Telemetria do CSP** (mods) | só existe com o Content Manager instalado |
 | **Setup ideal** | não é telemetria, é cálculo |
+
+E **ganho**, do mesmo ficheiro: `brakeBias` (fracção 0..1, medida 0,58
+num TS040) e os quatro cantos de `carDamage` (÷60) estão na shm e já
+estão no interface.
+
+Um aviso que vale mais do que a lista: o `tyreWear` da **API Lua** é
+uma fracção 0..1 e o da **memória partilhada** é 0..100. Mesmo nome,
+escalas opostas. Copiar a fórmula da Lua para o `acshm.py` mostra o
+desgaste ao contrário, sem dar erro.
 
 #### Nota sobre o travão de mão
 
