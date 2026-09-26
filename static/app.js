@@ -46,7 +46,7 @@ const I18N = {
     'drs.short': 'DRS', 'gear.label': 'CAIXA', 'unit.kmh': 'km/h',
     'unit.mph': 'mph', 'unit.rpm': 'rpm',
     'ers.short': 'ERS', 'pit.short': 'PIT',
- 'state.lim': 'LIM',
+    'state.lim': 'LIM',
     'map.title': 'MAPA DA PISTA', 'pedals.title': 'PEDAIS',
     'wheel.title': 'VOLANTE', 'wheel.note': 'Angulo do volante, de -1 a 1. O alcance do valor esta'
     + ' por confirmar a conduzir.',
@@ -117,7 +117,7 @@ const I18N = {
     'set.aboutBody': 'Telemetria lida direto da memória do Assetto Corsa. Sem SimHub.',
     'drs.short': 'DRS', 'gear.label': 'MARCHA', 'unit.kmh': 'km/h',
     'unit.mph': 'mph', 'unit.rpm': 'rpm', 'ers.short': 'ERS', 'pit.short': 'BOX',
- 'state.lim': 'LIM',
+    'state.lim': 'LIM',
     'map.title': 'MAPA DA PISTA', 'pedals.title': 'PEDAIS',
     'wheel.title': 'VOLANTE', 'wheel.note': 'Angulo do volante, de -1 a 1. O alcance do valor esta'
     + ' por confirmar dirigindo.',
@@ -187,7 +187,7 @@ const I18N = {
     'set.aboutBody': 'Telemetría leída directamente de la memoria del Assetto Corsa. Sin SimHub.',
     'drs.short': 'DRS', 'gear.label': 'MARCHA', 'unit.kmh': 'km/h',
     'unit.mph': 'mph', 'unit.rpm': 'rpm', 'ers.short': 'ERS', 'pit.short': 'PIT',
- 'state.lim': 'LIM',
+    'state.lim': 'LIM',
     'map.title': 'MAPA DE LA PISTA', 'pedals.title': 'PEDALES',
     'wheel.title': 'VOLANTE', 'wheel.note': 'Angulo del volante, de -1 a 1. El alcance del valor esta'
     + ' por confirmar conduciendo.',
@@ -260,7 +260,7 @@ const I18N = {
     'set.aboutBody': 'Telemetry read straight from Assetto Corsa memory. No SimHub.',
     'drs.short': 'DRS', 'gear.label': 'GEAR', 'unit.kmh': 'km/h',
     'unit.mph': 'mph', 'unit.rpm': 'rpm', 'ers.short': 'ERS', 'pit.short': 'PIT',
- 'state.lim': 'LIM',
+    'state.lim': 'LIM',
     'map.title': 'TRACK MAP', 'pedals.title': 'PEDALS',
     'wheel.title': 'STEERING', 'wheel.note': 'Steering angle, from -1 to 1. The range of the value is'
     + ' not confirmed yet, measured while driving.',
