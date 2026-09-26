@@ -31,6 +31,25 @@
      dentro do ruido de arredondamento (o valor chega com 1 casa decimal). */
   var MIN_POR_VOLTA = 0.05;
 
+  /* PLAUSIBILIDADE. Um stint de um F1 ou de um Hypercar e' da ordem das
+     10 a 30 voltas; numa resistencia, mais. Medido no Mugello com um
+     Alpine A424, o campo tyreWear dava 0,17% de desgaste ao fim de DUAS
+     voltas -- o que projetava 588 voltas de vida. Esse numero nao e' um
+     stint, e' um campo que nao esta' a medir a banda de rodagem.
+     *
+     * E' melhor escrever "nao da" do que um numero que ninguem deve levar
+     * a serio. Da' dois limites:
+     *   RATEIO_MIN  0,5% por volta. Abaixo disso o stint duraria 200
+     *               voltas, e nenhum composto numa pista dura tanto.
+     *   MAX_VOLTAS  150. Rede de seguranca para a faixa entre 0,5% e
+     *               0,67% por volta, que passa no teste do ritmo mas
+     *               projecta mais de 150 voltas. A 1,2% por volta (83
+     *               voltas) ainda passa, porque isso ja' e' um stint de
+     *               resistencia plausivel.
+     */
+  var RATEIO_MIN = 0.5;
+  var MAX_VOLTAS = 150;
+
   /* Um stint NUNCA ganha vida. Se o desgaste restante subir dois ou mais
      pontos face a referencia, o que aconteceu foi uma troca de pneus --
      nao "o pneu ficou novo". Detectar por um limiar absoluto nao
@@ -52,6 +71,10 @@
       estado: estado,
       valido: false,
       confiavel: false,
+      // 'impossivel' = ha' desgaste medido, mas o numero nao e'
+      // plausivel para um stint. O site escreve que nao da, em vez de
+      // mostrar 588 voltas.
+      impossivel: false,
       restante: restante == null ? null : restante,
       voltasNoStint: voltasNoStint || 0,
       porVolta: 0,
@@ -110,10 +133,24 @@
     // duas voltas medidas e' o minimo para o numero significar alguma
     // coisa. Com uma so, um unico ponto manda no resultado.
     res.confiavel = voltas >= 2;
+    // plausibilidade: se o numero nao cabe num stint, o campo nao esta'
+    // a medir desgaste e o resultado nao se mostra
+    if (res.porVolta < RATEIO_MIN || res.voltasRestantes > MAX_VOLTAS) {
+      res.valido = false;
+      res.confiavel = false;
+      res.impossivel = true;
+      res.voltasRestantes = null;
+    }
     return res;
   }
 
-  var api = { estimarPneus: estimarPneus, SALTO_DE_VIDA: SALTO_DE_VIDA, MIN_POR_VOLTA: MIN_POR_VOLTA };
+  var api = {
+    estimarPneus: estimarPneus,
+    SALTO_DE_VIDA: SALTO_DE_VIDA,
+    MIN_POR_VOLTA: MIN_POR_VOLTA,
+    RATEIO_MIN: RATEIO_MIN,
+    MAX_VOLTAS: MAX_VOLTAS
+  };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.Pneus = api;
 })(typeof window !== 'undefined' ? window : globalThis);
