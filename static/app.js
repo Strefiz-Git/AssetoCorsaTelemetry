@@ -26,6 +26,8 @@ const I18N = {
     'set.title': 'Definições', 'set.mode': 'Vista', 'set.units': 'Unidades',
     'set.lang': 'Idioma', 'set.map': 'Mapa', 'set.mapOn': 'Mostrar',
     'set.mapOff': 'Esconder', 'set.clearMap': 'Apagar o mapa desenhado',
+    'set.mapViewFull': 'Pista inteira', 'set.mapViewRel': 'Vista relativa',
+    'set.mapViewWhy': 'Na vista relativa o mapa fica centrado no carro e o zoom acompanha a velocidade: paradoxo, abre; a acelerar, fecha. É o que se quer quando se está a conduzir.',
     'set.acPathWhy': 'Para o mapa aparecer completo desde o início (em vez de descoberto a conduzir), indica a pasta onde o Assetto Corsa está instalado.',
     'set.acPathSave': 'Guardar', 'set.mapFlipX': 'Inverter X', 'set.mapFlipZ': 'Inverter Z',
     'set.acPathAuto': 'Detetada automaticamente: {p}', 'set.acPathOk': 'Pasta válida: {p}',
@@ -84,6 +86,8 @@ const I18N = {
     'set.title': 'Configurações', 'set.mode': 'Tela', 'set.units': 'Unidades',
     'set.lang': 'Idioma', 'set.map': 'Mapa', 'set.mapOn': 'Mostrar',
     'set.mapOff': 'Esconder', 'set.clearMap': 'Apagar o mapa desenhado',
+    'set.mapViewFull': 'Pista inteira', 'set.mapViewRel': 'Vista relativa',
+    'set.mapViewWhy': 'Na vista relativa o mapa fica centralizado no carro e o zoom acompanha a velocidade: parado, abre; acelerando, fecha. É o que se quer quando se está dirigindo.',
     'set.acPathWhy': 'Para o mapa aparecer completo desde o início (em vez de descoberto dirigindo), informe a pasta onde o Assetto Corsa está instalado.',
     'set.acPathSave': 'Salvar', 'set.mapFlipX': 'Inverter X', 'set.mapFlipZ': 'Inverter Z',
     'set.acPathAuto': 'Detectada automaticamente: {p}', 'set.acPathOk': 'Pasta válida: {p}',
@@ -140,6 +144,8 @@ const I18N = {
     'set.title': 'Ajustes', 'set.mode': 'Vista', 'set.units': 'Unidades',
     'set.lang': 'Idioma', 'set.map': 'Mapa', 'set.mapOn': 'Mostrar',
     'set.mapOff': 'Ocultar', 'set.clearMap': 'Borrar el mapa dibujado',
+    'set.mapViewFull': 'Pista completa', 'set.mapViewRel': 'Vista relativa',
+    'set.mapViewWhy': 'En la vista relativa el mapa se centra en el coche y el zoom sigue a la velocidad: parado, se abre; acelerando, se cierra. Es lo que se quiere mientras se conduce.',
     'set.acPathWhy': 'Para que el mapa aparezca completo desde el principio (en vez de descubrirse conduciendo), indica la carpeta donde está instalado Assetto Corsa.',
     'set.acPathSave': 'Guardar', 'set.mapFlipX': 'Invertir X', 'set.mapFlipZ': 'Invertir Z',
     'set.acPathAuto': 'Detectada automáticamente: {p}', 'set.acPathOk': 'Carpeta válida: {p}',
@@ -199,6 +205,8 @@ const I18N = {
     'set.title': 'Settings', 'set.mode': 'View', 'set.units': 'Units',
     'set.lang': 'Language', 'set.map': 'Map', 'set.mapOn': 'Show',
     'set.mapOff': 'Hide', 'set.clearMap': 'Clear the drawn map',
+    'set.mapViewFull': 'Full track', 'set.mapViewRel': 'Relative view',
+    'set.mapViewWhy': 'In the relative view the map is centred on the car and the zoom follows the speed: stopped, it opens up; accelerating, it closes in. That is what you want while driving.',
     'set.acPathWhy': 'For the map to appear complete from the start (instead of being discovered while driving), point this at your Assetto Corsa install folder.',
     'set.acPathSave': 'Save', 'set.mapFlipX': 'Flip X', 'set.mapFlipZ': 'Flip Z',
     'set.acPathAuto': 'Auto-detected: {p}', 'set.acPathOk': 'Valid folder: {p}',
@@ -251,7 +259,7 @@ function t(k) { return (I18N[LANG] && I18N[LANG][k]) || k; }
 
 /* ------------------------------------------------------------ definicoes */
 const DEF_KEY = 'acdef.v1';
-const DEFAULTS = { mode: null, temp: 'C', speed: 'kmh', lang: 'pt-PT', map: 'on', fps: 60, mapFlipX: false, mapFlipZ: false };
+const DEFAULTS = { mode: null, temp: 'C', speed: 'kmh', lang: 'pt-PT', map: 'on', fps: 60, mapFlipX: false, mapFlipZ: false, mapView: 'inteira' };
 let DEF = Object.assign({}, DEFAULTS);
 
 function loadDef() {
@@ -285,6 +293,9 @@ const S = {
   lapPct: [], refLap: null, bestMs: null, lastLapPct: 0,
   lastSector: null, sectorTimes: [], bestSectorTimes: [],
   seenEver: false, trackName: '', lastSave: 0, lastTrackConfig: '',
+  // velocidade amortecida, so' para o zoom da vista relativa. A
+  // instantanea faz a imagem saltar a cada travagem e fica ilegivel.
+  velSuave: 0,
   frames: 0, fpsAt: performance.now(), fps: 0,
   trace: { t: [], th: [], br: [], cl: [], hb: [] },
   lastSample: 0, traceHz: 0,
@@ -503,11 +514,11 @@ function fetchRealMap(track, trackConfig) {
     img.onload = () => {
       S.realMap = {
         img, width: cfg.width, height: cfg.height,
-        // pixels por metro, medidos na imagem pelo servidor. NAO e' o
-        // SCALE_FACTOR do map.ini: medido em 76 pistas, a imagem tem 1 px
-        // por metro e o WIDTH/HEIGHT do ini batem com as dimensoes do PNG.
-        // Dividir pelo SCALE_FACTOR punha o traçado pequeno e deslocado em
-        // todas as pistas com escala != 1 (imola 1,2; spa 1,3; monza 1,4).
+        // pixels por METRO, que e' 1 / SCALE_FACTOR do map.ini. Medido com
+        // um trajecto real de Monza: com 1/1,4 a distancia mediana a linha
+        // da pista e' 0 px; sem dividir, e' 132 m -- o carro aparece fora da
+        // pista. Ver Regra nº 17, e o engano do WIDTH/HEIGHT estar em
+        // pixEIS da imagem e nao em metros.
         pxPerMetre: cfg.pxPerMetre || 1,
         imageWidth: cfg.imageWidth || img.naturalWidth,
         imageHeight: cfg.imageHeight || img.naturalHeight,
@@ -545,6 +556,44 @@ function resetMap(clearStorage) {
   }
 }
 
+/* Enquadramento do mapa, partilhado pelas DUAS vistas.
+ *
+ * Regra nº 16: quando há mais do que uma vista para o mesmo plano do
+ * mundo, a convenção de eixos e o enquadramento são um só, escritos num
+ * sítio só. As duas vistas divergiram uma vez (o traçado invertia o Z e a
+ * imagem não) e o resultado foi um mapa espelhado que ninguém notou.
+ *
+ * O 'espaço' é a mesma unidade nas duas vistas — píxeis da imagem no mapa
+ * real, metros no traçado — e quem chama é que decide. Aqui só se decide
+ * o enquadramento: a pista toda dentro da caixa, ou centrado no carro com
+ * zoom.
+ */
+function mapaEnquadramento(w, h, espW, espH, carroX, carroZ) {
+  const pad = 14;
+  const inteira = Math.min((w - pad * 2) / espW, (h - pad * 2) / espH);
+
+  if (DEF.mapView !== 'relativa' || carroX == null) {
+    const ox = (w - espW * inteira) / 2, oy = (h - espH * inteira) / 2;
+    return { sc: inteira, px: (x) => ox + x * inteira, py: (y) => oy + y * inteira, relativa: false };
+  }
+
+  // Vista relativa: quão longe se ve, em metros, consoante a velocidade.
+  // Lento => perto (ampliado), rápido => longe (fechado). A velocidade é
+  // amortecida (S.velSuave) porque a instantânea faz a imagem saltar a
+  // cada travagem e fica ilegível.
+  const v = clamp(S.velSuave || 0, 0, 320);
+  const t = v / 320;                       // 0 parado .. 1 no limite
+  const perto = Math.max(inteira, Math.min((w - pad * 2) / 70, (h - pad * 2) / 70));
+  const longe = inteira;
+  const sc = perto + (longe - perto) * t;
+  return {
+    sc,
+    px: (x) => w / 2 + (x - carroX) * sc,
+    py: (y) => h / 2 + (y - carroZ) * sc,
+    relativa: true,
+  };
+}
+
 function drawMap(canvasId) {
   const cv = $(canvasId);
   if (!cv || DEF.map === 'off') { if (cv) cv.style.visibility = 'hidden'; return; }
@@ -572,18 +621,21 @@ function drawMap(canvasId) {
    para pixels da imagem. Nao ha "descoberta": aparece completa logo
    na primeira vez que se entra na pista. */
 function drawMapReal(c, w, h, rm) {
-  const pad = 14;
-  // a escala e' sobre os pixeis da IMAGEM, porque e' isso que
-  // worldToMapImg devolve. Usar rm.width (metros do mundo) aqui punha o
-  // traçado e a imagem com escalas diferentes sempre que pxPerMetre != 1.
   const iw = rm.imageWidth || rm.width, ih = rm.imageHeight || rm.height;
-  const sc = Math.min((w - pad * 2) / iw, (h - pad * 2) / ih);
-  const ox = (w - iw * sc) / 2, oy = (h - ih * sc) / 2;
-  const px = (ix) => ox + ix * sc;
-  const py = (iy) => oy + iy * sc;
+  // a posicao do carro, para a vista relativa poder centrar-se nela
+  const ult = S.path.length ? S.path[S.path.length - 1] : null;
+  const [carX, carZ] = ult ? worldToMapImg(rm, ult[0], ult[1]) : [null, null];
+  const q = mapaEnquadramento(w, h, iw, ih, carX, carZ);
+  const sc = q.sc, px = q.px, py = q.py;
 
+  c.save();
+  // na vista relativa a imagem e' muito maior do que a caixa: sem isto
+  // o drawImage pintava a imagem toda, nao o que esta dentro da vista
+  if (q.relativa) {
+    c.beginPath(); c.rect(0, 0, w, h); c.clip();
+  }
   c.globalAlpha = 0.92;
-  c.drawImage(rm.img, ox, oy, iw * sc, ih * sc);
+  c.drawImage(rm.img, px(0), py(0), iw * sc, ih * sc);
   c.globalAlpha = 1;
 
   // zona de DRS marcada a mao, sobre a imagem real (mesmos pontos que o
@@ -618,16 +670,20 @@ function drawMapReal(c, w, h, rm) {
   // adversarios: pontos cinzentos com o numero de posicao
   const opp = S.opponents;
   if (opp && opp.available && Array.isArray(opp.cars)) {
+    // as bolas crescem com o zoom: na vista relativa ha' 6x mais pixeis por
+    // metro, e um circulo de 5 px ficava do tamanho de uma casa
+    const rOpp = q.relativa ? 9 : 5;
     for (const car of opp.cars) {
       if (car.id === myCarId) continue;
       if (typeof car.x !== 'number' || typeof car.z !== 'number') continue;
       const [ix, iy] = worldToMapImg(rm, car.x, car.z);
       const x = px(ix), y = py(iy);
-      c.beginPath(); c.arc(x, y, 5, 0, Math.PI * 2);
+      c.beginPath(); c.arc(x, y, rOpp, 0, Math.PI * 2);
       c.fillStyle = car.inPit ? 'rgba(255,255,255,.35)' : '#8C9394';
       c.fill();
       if (car.pos) {
-        c.fillStyle = '#0A0E0E'; c.font = '700 8px Titillium, sans-serif';
+        c.fillStyle = '#0A0E0E';
+        c.font = '700 ' + (q.relativa ? 12 : 8) + 'px Titillium, sans-serif';
         c.textAlign = 'center'; c.textBaseline = 'middle';
         c.fillText(String(car.pos), x, y + 0.5);
       }
@@ -635,14 +691,15 @@ function drawMapReal(c, w, h, rm) {
   }
 
   // o proprio carro, por cima de tudo
-  if (S.path.length) {
-    const p = S.path[S.path.length - 1];
-    const [ix, iy] = worldToMapImg(rm, p[0], p[1]);
-    const x = px(ix), y = py(iy);
-    c.beginPath(); c.arc(x, y, 6, 0, Math.PI * 2);
+  if (ult) {
+    const x = px(carX), y = py(carZ);
+    const rMeu = q.relativa ? 11 : 6;
+    c.beginPath(); c.arc(x, y, rMeu, 0, Math.PI * 2);
     c.fillStyle = '#FFD700'; c.fill();
-    c.lineWidth = 1.6; c.strokeStyle = '#fff'; c.stroke();
+    c.lineWidth = q.relativa ? 2.4 : 1.6; c.strokeStyle = '#fff'; c.stroke();
   }
+
+  c.restore();
 }
 
 /* Mapa tracado a conduzir: usado enquanto nao ha mapa real (pista nao
@@ -656,12 +713,6 @@ function drawMapTraced(c, w, h) {
   }
 
   const spanX = Math.max(S.maxX - S.minX, 1), spanZ = Math.max(S.maxY - S.minY, 1);
-  const pad = 22;
-  const sc = Math.min((w - pad * 2) / spanX, (h - pad * 2) / spanZ);
-  // transformar a partir do CENTRO de cada eixo, e nao de um offset.
-  // Com um offset era facil errar o sinal ao inverter o Z, e o traçado
-  // inteiro saia fora do canvas sem dar erro nenhum.
-  const cx = (S.minX + S.maxX) / 2, cz = (S.minY + S.maxY) / 2;
   // O Y do canvas CRESCE com o Z. Nao se inverte.
   //
   // Invertia-se, e o mapa saia espelhado: o loop grande de Baku ficava em
@@ -672,8 +723,17 @@ function drawMapTraced(c, w, h) {
   // As tres dizem o mesmo.
   // Ver Regra nº 16 (as duas vistas tem de usar a mesma convencao) e a
   // imagem em tests/forma_Z_normal.png.
-  const px = (p) => (p[0] - cx) * sc + w / 2;
-  const py = (p) => (p[1] - cz) * sc + h / 2;
+  //
+  // O enquadramento vem de mapaEnquadramento, o mesmo que o mapa real usa:
+  // as duas vistas nao podem divergir outra vez.
+  const ult = S.path[S.path.length - 1];
+  const q = mapaEnquadramento(w, h, spanX, spanZ, ult ? ult[0] : null, ult ? ult[1] : null);
+  const sc = q.sc;
+  const px = (p) => q.px(p[0] - S.minX);
+  const py = (p) => q.py(p[1] - S.minY);
+
+  c.save();
+  if (q.relativa) { c.beginPath(); c.rect(0, 0, w, h); c.clip(); }
 
   // pista, em duas passagens: contorno claro por baixo, cor por cima.
   // Desenhada em TROÇOS: sempre que um ponto vem marcado como corte
@@ -727,15 +787,17 @@ function drawMapTraced(c, w, h) {
 
   // carro
   const p = S.path[S.path.length - 1];
-  c.beginPath(); c.arc(px(p), py(p), 5, 0, Math.PI * 2);
+  c.beginPath(); c.arc(px(p), py(p), q.relativa ? 10 : 6, 0, Math.PI * 2);
   c.fillStyle = '#FFD700'; c.fill();
-  c.lineWidth = 1.6; c.strokeStyle = '#fff'; c.stroke();
+  c.lineWidth = q.relativa ? 2.4 : 1.6; c.strokeStyle = '#fff'; c.stroke();
 
   // a legenda só aparece quando há zona marcada
   const key = $('map-drs-key');
   if (key) key.classList.toggle('hidden', !hasZone);
   const key2 = $('map-drs-key2');
   if (key2) key2.classList.toggle('hidden', !hasZone);
+
+  c.restore();
 }
 
 /* ------------------------------------------------- grafico dos pedais */
@@ -1239,6 +1301,9 @@ function syncSettingsUI() {
     const on = b.getAttribute('data-v') === 'flipx' ? !!DEF.mapFlipX : !!DEF.mapFlipZ;
     b.classList.toggle('on', on);
   });
+  document.querySelectorAll('#set-map-view button').forEach((b) => {
+    b.classList.toggle('on', b.getAttribute('data-v') === (DEF.mapView || 'inteira'));
+  });
   document.querySelectorAll('#set-mode button').forEach((b) => {
     b.classList.toggle('on', b.getAttribute('data-mode') === (DEF.mode || 'telemetry'));
   });
@@ -1320,8 +1385,17 @@ function bindSettings() {
       syncSettingsUI();
     });
   });
-  $('set-ac-path-save').addEventListener('click', saveAcPath);
-  $('set-ac-path').addEventListener('keydown', (ev) => {
+  // vista do mapa: pista inteira ou relativa (centrada no carro, com zoom
+  // que acompanha a velocidade). Escolha unica, como os outros 'seg'.
+  document.querySelectorAll('#set-map-view button').forEach((b) => {
+    b.addEventListener('click', () => {
+      DEF.mapView = b.getAttribute('data-v') || 'inteira';
+      saveDef();
+      syncSettingsUI();
+    });
+  });
+
+  $('set-ac-path-save').addEventListener('click', saveAcPath);  $('set-ac-path').addEventListener('keydown', (ev) => {
     if (ev.key === 'Enter') saveAcPath();
   });
 
@@ -1689,6 +1763,13 @@ function render(d) {
   if (d.connected && d.live) {
     pushMapPoint(d.x, d.z, S.marking ? 1 : (S.drsAuto ? (d.drsAvailable ? 1 : 0) : 0),
       d.sector, d.drsAvailable);
+  }
+  // velocidade amortecida para o zoom da vista relativa. So' quando ha'
+  // telemetria a serio: com o jogo fechado a velocidade e' 0 e a media
+  // puxaria o zoom para o estado parado, em vez de o deixar como esta.
+  if (d.connected) {
+    const v = Math.abs(d.speed || 0);
+    S.velSuave = S.velSuave + (v - S.velSuave) * 0.06;
   }
   setTxt('trackpct', (clamp(d.trackPct || 0, 0, 1) * 100).toFixed(1) + '%');
   setTxt('sector', t('sector') + ' ' + ((d.sector || 0) + 1) + (d.sectorCount ? '/' + d.sectorCount : ''));

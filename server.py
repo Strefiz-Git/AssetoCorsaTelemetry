@@ -487,24 +487,34 @@ class Handler(BaseHTTPRequestHandler):
 
     @staticmethod
     def _add_image_scale(cfg, png_path):
-        """Acrescenta os pixels por metro, medidos na imagem.
+        """Acrescenta os pixels por metro, e diz se os dados da pista sao
+        de confianca.
 
-        MEDIDO NAS 76 PISTAS INSTALADAS: a imagem tem UM pixel por metro do
-        mundo. O WIDTH/HEIGHT do map.ini batem com as dimensoes do PNG em 54
-        delas (imola 1543,9 m -> 1543 px; montreal 508,8 -> 508; spa 1004,8
-        -> 1004; monza 927,4 -> 927).
+        MEDIDO com um trajecto real de Monza (206 pontos), medindo a
+        distancia de cada ponto a linha desenhada no map.png:
 
-        O SCALE_FACTOR NAO e' a escala da imagem. Numa pista com
-        SCALE_FACTOR 1,3 e WIDTH 508,8 m, se fosse px/m a imagem teria 661 px
-        -- e tem 508. O SCALE_FACTOR e' a escala de desenho do widget de mapa
-        do proprio jogo.
+            imgX = (x + X_OFFSET) / SCALE_FACTOR   ->  mediana 0 px
+            imgX = (x + X_OFFSET)                   ->  mediana 132 m
+            imgX = (x + X_OFFSET) * SCALE_FACTOR   ->  fora da imagem
 
-        Noutras 22 pistas a imagem e' ~20 px maior que o rectangulo do mundo
-        (a margem do map.ini, partida em duas metades), por isso a escala
-        vem sempre de medir a imagem, nunca de presumir. Onde os dados da
-        pista sao incoerentes (a imagem esta mais apertada em X do que em Z
-        face ao mundo) marca-se trusted=False e o cliente volta ao mapa
-        tracado, que e' sempre certo.
+        O SCALE_FACTOR e' mesmo a escala: e' px por METRO quem fica a
+        dividi-lo. Monza tem SCALE_FACTOR 1,4, e por isso um pixel da imagem
+        vale 1,4 metros do mundo.
+
+        O que engana e' o WIDTH/HEIGHT do map.ini. Bate ao pixel com as
+        dimensoes do PNG (monza 927,4 -> 927 px), e da' a ideia de que a
+        imagem tem um pixel por metro. Nao tem: o WIDTH esta' em PIXEIS DA
+        IMAGEM, e a extensao do mundo e' WIDTH * SCALE_FACTOR metros.
+
+        E' a mesma armadilha da Regra nº 11: Baku e' a pista onde isto se
+        mede primeiro, e Baku tem SCALE_FACTOR 1, onde as duas leituras dao
+        o mesmo numero. Uma amostra que nao discrimina parece uma
+        confirmacao -- e foi exactamente o que aconteceu.
+
+        O trusted apanha as pistas em que os dados nao batem com a propria
+        imagem (ek_irohazaka: WIDTH 2368 numa imagem de 1993 px; Brooklyn
+        Park: 365,9 em 355 px e 350,4 em 200 px). Aí o cliente volta ao
+        mapa tracado, que e' sempre certo.
         """
         dim = _png_size(png_path)
         if not dim:
@@ -513,18 +523,16 @@ class Handler(BaseHTTPRequestHandler):
         img_w, img_h = dim
         cfg["imageWidth"] = img_w
         cfg["imageHeight"] = img_h
-        w = cfg.get("width") or 0.0
-        h = cfg.get("height") or 0.0
-        if w <= 0 or h <= 0:
+        escala = cfg.get("scale") or 0.0
+        if escala <= 0:
             cfg["available"] = False
             return
-        kx = img_w / w
-        ky = img_h / h
-        cfg["pxPerMetre"] = round((kx + ky) / 2.0, 6)
-        # so se confia na transformacao se a escala bate nos dois eixos: se
-        # divergir, os dados da pista estao errados (ex.: ek_irohazaka tem
-        # WIDTH 2368 m numa imagem de 1993 px e HEIGHT 890 m em 872 px)
-        cfg["trusted"] = abs(kx - ky) / max(kx, ky) < 0.02
+        cfg["pxPerMetre"] = round(1.0 / escala, 8)
+        w = cfg.get("width") or 0.0
+        h = cfg.get("height") or 0.0
+        # o WIDTH/HEIGHT do ini tem de descrever a imagem em pixeis
+        cfg["trusted"] = bool(w > 0 and h > 0
+                              and abs(w - img_w) <= 2 and abs(h - img_h) <= 2)
 
     def _api_track_map_image(self, query):
         q = self._qs(query)
