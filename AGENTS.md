@@ -424,8 +424,9 @@ E para decidir o sinal, não raciocinar sobre sistemas de coordenadas:
 
 ## Regra nº 17 — o `map.ini` do Assetto Corsa, medido
 
-Tudo o que segue foi medido nas **76 pistas** com mapa desta instalação
-(`python tests\\mapa_todas_pistas.py`), não deduzido.
+Tudo o que segue foi medido nesta instalação: as 76 pistas com mapa
+(`python tests\\mapa_todas_pistas.py`) e um trajecto real conduzido em
+Baku e em Monza (`python tests\\mapa.py cap 200 50`).
 
 ### Os ficheiros não estão onde se procura
 
@@ -440,47 +441,52 @@ que se faz por natural — faz o `/api/track-map` responder `not-found` para
 
 ### A imagem tem 1 pixel por metro. O `SCALE_FACTOR` não é a escala.
 
-Em 54 das 76 pistas, o `WIDTH`/`HEIGHT` do `map.ini` batem com as
-dimensões do PNG ao metro:
+**Isto está ERRADO, e está aqui para eu não voltar a errar.**
 
-| pista | `WIDTH` (m) | PNG (px) |
-|---|---|---|
-| imola | 1543,9 | 1543 |
-| montreal | 508,8 | 508 |
-| spa | 1004,8 | 1004 |
-| monza | 927,4 | 927 |
+A verdade, medida com um trajecto real de Monza (206 pontos, medindo a
+distância de cada ponto à linha desenhada no `map.png`):
 
-Logo `SCALE_FACTOR` **não** é a escala da imagem: se fosse px/m, Baku
-(2167 m, escala 1,3) teria 2817 px. O `SCALE_FACTOR` é a escala de
-desenho do widget de mapa do próprio jogo.
+| fórmula | distância mediana à pista |
+|---|---|
+| `imgX = (x + X_OFFSET) / SCALE_FACTOR` | **0 px** |
+| `imgX = (x + X_OFFSET)` | 132 m |
+| `imgX = (x + X_OFFSET) * SCALE_FACTOR` | fora da imagem |
 
-A fórmula `imgX = (x + X_OFFSET) / SCALE_FACTOR`, que parece óbvia, está
-**errada**: divide o traçado e ainda o desloca, e só não se nota nas
-pistas com `SCALE_FACTOR = 1` (Magny-Cours, Baku) — que foram
-precisamente as testadas primeiro. É o mesmo engano da Regra nº 11: um
-teste numa amostra que não discrimina dá a ilusão de uma confirmação.
+O `SCALE_FACTOR` **é** a escala. É px por metro quem fica a dividi-lo:
+Monza tem `SCALE_FACTOR=1,4`, e um pixel da imagem vale 1,4 metros.
 
-Como há 22 pistas em que a imagem é ~20 px maior que o rectângulo do
-mundo, a escala **vem sempre de medir a imagem**, nunca de presumir
-`1`:
+**A armadilha que me fez errar:** o `WIDTH`/`HEIGHT` do `map.ini` batem ao
+pixel com as dimensões do PNG (monza 927,4 → 927 px; imola 1543,9 → 1543;
+montreal 508,8 → 508; spa 1004,8 → 1004). Isso parece provar "1 pixel por
+metro", e parece tão bem que eu escrevi a regra com essa conclusão.
 
-```python
-pxPorMetro = (png_width / WIDTH + png_height / HEIGHT) / 2
-confiavel  = abs(png_width/WIDTH - png_height/HEIGHT) / max(...) < 0.02
-```
+Mas o `WIDTH` está em **píxeis da imagem**, não em metros. A extensão do
+mundo é `WIDTH * SCALE_FACTOR` metros. O `map.ini` mistura as duas
+unidades no mesmo ficheiro, e o nome do campo não diz qual é.
 
-O `confiavel` é o que protege contra os dados de pista que estão
-simplesmente errados: `ek_irohazaka` tem `WIDTH` 2368 m numa imagem de
-1993 px e `HEIGHT` 890 m em 872 px, e `Brooklyn Park` tem 365,9 m em 355 px
-e 350,4 m em 200 px. Quando os dois eixos não concordam, o cliente volta
-ao mapa traçado, que é sempre correcto — um mapa torto é pior do que
-nenhum.
+**E a pista onde medi isto primeiro foi a que não discriminava:** Baku tem
+`SCALE_FACTOR=1`, e com escala 1 as duas leituras dão o mesmo número.
+Foi a confirmação de uma amostra incapaz de discordar — a Regra nº 11 outra
+vez, exactamente igual. Monza (`SCALE_FACTOR=1,4`) é que separou as
+hipóteses.
+
+Como verificar, sem dados de condução: `1 / SCALE_FACTOR` tem de dar um
+número que projecta o trajecto para dentro da imagem. Se der 1,0 numa pista
+com `SCALE_FACTOR=1,3`, está errado.
 
 ### O `MARGIN` não está cozido na imagem
 
 `MARGIN=20` com a imagem exatamente `WIDTH` px de lado: logo a margem
-**não** está somada. Somar `MARGIN` ao deslocamento é a terceira hipótese
-a testar, e está errada.
+**não** está somada. Medido em Monza — somar `MARGIN/2` punha a mediana
+de 0 px para 9 px, e somar `MARGIN` para 19 px.
+
+### Pistas com dados que não batem com a própria imagem
+
+O `WIDTH`/`HEIGHT` do `map.ini` tem de descrever a imagem em píxeis, e em
+54 das 76 pistas bate. Onde não bate, os dados estão errados e o mapa
+sairia torto — `ek_irohazaka` (`WIDTH` 2368 numa imagem de 1993 px) e
+`Brooklyn Park` (365,9 em 355 px, 350,4 em 200 px). Aí o servidor manda
+`trusted: false` e o cliente volta ao mapa traçado, que é sempre correcto.
 
 ---
 

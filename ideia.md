@@ -439,6 +439,68 @@ adivinha uma sigla a partir de um nome. No AC base, onde o valor pode ser
 
 ---
 
+## Vista do mapa: mapa inteiro ou relativa, com zoom — por fazer
+
+O que o piloto pediu, e porque faz sentido.
+
+**1. Um interruptor entre "pista inteira" e "vista relativa".**
+
+| | o que se vê | para que serve |
+|---|---|---|
+| `inteira` | a pista completa, como agora | ver a zona toda, o traçado, a DRS || `relativa` | centrada no carro, com zoom | ver o que vem a seguir e onde se está |
+
+**2. O zoom acompanha a velocidade.** Lento, amplia-se; rápido, afasta-se.
+A velocidade sozinha faz a imagem oscilar a cada travagem, por isso o
+valor tem de ser **amortecido**: ler a velocidade suavizada, não a
+instantânea.
+
+**3. As bolas um pouco maiores.** Com a pista inteira espremida em ~340 px
+de ecrã, um círculo de 6 px é maior do que a própria linha da pista (2 px
+na imagem, ainda mais fina depois de reduzida). O carro tapa a pista.
+
+Isto não é um extra: é provavelmente a razão pela qual a posição parece
+estar fora da pista (ver em baixo). Numa vista relativa com zoom, a linha
+fica com vários píxeis e a posição deixa de ser ambígua.
+
+## Em aberto — a posição do carro fora da pista, em Monza
+
+**Resolvido, e a culpa foi minha.** O piloto.relatou que o ponto amarelo
+não estava sobre a pista. Tinha razão: a distância mediana do trajecto à
+linha desenhada era de **132 metros**.
+
+A causa: eu tinha concluído, a partir de o `WIDTH` do `map.ini` bater ao
+pixel com a largura do PNG, que a imagem tinha 1 píxel por metro — e
+passei a não dividir por `SCALE_FACTOR`. Errado. O `WIDTH` está em
+**píxeis da imagem**, não em metros; a extensão do mundo é
+`WIDTH * SCALE_FACTOR` metros.
+
+| fórmula | distância mediana à pista (Monza) |
+|---|---|
+| `(x + X_OFFSET) / SCALE_FACTOR` | **0 px** |
+| `(x + X_OFFSET)` | 132 m |
+| `(x + X_OFFSET) * SCALE_FACTOR` | fora da imagem |
+
+Isto só apareceu numa pista com `SCALE_FACTOR` diferente de 1. Monza tem
+1,4. Baku, onde a medição anterior foi feita, tem 1 — e com escala 1 as
+duas leituras dão o mesmo número, ou seja, a medição não conseguia
+discordar. Mesma armadilha da `drsAvailable` na Regra nº 11.
+
+**Duas medições minhas erradas no mesmo assunto**, ambas a dar confiança a
+mais:
+
+- "a forma bate, IoU 49%" — verdade mas inútil: normalizar as duas nuvens
+  pela sua própria caixa faz um traçado diagonal coincidir com um
+  contorno. IoU depois de normalizar não mede alinhamento.
+- "está dentro da caixa da pista" — medi que o ponto caía entre duas
+  travessias da pista, mas essas travessias são **secções diferentes do
+  mesmo circuito**, e o ponto estava no meio do enclosure.
+
+A medição que serve é uma só: a **distância de cada ponto do trajecto ao
+píxel claro mais próximo**, e a mediana dessa distribuição. Com 0 px está
+certo; com 132 m está errado. Ver `tests\mapa.py analisa`.
+
+---
+
 ## Ficheiros
 
 | | |

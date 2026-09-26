@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 Ferramenta de duas fases para decidir a transformacao mundo -> imagem.
 
@@ -143,19 +143,26 @@ def capturar(segundos, hz):
 def hipoteses(W, H, X0, Z0, S, MG):
     """
     Cada hipotese devolve (nome, funcao(x, z) -> (px, py)).
-    A base e' 1 pixel por metro, porque o WIDTH/HEIGHT do map.ini batem com
-    as dimensoes do PNG em varias pistas. O SCALE_FACTOR entra como
-    hipoteses alternativas para se ver que estao erradas.
+
+    A CORRECTA e' a primeira: dividir pelo SCALE_FACTOR. O SCALE_FACTOR e'
+    a escala da imagem, e um pixel da imagem vale SCALE_FACTOR metros.
+    Medido com um trajecto real de Monza (SCALE_FACTOR 1,4): a distancia
+    mediana a linha da pista e' 0 px com a divisao, e 132 m sem ela.
+
+    As outras hypotheses ficam aqui para se ver que estão erradas. E
+    notar que Baku, onde isto se mediu primeiro, tem SCALE_FACTOR 1 — e
+    com escala 1 as hypotheses A, C e E dão o mesmo numero, ou seja, a
+    medição em Baku não conseguia distinguir nada.
     """
     return [
-        ("A  y = z + Z0", 1.0, 0, 0, False),
-        ("B  y = H - (z + Z0)", 1.0, 0, 0, True),
-        ("C  (z + Z0) / S", 1.0 / S, 0, 0, False),
-        ("D  H - (z + Z0) / S", 1.0 / S, 0, 0, True),
-        ("E  (x + X0) * S, (z + Z0) * S", S, 0, 0, False),
-        ("F  (x + X0) * S, H - (z + Z0) * S", S, 0, 0, True),
-        ("G  x + X0 + MARGIN, z + Z0 + MARGIN", 1.0, MG, MG, False),
-        ("H  x + X0 + MARGIN, H - (z + Z0) - MARGIN", 1.0, MG, MG, True),
+        ("A  /S   (a correcta)", 1.0 / S, 0, 0, False),
+        ("B  /S, Z invertido", 1.0 / S, 0, 0, True),
+        ("C  sem escala (1 px por metro)", 1.0, 0, 0, False),
+        ("D  sem escala, Z invertido", 1.0, 0, 0, True),
+        ("E  *S", S, 0, 0, False),
+        ("F  *S, Z invertido", S, 0, 0, True),
+        ("G  /S, +MARGIN", 1.0 / S, MG, MG, False),
+        ("H  /S, +MARGIN, Z invertido", 1.0 / S, MG, MG, True),
     ]
 
 
