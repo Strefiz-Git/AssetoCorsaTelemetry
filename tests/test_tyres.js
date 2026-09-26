@@ -130,6 +130,46 @@ eq(r.valido, false, 'sem dados de todo');
 r = P.estimarPneus(null, { compound: 'M', volta: 0, restantePorPneu: [NaN, 50, 50, 50] });
 perto(r.restante, 50, 0.001, 'NaN e ignorado, os outros contam');
 
+/* --------------------------------------------------------- plausibilidade */
+/* O caso REAL medido no Mugello com um Alpine A424: o campo tyreWear
+   dava 0,17% de desgaste ao fim de duas voltas. Projetado, isso dava 588
+   voltas de vida, e um stint e' da ordem das 10 a 30. O numero e' sem
+   sentido, e o que o sitio escreve tem de ser "nao da" e nao 588. */
+hdr('numeros que nao sao plausiveis para um stint');
+e = P.estimarPneus(null, { compound: 'Medium (M)', volta: 0, restantePorPneu: [100, 100, 100, 100] }).estado;
+e = P.estimarPneus(e, { compound: 'Medium (M)', volta: 1, restantePorPneu: [99.9, 99.9, 99.9, 99.9] }).estado;
+r = P.estimarPneus(e, { compound: 'Medium (M)', volta: 2, restantePorPneu: [99.83, 99.83, 99.83, 99.83] });
+eq(r.valido, false, 'com 0,17% por volta NAO da um numero');
+eq(r.impossivel, true, 'e diz que o numero e\' impossivel');
+eq(r.voltasRestantes, null, 'e nao devolve 588 voltas');
+perto(r.porVolta, 0.085, 0.001, 'mas o desgaste medido fica visivel para diagnostico');
+
+// um desgaste de 3% por volta, que e' plausivel, continua a passar
+e = P.estimarPneus(null, { compound: 'M', volta: 0, restantePorPneu: quatro(100) }).estado;
+e = P.estimarPneus(e, { compound: 'M', volta: 1, restantePorPneu: quatro(97) }).estado;
+r = P.estimarPneus(e, { compound: 'M', volta: 2, restantePorPneu: quatro(94) });
+eq(r.valido, true, '3% por volta e\' plausivel');
+perto(r.voltasRestantes, 31, 0.5, 'e da 31 voltas');
+
+// um stint de resistencia: 1,2% por volta ainda passa
+e = P.estimarPneus(null, { compound: 'M', volta: 0, restantePorPneu: quatro(100) }).estado;
+e = P.estimarPneus(e, { compound: 'M', volta: 1, restantePorPneu: quatro(98.8) }).estado;
+r = P.estimarPneus(e, { compound: 'M', volta: 2, restantePorPneu: quatro(97.6) });
+eq(r.valido, true, '1,2% por volta ainda e\' um stint');
+
+// o limite de 150 voltas: 0,5% por volta projetaria 200
+e = P.estimarPneus(null, { compound: 'M', volta: 0, restantePorPneu: quatro(100) }).estado;
+e = P.estimarPneus(e, { compound: 'M', volta: 1, restantePorPneu: quatro(99.5) }).estado;
+r = P.estimarPneus(e, { compound: 'M', volta: 2, restantePorPneu: quatro(99.0) });
+eq(r.valido, false, '0,5% por volta projetaria 200 voltas: acima do limite');
+eq(r.impossivel, true, 'e marcado como impossivel');
+
+// 0,7% por volta da 142 voltas: passa o teste do ritmo, e cabe no limite
+e = P.estimarPneus(null, { compound: 'M', volta: 0, restantePorPneu: quatro(100) }).estado;
+e = P.estimarPneus(e, { compound: 'M', volta: 1, restantePorPneu: quatro(99.3) }).estado;
+r = P.estimarPneus(e, { compound: 'M', volta: 2, restantePorPneu: quatro(98.6) });
+eq(r.valido, true, '0,7% por volta, 142 voltas: ainda dentro do razoavel');
+
 /* --------------------------------------------------------------------- */
 console.log('\n' + (ok === n ? 'OK' : 'FALHA') + ': ' + ok + '/' + n + ' testes da vida do pneu passaram.');
 process.exit(ok === n ? 0 : 1);

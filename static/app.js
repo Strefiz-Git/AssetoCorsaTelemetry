@@ -58,7 +58,11 @@ const I18N = {
     'tyres.title': 'PNEUS E TRAVÕES', 'tyres.worn': 'gasto',
     'tyres.life': 'Vida do pneu', 'tyres.lapsLeft': 'voltas',
     'tyres.measuring': 'a medir', 'tyres.used': 'gasto', 'tyres.perLap': 'por volta', 'tyres.needTwoLaps': 'Faltam 2 voltas para estimar', 'tyres.lapsOnThisSet': 'voltas neste jogo',
-    'tyres.lifeNote': 'Estimativa feita do desgaste que já aconteceu neste stint, não de uma tabela do jogo: o Assetto Corsa não publica a vida do composto. Depois de duas voltas medidas o número já significa alguma coisa; antes disso é um palpite.',
+    'tyres.surface': 'Temperatura da banda. O número grande é o do núcleo, que é o que o jogo mostra.',
+    'tyres.wornTitle': 'Desgaste, usado', 'tyres.pressTitle': 'Pressão real, em psi. O jogo mostra o desvio para uma nominal que não é publicada.',
+    'tyres.lifeNote': 'Estimativa a partir do desgaste já medido neste stint. O Assetto Corsa não publica a vida do composto, e o desgaste que publica é lento demais para dar um número fiável: se aparecer, é porque o valor desta vez é plausível.',
+    'tyres.notWear': 'não dá',
+    'tyres.notWearWhy': 'O desgaste que o jogo publica é lento demais para um stint real: 0,17% ao fim de duas voltas dariam 588 voltas de vida. Não dá para prever a partir dele.',
     'brakes.title': 'TRAVÕES', 'fuel.title': 'COMBUSTÍVEL',
     'wx.air': 'AR', 'wx.road': 'PISTA', 'wx.wind': 'VENTO', 'wx.density': 'DENSIDADE', 'wx.grip': 'ADERENCIA', 'unit.c': '°C',
     'fuel.inTank': 'Na reserva', 'fuel.lapsLeft': 'Voltas',
@@ -120,6 +124,8 @@ const I18N = {
     'tyres.title': 'PNEUS E FREIOS', 'tyres.worn': 'usado',
     'tyres.life': 'Vida do pneu', 'tyres.lapsLeft': 'voltas',
     'tyres.measuring': 'medindo', 'tyres.used': 'usado', 'tyres.perLap': 'por volta', 'tyres.needTwoLaps': 'Faltam 2 voltas para estimar', 'tyres.lapsOnThisSet': 'voltas neste stint',
+    'tyres.surface': 'Temperatura da banda. O número grande é o do núcleo, que é o que o jogo mostra.',
+    'tyres.wornTitle': 'Desgaste, usado', 'tyres.pressTitle': 'Pressão real, em psi. O jogo mostra o desvio para uma nominal que não é publicada.',
     'tyres.lifeNote': 'Estimativa feita do desgaste que já aconteceu neste stint, não de uma tabela do jogo: o Assetto Corsa não publica a vida do pneu. Depois de duas voltas medidas o número já significa alguma coisa; antes disso é um palpite.',
     'brakes.title': 'FREIOS', 'fuel.title': 'COMBUSTÍVEL',
     'wx.air': 'AR', 'wx.road': 'PISTA', 'wx.wind': 'VENTO', 'wx.density': 'DENSIDADE', 'wx.grip': 'ADERENCIA', 'unit.c': '°C',
@@ -181,6 +187,10 @@ const I18N = {
     'tyres.title': 'NEUMÁTICOS Y FRENOS', 'tyres.worn': 'gastado',
     'tyres.life': 'Vida del neumático', 'tyres.lapsLeft': 'vueltas',
     'tyres.measuring': 'midiendo', 'tyres.used': 'gastado', 'tyres.perLap': 'por vuelta', 'tyres.needTwoLaps': 'Faltan 2 vueltas para poder estimar', 'tyres.lapsOnThisSet': 'vueltas en este stint',
+    'tyres.surface': 'Temperatura de la banda. El número grande es el del núcleo, que es el que muestra el juego.',
+    'tyres.wornTitle': 'Desgaste, gastado', 'tyres.pressTitle': 'Presión real, en psi. El juego muestra la desviación respecto a una nominal que no se publica.',
+    'tyres.notWear': 'no se puede',
+    'tyres.notWearWhy': 'El desgaste que publica el juego no acompaña un stint real: da 0,17% tras dos vueltas, o que serían 588 vueltas de vida. No se puede predecir a partir de ahí.',
     'tyres.lifeNote': 'Estimación a partir del desgaste que ya ha ocurrido en este stint, no de una tabla del juego: Assetto Corsa no publica la vida del compuesto. Tras dos vueltas medidas el número ya significa algo; antes es una suposición.',
     'brakes.title': 'FRENOS', 'fuel.title': 'COMBUSTIBLE',
     'wx.air': 'AIRE', 'wx.road': 'PISTA', 'wx.wind': 'VIENTO', 'wx.density': 'DENSIDAD', 'wx.grip': 'ADHERENCIA', 'unit.c': '°C',
@@ -245,6 +255,10 @@ const I18N = {
     'tyres.title': 'TYRES AND BRAKES', 'tyres.worn': 'worn',
     'tyres.life': 'Tyre life', 'tyres.lapsLeft': 'laps',
     'tyres.measuring': 'measuring', 'tyres.used': 'worn', 'tyres.perLap': 'per lap', 'tyres.needTwoLaps': 'Needs 2 laps before it can estimate', 'tyres.lapsOnThisSet': 'laps on this set',
+    'tyres.surface': 'Tread temperature. The big number is the core, which is what the game shows.',
+    'tyres.wornTitle': 'Wear, used', 'tyres.pressTitle': 'Real pressure, in psi. The game shows the deviation from a nominal that is not published.',
+    'tyres.notWear': 'cannot tell',
+    'tyres.notWearWhy': 'The wear the game publishes does not track a real stint: 0.17% after two laps, which would be 588 laps of life. There is no way to predict from it.',
     'tyres.lifeNote': 'Estimated from the wear that has already happened on this stint, not from a game table: Assetto Corsa does not publish the compound life. After two measured laps the number means something; before that it is a guess.',
     'brakes.title': 'BRAKES', 'fuel.title': 'FUEL',
     'wx.air': 'AIR', 'wx.road': 'TRACK', 'wx.wind': 'WIND', 'wx.density': 'DENSITY', 'wx.grip': 'GRIP', 'unit.c': '°C',
@@ -1286,41 +1300,74 @@ function buildTyres(hostId) {
       '<span class="tyre-worn" id="' + hostId + '-w' + i + '">--</span></span>' +
       '<span class="tyre-bar-wrap">' +
       '<canvas class="tyre-bar" id="' + hostId + '-b' + i + '" width="120" height="7"></canvas>' +
-      '<span class="tyre-press" id="' + hostId + '-p' + i + '">--</span>' +
-      '</span>';
+      '<span class="tyre-press">' +
+      '<b id="' + hostId + '-s' + i + '">--</b>' +
+      '<span id="' + hostId + '-p' + i + '">--</span>' +
+      '</span></span>';
     host.appendChild(d);
   }
 }
 function renderTyres(hostId, d) {
-  const u = unidadeTemp();
   for (let i = 0; i < 4; i++) {
-    const mid = (d.tyreTempM && d.tyreTempM[i]) || 0;
-    setTxt(hostId + '-t' + i, mid ? fmtTemp(mid) + unidadeTemp() : '--');
+    // O numero grande e' o NUCLEO, nao a superficie. Medido contra o
+    // ecra do jogo, no mesmo instante (pausa):
+    //
+    //   roda   jogo   tyreCore   tyreTempM (superficie)
+    //   FL     118        115            72
+    //   FR      82         92            68
+    //   RL     119        117            83
+    //   RR     108        107            82
+    //
+    // O jogo mostra o nucleo. O site mostrava a superficie, que sao 40 C
+    // menos -- e comparing os dois numeros, o do site pareceva errado.
+    // E o nucleo que interessa: e' a temperatura que diz se o pneu esta'
+    // na janela de trabalho.
+    const core = (d.tyreCore && d.tyreCore[i]) || 0;
+    setTxt(hostId + '-t' + i, core ? fmtTemp(core) + unidadeTemp() : '--');
     const te = $(hostId + '-t' + i);
-    if (te) te.style.color = tempColor(mid);
-    // O desgaste escreve-se como RESTANTE, nao como usado. '0.0%' ao
-    // inicio da corrida era verdade e nao dizia nada; '99.6% restante'
-    // responde a pergunta que o piloto faz. O underlying e' o mesmo:
-    // 100 - tyreWear.
+    if (te) te.style.color = tempColor(core);
+    // a superficie vai ao lado da pressao, em corpo pequeno
+    const sup = (d.tyreTempM && d.tyreTempM[i]) || 0;
+    setTxt(hostId + '-s' + i, sup ? fmtTemp(sup) + '°' : '--');
+    const se = $(hostId + '-s' + i);
+    if (se) se.title = t('tyres.surface');
+
+    // O desgaste e' o campo tyreWear, e NAO e' a percentagem que o jogo
+    // mostra. Medido no mesmo instante: o jogo dava 91 / 95 / 91 / 93 e
+    // o tyreWear dava 99,8 / 99,9 / 99,8 / 99,9. A ordem do jogo segue a
+    // temperatura do nucleo (o mais quente a 115 C era o dos 91%), e nao
+    // o desgaste -- que apos duas voltas ainda mal mexeu. Portanto o
+    // numero do jogo e' outra grandeza (aderencia, ao que tudo indica) e
+    // nao ha' forma de o reproduzir a partir do que o AC publica.
+    // Aqui escreve-se DESGASTE, que e' o que medimos, e nao se finge que
+    // e' o mesmo numero.
     const restante = (d.tyreWear && d.tyreWear[i] != null) ? d.tyreWear[i] : null;
-    const setTxtW = restante == null ? '--' : restante.toFixed(1) + '% restante';
-    setTxt(hostId + '-w' + i, setTxtW);
+    setTxt(hostId + '-w' + i, restante == null ? '--' : restante.toFixed(1) + '%');
     const we = $(hostId + '-w' + i);
     if (we) {
       // os avisos invertem-se: agora e' o que resta que interessa
       const cls = restante == null ? ''
         : restante <= 20 ? ' bad' : restante <= 40 ? ' warn' : '';
       we.className = 'tyre-worn' + cls;
-      if (restante != null) we.title = t('tyres.used') + ' ' + (100 - restante).toFixed(1) + '%';
+      we.title = t('tyres.wornTitle') + ' ' + (100 - restante).toFixed(1) + '%';
     }
-    drawTyreBar(hostId + '-b' + i, mid);
-    const pr = (d.tyrePressure && d.tyrePressure[i] != null) ? d.tyrePressure[i].toFixed(1) : '--';
+    drawTyreBar(hostId + '-b' + i, core);
     // psi, e nao kPa. Medido num F1: 28.7 a 32.3. Se fossem kPa seriam
     // 0.29 a 0.32 bar, menos que a pressao atmosferica (1 atm = 101.3
     // kPa) - impossivel. Como psi da 1.98 a 2.23 bar, que e' o que um
     // F1 usa. A unidade nao vem escrita em lado nenhum, por isso fica aqui
     // escrito para nao se perder.
-    setTxt(hostId + '-p' + i, pr === '--' ? pr : pr + ' psi');
+    const pr = (d.tyrePressure && d.tyrePressure[i] != null) ? d.tyrePressure[i] : null;
+    setTxt(hostId + '-p' + i, pr == null ? '--' : pr.toFixed(1) + ' psi');
+    const pe = $(hostId + '-p' + i);
+    if (pe && pr != null) {
+      // O jogo mostra a pressao como DESVIO em relacao a uma nominal
+      // (+1.4, -1.5, +1.5, +0.2 psi no Mugello). A nominal nao vem escrita
+      // em lado nenhum, e nos ficheiros do jogo so' apareceria em
+      // data/tyres.ini, que este carro nao tem. Portanto mostra-se o
+      // absoluto -- que e' o numero real -- e diz-se isso na dica.
+      pe.title = t('tyres.pressTitle');
+    }
   }
   if (hostId === 'tyres') renderTyreLife(d);
 }
@@ -1352,6 +1399,14 @@ function renderTyreLife(d) {
   });
   S.pneuStint = r.estado;
   if (!r.valido) {
+    if (r.impossivel) {
+      // Ha' desgaste medido, mas o numero nao cabe num stint. Mostrar
+      // "~588 voltas" seria pior do que nao mostrar nada: o campo nao
+      // esta' a medir a banda de rodagem.
+      porMedir(t('tyres.notWear'));
+      if (note) note.textContent = t('tyres.notWearWhy');
+      return;
+    }
     porMedir(t('tyres.measuring'));
     if (note) note.textContent = t('tyres.needTwoLaps');
     return;

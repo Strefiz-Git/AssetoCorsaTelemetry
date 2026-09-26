@@ -431,7 +431,15 @@ body{
 .tyre-worn.bad{color:var(--red)}
 .tyre-bar-wrap{grid-area:sub;display:flex;align-items:center;gap:7px;min-width:0}
 .tyre-bar{width:100%;height:8px;display:block;min-width:0}
-.tyre-press{font-size:11px;font-weight:700;color:var(--grey);text-align:right;font-variant-numeric:tabular-nums;flex:0 0 auto;white-space:nowrap}
+/* A pressao e' o numero real (psi). Ao lado, em corpo menor, a
+   temperatura da SUPERFICIE: o numero grande e' o do nucleo, que e' o
+   que o jogo mostra. */
+.tyre-press{
+  display:flex;align-items:baseline;gap:5px;flex:0 0 auto;white-space:nowrap;
+  font-variant-numeric:tabular-nums;
+}
+.tyre-press b{font-size:11px;font-weight:700;color:var(--grey)}
+.tyre-press span{font-size:11px;font-weight:700;color:#3F4647;text-align:right}
 .brake-row{
   display:flex;align-items:baseline;gap:8px;
   margin-top:7px;padding-top:6px;border-top:1px solid var(--line);flex:0 0 auto;

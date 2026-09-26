@@ -27,6 +27,7 @@ SUITE = [
     ("o servidor fica calado", "py", "test_handler.py"),
     ("tempos de volta e delta", "node", "test_tempos.js"),
     ("vida do pneu", "node", "test_tyres.js"),
+    ("valores nao finitos", "py", "verificar_finitos.py"),
     ("os testes mordem mesmo", "py", "test_mutation.py"),
     ("texto sem caracteres estranhos", "py", "verificar_texto.py"),
 ]

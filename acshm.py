@@ -343,9 +343,27 @@ k32.CloseHandle.argtypes = [wintypes.HANDLE]
 k32.CloseHandle.restype = wintypes.BOOL
 
 
+def _finito(v):
+    """True se v e' um numero que se pode converter para int.
+
+    O AC publica INFINITO em varios campos quando a sessao nao tem
+    limite de tempo: medido, o sessionTimeLeft de um treino sem cronometro
+    vem a inf. Com isso, 'inf > 0' e' verdadeiro e 'int(inf * 1000)' levanta
+    OverflowError -- que rebenta o snapshot() INTEIRO, e o /api/state passa
+    a devolver erro. O painel fica cego numa sessao sem tempo, que e'
+    precisamente quando se treina.
+    """
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return False
+    # math.isfinite diz o que e' mesmo; o try/except apanha o resto
+    return f == f and f not in (float("inf"), float("-inf"))
+
+
 def _ms(v):
     """milissegundos -> 00:00.000 (o AC devolve os tempos em ms)"""
-    if v is None or v <= 0:
+    if not _finito(v) or v <= 0:
         return "--:--.---"
     ms = int(v)
     m, rem = divmod(ms, 60000)
@@ -354,7 +372,7 @@ def _ms(v):
 
 
 def _ms_plain(v):
-    if v is None or v <= 0:
+    if not _finito(v) or v <= 0:
         return None
     ms = int(v)
     m, rem = divmod(ms, 60000)
@@ -544,7 +562,10 @@ class ACTelemetry:
             "currentTime": _ms(gr.iCurrentTime),
             "lastTime": _ms(gr.iLastTime),
             "bestTime": _ms(gr.iBestTime),
-            "sessionLeft": _ms_plain(int(gr.sessionTimeLeft * 1000)) if gr.sessionTimeLeft > 0 else None,
+            # inf quando a sessao nao tem limite de tempo -- ver _finito()
+        "sessionLeft": (_ms_plain(int(gr.sessionTimeLeft * 1000))
+                        if _finito(gr.sessionTimeLeft) and gr.sessionTimeLeft > 0
+                        else None),
 
             # Mundo do AC: X-Z e' o plano da pista, Y e' a ALTITUDE.
             # Medido em Spa com 19 adversarios: X 997 m, Y 88 m, Z 2012 m.
