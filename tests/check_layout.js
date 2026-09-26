@@ -70,8 +70,12 @@
         if (r.right > w.innerWidth + 2)
           maus.push(nome + ' fora do ecra (' + Math.round(r.right) + '>' + w.innerWidth + ')');
       });
+      // Só dentro da vista visível. O mapa e os pedais vivem na vista de
+      // telemetria; nas outras duas estão escondidos e dão 0x0, que
+      // fazia 26 dos 39 layouts falharem por nada. Comprobei com um A/B
+      // contra o HEAD: as mesmas 52 falhas, todas elas "sem dimensao".
       ['map', 'pedals'].forEach(id => {
-        const cv = d.getElementById(id);
+        const cv = d.querySelector('.view:not(.hidden) #' + id);
         if (cv && (cv.clientWidth < 20 || cv.clientHeight < 20))
           maus.push(id + ' sem dimensao (' + cv.clientWidth + 'x' + cv.clientHeight + ')');
       });
