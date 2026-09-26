@@ -14,7 +14,7 @@ const I18N = {
     'app.title': 'Telemetria AC',
     'boot.waiting': 'A aguardar o Assetto Corsa',
     'boot.reading': 'A ler a telemetria directamente do jogo…',
-    'boot.closed': 'Jogo fechado. A abrir o AC, ou a verificar se está a correr.',
+
     'menu.title': 'O que queres ver?',
     'menu.sub': 'Podes mudar a qualquer momento nas definições.',
     'menu.telemetry': 'Telemetria',
@@ -45,8 +45,8 @@ const I18N = {
     'set.aboutBody': 'Telemetria lida directamente da memória do Assetto Corsa. Sem SimHub.',
     'drs.short': 'DRS', 'gear.label': 'CAIXA', 'unit.kmh': 'km/h',
     'unit.mph': 'mph', 'unit.rpm': 'rpm',
-    'ers.short': 'ERS', 'pit.short': 'PIT', 'state.off': 'OFF',
-    'state.on': 'ON', 'state.lim': 'LIM',
+    'ers.short': 'ERS', 'pit.short': 'PIT',
+ 'state.lim': 'LIM',
     'map.title': 'MAPA DA PISTA', 'pedals.title': 'PEDAIS',
     'wheel.title': 'VOLANTE', 'wheel.note': 'Angulo do volante, de -1 a 1. O alcance do valor esta'
     + ' por confirmar a conduzir.',
@@ -56,9 +56,9 @@ const I18N = {
     'pedals.pequeno': 'pouco espaco', 'pedals.agora': 'agora',
     'laps.title': 'VOLTAS', 'laps.current': 'ATUAL', 'laps.best': 'MELHOR',
     'laps.last': 'ANTERIOR', 'laps.delta': 'DELTA',
-    'tyres.title': 'PNEUS E TRAVÕES', 'tyres.worn': 'gasto',
-    'tyres.life': 'Vida do pneu', 'tyres.lapsLeft': 'voltas',
-    'tyres.measuring': 'a medir', 'tyres.used': 'gasto', 'tyres.perLap': 'por volta', 'tyres.needTwoLaps': 'Faltam 2 voltas para estimar', 'tyres.lapsOnThisSet': 'voltas neste jogo',
+    'tyres.title': 'PNEUS E TRAVÕES',
+    'tyres.life': 'Vida do pneu',
+    'tyres.measuring': 'a medir', 'tyres.perLap': 'por volta', 'tyres.needTwoLaps': 'Faltam 2 voltas para estimar', 'tyres.lapsOnThisSet': 'voltas neste jogo',
     'tyres.surface': 'Temperatura da banda. O número grande é o do núcleo, que é o que o jogo mostra.',
     'tyres.wornTitle': 'Desgaste, usado', 'tyres.pressTitle': 'Pressão real, em psi. O jogo mostra o desvio para uma nominal que não é publicada.',
     'tyres.lifeNote': 'Estimativa a partir do desgaste já medido neste stint. O Assetto Corsa não publica a vida do composto, e o desgaste que publica é lento demais para dar um número fiável: se aparecer, é porque o valor desta vez é plausível.',
@@ -90,7 +90,7 @@ const I18N = {
   'pt-BR': {
     'app.title': 'Telemetria AC', 'boot.waiting': 'Aguardando o Assetto Corsa',
     'boot.reading': 'Lendo a telemetria direto do jogo…',
-    'boot.closed': 'Jogo fechado. Abra o AC, ou verifique se está rodando.',
+
     'menu.title': 'O que você quer ver?', 'menu.sub': 'Dá para mudar a qualquer momento nas configurações.',
     'menu.telemetry': 'Telemetria', 'menu.telemetryDesc': 'Velocidade, rpm, pedais, pneus, combustível',
     'menu.leaderboard': 'Leaderboard', 'menu.leaderboardDesc': 'Classificação de todos os carros',
@@ -117,7 +117,7 @@ const I18N = {
     'set.aboutBody': 'Telemetria lida direto da memória do Assetto Corsa. Sem SimHub.',
     'drs.short': 'DRS', 'gear.label': 'MARCHA', 'unit.kmh': 'km/h',
     'unit.mph': 'mph', 'unit.rpm': 'rpm', 'ers.short': 'ERS', 'pit.short': 'BOX',
-    'state.off': 'OFF', 'state.on': 'ON', 'state.lim': 'LIM',
+ 'state.lim': 'LIM',
     'map.title': 'MAPA DA PISTA', 'pedals.title': 'PEDAIS',
     'wheel.title': 'VOLANTE', 'wheel.note': 'Angulo do volante, de -1 a 1. O alcance do valor esta'
     + ' por confirmar dirigindo.',
@@ -127,9 +127,11 @@ const I18N = {
     'pedals.pequeno': 'pouco espaco', 'pedals.agora': 'agora',
     'laps.title': 'VOLTAS', 'laps.current': 'ATUAL', 'laps.best': 'MELHOR',
     'laps.last': 'ANTERIOR', 'laps.delta': 'DELTA',
-    'tyres.title': 'PNEUS E FREIOS', 'tyres.worn': 'usado',
-    'tyres.life': 'Vida do pneu', 'tyres.lapsLeft': 'voltas',
-    'tyres.measuring': 'medindo', 'tyres.used': 'usado', 'tyres.perLap': 'por volta', 'tyres.needTwoLaps': 'Faltam 2 voltas para estimar', 'tyres.lapsOnThisSet': 'voltas neste stint',
+    'tyres.title': 'PNEUS E FREIOS',
+    'tyres.notWear': 'não dá',
+    'tyres.notWearWhy': 'O desgaste que o jogo publica é lento demais para um stint real: 0,17% ao fim de duas voltas dariam 588 voltas de vida. Não dá para prever a partir dele.',
+    'tyres.life': 'Vida do pneu',
+    'tyres.measuring': 'medindo', 'tyres.perLap': 'por volta', 'tyres.needTwoLaps': 'Faltam 2 voltas para estimar', 'tyres.lapsOnThisSet': 'voltas neste stint',
     'tyres.surface': 'Temperatura da banda. O número grande é o do núcleo, que é o que o jogo mostra.',
     'tyres.wornTitle': 'Desgaste, usado', 'tyres.pressTitle': 'Pressão real, em psi. O jogo mostra o desvio para uma nominal que não é publicada.',
     'tyres.lifeNote': 'Estimativa feita do desgaste que já aconteceu neste stint, não de uma tabela do jogo: o Assetto Corsa não publica a vida do pneu. Depois de duas voltas medidas o número já significa alguma coisa; antes disso é um palpite.',
@@ -158,7 +160,7 @@ const I18N = {
   'es': {
     'app.title': 'Telemetría AC', 'boot.waiting': 'Esperando al Assetto Corsa',
     'boot.reading': 'Leyendo la telemetría directamente del juego…',
-    'boot.closed': 'Juego cerrado. Abre el AC, o comprueba si está en marcha.',
+
     'menu.title': '¿Qué quieres ver?', 'menu.sub': 'Puedes cambiarlo cuando quieras en los ajustes.',
     'menu.telemetry': 'Telemetría', 'menu.telemetryDesc': 'Velocidad, rpm, pedales, neumáticos, combustible',
     'menu.leaderboard': 'Leaderboard', 'menu.leaderboardDesc': 'Clasificación de todos los coches',
@@ -185,7 +187,7 @@ const I18N = {
     'set.aboutBody': 'Telemetría leída directamente de la memoria del Assetto Corsa. Sin SimHub.',
     'drs.short': 'DRS', 'gear.label': 'MARCHA', 'unit.kmh': 'km/h',
     'unit.mph': 'mph', 'unit.rpm': 'rpm', 'ers.short': 'ERS', 'pit.short': 'PIT',
-    'state.off': 'OFF', 'state.on': 'ON', 'state.lim': 'LIM',
+ 'state.lim': 'LIM',
     'map.title': 'MAPA DE LA PISTA', 'pedals.title': 'PEDALES',
     'wheel.title': 'VOLANTE', 'wheel.note': 'Angulo del volante, de -1 a 1. El alcance del valor esta'
     + ' por confirmar conduciendo.',
@@ -195,9 +197,9 @@ const I18N = {
     'pedals.pequeno': 'poco espacio', 'pedals.agora': 'ahora',
     'laps.title': 'VUELTAS', 'laps.current': 'ACTUAL', 'laps.best': 'MEJOR',
     'laps.last': 'ANTERIOR', 'laps.delta': 'DELTA',
-    'tyres.title': 'NEUMÁTICOS Y FRENOS', 'tyres.worn': 'gastado',
-    'tyres.life': 'Vida del neumático', 'tyres.lapsLeft': 'vueltas',
-    'tyres.measuring': 'midiendo', 'tyres.used': 'gastado', 'tyres.perLap': 'por vuelta', 'tyres.needTwoLaps': 'Faltan 2 vueltas para poder estimar', 'tyres.lapsOnThisSet': 'vueltas en este stint',
+    'tyres.title': 'NEUMÁTICOS Y FRENOS',
+    'tyres.life': 'Vida del neumático',
+    'tyres.measuring': 'midiendo', 'tyres.perLap': 'por vuelta', 'tyres.needTwoLaps': 'Faltan 2 vueltas para poder estimar', 'tyres.lapsOnThisSet': 'vueltas en este stint',
     'tyres.surface': 'Temperatura de la banda. El número grande es el del núcleo, que es el que muestra el juego.',
     'tyres.wornTitle': 'Desgaste, gastado', 'tyres.pressTitle': 'Presión real, en psi. El juego muestra la desviación respecto a una nominal que no se publica.',
     'tyres.notWear': 'no se puede',
@@ -228,7 +230,7 @@ const I18N = {
   'en': {
     'app.title': 'AC Telemetry', 'boot.waiting': 'Waiting for Assetto Corsa',
     'boot.reading': 'Reading telemetry straight from the game…',
-    'boot.closed': 'Game closed. Start AC, or check that it is running.',
+
     'menu.title': 'What do you want to see?',
     'menu.sub': 'You can change this later in the settings.',
     'menu.telemetry': 'Telemetry',
@@ -258,7 +260,7 @@ const I18N = {
     'set.aboutBody': 'Telemetry read straight from Assetto Corsa memory. No SimHub.',
     'drs.short': 'DRS', 'gear.label': 'GEAR', 'unit.kmh': 'km/h',
     'unit.mph': 'mph', 'unit.rpm': 'rpm', 'ers.short': 'ERS', 'pit.short': 'PIT',
-    'state.off': 'OFF', 'state.on': 'ON', 'state.lim': 'LIM',
+ 'state.lim': 'LIM',
     'map.title': 'TRACK MAP', 'pedals.title': 'PEDALS',
     'wheel.title': 'STEERING', 'wheel.note': 'Steering angle, from -1 to 1. The range of the value is'
     + ' not confirmed yet, measured while driving.',
@@ -268,9 +270,9 @@ const I18N = {
     'pedals.pequeno': 'not enough room', 'pedals.agora': 'now',
     'laps.title': 'LAPS', 'laps.current': 'CURRENT', 'laps.best': 'BEST',
     'laps.last': 'LAST', 'laps.delta': 'DELTA',
-    'tyres.title': 'TYRES AND BRAKES', 'tyres.worn': 'worn',
-    'tyres.life': 'Tyre life', 'tyres.lapsLeft': 'laps',
-    'tyres.measuring': 'measuring', 'tyres.used': 'worn', 'tyres.perLap': 'per lap', 'tyres.needTwoLaps': 'Needs 2 laps before it can estimate', 'tyres.lapsOnThisSet': 'laps on this set',
+    'tyres.title': 'TYRES AND BRAKES',
+    'tyres.life': 'Tyre life',
+    'tyres.measuring': 'measuring', 'tyres.perLap': 'per lap', 'tyres.needTwoLaps': 'Needs 2 laps before it can estimate', 'tyres.lapsOnThisSet': 'laps on this set',
     'tyres.surface': 'Tread temperature. The big number is the core, which is what the game shows.',
     'tyres.wornTitle': 'Wear, used', 'tyres.pressTitle': 'Real pressure, in psi. The game shows the deviation from a nominal that is not published.',
     'tyres.notWear': 'cannot tell',
@@ -301,7 +303,32 @@ const I18N = {
 };
 
 let LANG = 'pt-PT';
-function t(k) { return (I18N[LANG] && I18N[LANG][k]) || k; }
+/* Uma traducao que falta nao pode mostrar a CHAVE no ecra. Durante um
+ * exame injectei um NaN e, ao mesmo tempo, olhei para o pt-BR: t()
+ * devolvia a propria chave, e um brasileiro lia "tyres.notWear" no sitio
+ * do texto. O t() antigo nao tinha fallback nenhum -- (I18N[LANG] &&
+ * I18N[LANG][k]) || k -- e por isso uma traducao em falta, ou uma letra
+ * trocada no nome da chave, dava texto de programador no interface.
+ *
+ * Agora: tenta a lingua, cai para o portugues, e se tambem nao houver
+ * devolve a propria chave em vez de uma string vazia. E avisa uma vez na
+ * consola, para se apanhar a developing e nao em producao. */
+let _chavesAvisadas = new Set();
+function t(k) {
+  const x = I18N[LANG] && I18N[LANG][k];
+  if (x) return x;
+  const pt = I18N['pt-PT'] && I18N['pt-PT'][k];
+  if (pt) {
+    if (!_chavesAvisadas.has(k)) {
+      _chavesAvisadas.add(k);
+      if (typeof console !== 'undefined') {
+        console.warn('[i18n] "' + k + '" nao existe em ' + LANG + '; a mostrar o portugues.');
+      }
+    }
+    return pt;
+  }
+  return k;
+}
 
 /* ------------------------------------------------------------ definicoes */
 const DEF_KEY = 'acdef.v1';
@@ -1968,7 +1995,49 @@ function connectOpponents() {
 }
 
 let lastD = null;
+/* --------------------------------------------------- numeros nao-finitos
+ *
+ * MEDIDO: injectar NaN ou Infinity nos campos numericos deixa o render()
+ * preso. Um render() normal leva 0,5 ms; com um nao-finite nos campos, a
+ * chamada nao voltou em 60 segundos -- e o separador ficou inutilizavel,
+ * ate a navegacao deixar de responder. Nao e' lento: e' um ciclo que nao
+ * acaba.
+ *
+ * Isto ja tinha acontecido do outro lado, e e' por isso que a defesa se
+ * poe aqui: o AC publica INFINITO em varios campos quando a sessao nao
+ * tem limite de tempo (o sessionTimeLeft de um treino sem cronometro).
+ * O acshm.py ganhou _finito() para nao rebentar o /api/state. O cliente
+ * nunca teve a mesma defesa, e o mesmo tipo de valor, no mesmo sitio,
+ * com outro sintoma.
+ *
+ * A defesa e' no limite: um numero que nao e' finito NAO E' UM DADO, e
+ * trata-se como um campo que ainda nao chegou. Nao se poe 0, porque 0
+ * significa "parado" e seria uma mentira -- o codigo de desenho ja sabe
+ * lidar com a ausencia, e e' isso que se quer mostrar. Verificado: com
+ * todos os numeros a NaN, o ecra mostra "--", "--:--.---", "a medir" e
+ * "—", e nao aparece um unico "NaN", "undefined" ou "Infinity".
+ *
+ * Nao isolei o campo culpado: a instrumentacao (um limite de 60 s por
+ * tentativa) era demasiado grossa. Nao faz falta saber qual e' -- com a
+ * sanitizacao a classe do bug deixa de existir.
+ */
+function sanear(d) {
+  if (!d || typeof d !== 'object') return d;
+  for (const k in d) {
+    const v = d[k];
+    if (typeof v === 'number') {
+      if (!isFinite(v)) d[k] = undefined;
+    } else if (Array.isArray(v)) {
+      for (let i = 0; i < v.length; i++) {
+        if (typeof v[i] === 'number' && !isFinite(v[i])) v[i] = null;
+      }
+    }
+  }
+  return d;
+}
+
 function render(d) {
+  d = sanear(d);
   S.frames++;
   const now = performance.now();
   if (now - S.fpsAt >= 1000) {
@@ -2250,6 +2319,16 @@ function opponentsSuaves(alvo) {
 
 function renderOpponents(o) {
   if (!o) return;
+  // a mesma defesa do render(): um nao-finite nao e' um dado (ver sanear)
+  if (Array.isArray(o.cars)) {
+    for (const car of o.cars) {
+      if (!car || typeof car !== 'object') continue;
+      for (const k in car) {
+        if (typeof car[k] === 'number' && !isFinite(car[k])) car[k] = undefined;
+      }
+    }
+  }
+  o = sanear(o);
   S.opponents = o;
   if (o.available && Array.isArray(o.cars)) {
     guardarOppHist(o);
