@@ -67,6 +67,8 @@ for name, struct in zip(NAMES, (acshm.SPageFilePhysics,
         obj.speedKmh = 246.75; obj.rpms = 11250; obj.gear = 5
         obj.gas = 0.8; obj.brake = 0.0; obj.fuel = 42.5
         obj.kersCharge = 0.95; obj.drs = 1.0; obj.pitLimiterOn = 0
+        obj.kersCurrentKJ = 250.0                     # kJ (nao J), por volta
+        obj.drsAvailable = 1; obj.drsEnabled = 1
         for i in range(4):
             obj.tyreTempI[i] = 90 + i; obj.tyreTempM[i] = 95 + i; obj.tyreTempO[i] = 99 + i
             obj.brakeTemp[i] = 300 + i * 7
@@ -84,7 +86,7 @@ for name, struct in zip(NAMES, (acshm.SPageFilePhysics,
         obj._acVersion = "1.16.2"; obj.carModel = "ferrari_488"; obj.track = "monza"
         obj.maxRpm = 12000; obj.maxFuel = 100.0; obj.numCars = 20
         obj.hasDRS = 1; obj.hasERS = 1; obj.hasKERS = 1
-        obj.ersMaxJ = 4000.0; obj.kersMaxJ = 0.0
+        obj.ersMaxJ = 4000000.0; obj.kersMaxJ = 0.0   # 4 MJ, em joules
         obj.sectorCount = 3; obj.penaltiesEnabled = 1
 
 t = acshm.ACTelemetry(names=NAMES)
@@ -96,7 +98,8 @@ checks = [
     ("track", "monza"), ("session", "TREINO"), ("status", "LIVE"),
     ("speed", 246.8), ("rpm", 11250), ("gear", "5"), ("maxRpm", 12000),
     ("throttle", 80.0), ("fuelL", 42.5), ("fuelPct", 42.5),
-    ("ersPct", 95.0), ("ersMaxKJ", 4000.0), ("drs", 1.0), ("hasDRS", True),
+    ("ersPct", 95.0), ("ersMaxJ", 4000000.0), ("ersMaxMJ", 4.0),
+    ("ersUsedThisLapKJ", 250.0), ("drs", 1.0), ("hasDRS", True),
     ("flag", "AMARELA"), ("flagId", 2), ("penaltyTime", 5.0), ("penaltyFlag", False),
     ("position", 3), ("lap", 7), ("totalLaps", 20),
     # 83456 ms = 1 min 23.456 s ; 91234 = 1:31.234 ; 88999 = 1:28.999

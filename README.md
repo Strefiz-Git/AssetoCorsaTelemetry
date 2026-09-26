@@ -164,14 +164,17 @@ Confirmados contra o AC em execução, não só por leitura da documentação:
 |---|---|
 | `kersCharge` (ERS) | fracção `0..1` |
 | `tyreWear` | **`0..100`, 100 = pneu novo** — não é fracção |
-| `kersMaxJ`, `kersCurrentKJ` | kJ |
-| `tyreTempI / M / O` | °C, três zonas por pneu |
-| `brakeTemp` | °C |
+| `kersMaxJ`, `kersCurrentKJ` | ver nota abaixo |
+| `tyreTempI / M / O` | °C, três zonas por pneu || `brakeTemp` | °C |
 | `wheelsPressure` | unidade do jogo (~26) |
 | `iCurrentTime`, `iBestTime` | milissegundos |
 | `carCoordinates` | xyz do mundo, em metros |
 | `normalizedCarPosition` | `0..1` ao longo da volta |
 | `packetId` | incrementa a cada frame — diz se o jogo está vivo |
+
+> **Unidades de ERS — atenção.** `ersMaxJ` e `kersMaxJ` vêm em **joules**
+> (num F1 dá ~4 500 000, ou seja 4,5 MJ). `kersCurrentKJ` vem em
+> **kilojoules** (centenas por volta). Trocá-las é um erro de factor 1000.
 
 ---
 

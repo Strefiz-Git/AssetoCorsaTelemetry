@@ -365,11 +365,15 @@ class ACTelemetry:
             "hasDRS": bool(st.hasDRS),
             "hasERS": bool(st.hasERS),
             "hasKERS": bool(st.hasKERS),
+            # NOTA sobre unidades: 'ersMaxJ'/'kersMaxJ' vem em JOULES
+            # (num F1 dá ~4 500 000 = 4,5 MJ), apesar do nome dizer J.
+            # 'kersCurrentKJ' vem em KILOJOULES (centenas por volta).
+            # Confundir os dois é erro de factor 1000.
             "ersPct": ers_pct,
-            "ersKJ": round(ph.kersCharge, 1),
+            "ersMaxJ": round(ers_max, 0),
+            "ersMaxMJ": round(ers_max / 1e6, 2),
             "ersUsedThisLapKJ": round(ph.kersCurrentKJ, 0),
             "ersCharging": bool(ph.ersIsCharging),
-            "ersMaxKJ": round(ers_max, 0),
 
             "fuelL": round(ph.fuel, 2),
             "maxFuelL": round(st.maxFuel, 1),
