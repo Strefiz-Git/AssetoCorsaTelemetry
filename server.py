@@ -15,6 +15,7 @@ import os
 import re
 import socket
 import string
+import sys
 import threading
 import time
 from urllib.parse import parse_qs, quote
@@ -292,6 +293,38 @@ def lan_ip():
     return ip
 
 
+class Servidor(ThreadingHTTPServer):
+    """Servidor HTTP que fica calado quando um cliente se vai embora.
+
+    Um browser que cancela uma ligacao - o que acontece sempre que se
+    reinicia o servidor com paginas abertas, porque os EventSource ficam
+    a reconectar, e tambem quando o Chrome desfaz uma ligacao que ja nao
+    precisa - produz um ConnectionAbortedError (WinError 10053 no
+    Windows). O socketserver apanha isso e imprime o traceback inteiro,
+    quatro ou cinco vezes, e parece que o servidor esta a partir quando
+    nao esta a partir de nada.
+
+    O sitio certo para abafar e' aqui, e nao no Handler: o
+    socketserver apanha a excepcao em process_request_thread, que fica
+    ACIMA de qualquer try dentro do handle(), e chama handle_error.
+    Uma correccao posta no Handler nao chega a ver o erro - foi o que
+    aconteceu da primeira vez, e o teste apanhou. Ver
+    tests/test_handler.py.
+    """
+
+    # Ligacao cortada pelo cliente: normal, nao e' erro do servidor.
+    DESLIGUE_ESPERADO = (ConnectionAbortedError, ConnectionResetError,
+                         BrokenPipeError, ConnectionError, TimeoutError)
+
+    daemon_threads = True
+
+    def handle_error(self, request, client_address):
+        exc = sys.exc_info()[1]
+        if isinstance(exc, self.DESLIGUE_ESPERADO):
+            return                      # esperado: silencio
+        super().handle_error(request, client_address)
+
+
 class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
     hub = None
@@ -508,7 +541,7 @@ def main():
     hub.start()
     Handler.hub = hub
 
-    srv = ThreadingHTTPServer(("0.0.0.0", args.port), Handler)
+    srv = Servidor(("0.0.0.0", args.port), Handler)
     srv.daemon_threads = True
 
     ip = lan_ip()

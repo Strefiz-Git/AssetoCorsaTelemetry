@@ -24,6 +24,7 @@ SUITE = [
     ("layout das structs", "py", "test_layout.py"),
     ("leitura de telemetria", "py", "test_acshm.py"),
     ("leitura de adversarios", "py", "test_opponents.py"),
+    ("o servidor fica calado", "py", "test_handler.py"),
     ("tempos de volta e delta", "node", "test_tempos.js"),
     ("os testes mordem mesmo", "py", "test_mutation.py"),
     ("texto sem caracteres estranhos", "py", "verificar_texto.py"),
