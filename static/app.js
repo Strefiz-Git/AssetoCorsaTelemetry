@@ -755,8 +755,8 @@ function drawVolante(canvasId, steer) {
   const c = g.c, w = g.w, h = g.h;
 
   const cx = w / 2, cy = h / 2;
-  const R = Math.min(w, h) / 2 - 3;
-  if (R < 8) return;
+  const R = Math.min(w, h) / 2 - 2;
+  if (R < 10) return;
 
   const v = clamp(num(steer) / STEER_REF, -1, 1);
   const ang = v * STEER_GIRO;
@@ -765,52 +765,95 @@ function drawVolante(canvasId, steer) {
   c.translate(cx, cy);
   c.rotate(ang);
 
-  // aro: um circulo com um corte em cima, como um volante de F1
+  // ---- o aro: um circulo com o fundo a direito ------------------------
+  // Num volante de F1 o fundo e' plano, para se apoiarem as maos.
+  //
+  // ATENCAO aos angulos do canvas: o angulo 0 e' a DIREITA e os angulos
+  // correm para BAIXO (o eixo do Y aponta para baixo), portanto o topo
+  // e' 3pi/2, nao -pi/2. A primeira versao desenhava o arco de aFundo a
+  // pi-aFundo, que em canvas e' a parte de BAIXO: o aro saia em cima de
+  // uma linha recta e nao se lia como um volante. Foi medido - faltava
+  // aro do lado esquerdo e sobrava em baixo.
+  const CHAO = 0.70;                 // fracao do raio onde o fundo fica
+  const aFundo = Math.asin(CHAO);   // onde o circulo encontra a linha de baixo
+  const largura = Math.max(3, R * 0.26);
+
+  // o arco, de um lado ao outro por cima (passa por 3pi/2, que e' o topo)
+  c.strokeStyle = '#232a2b';
+  c.lineWidth = largura;
   c.lineCap = 'butt';
-  c.strokeStyle = '#2a3132';
-  c.lineWidth = Math.max(4, R * 0.30);
   c.beginPath();
-  c.arc(0, 0, R - c.lineWidth / 2, 0.55, Math.PI * 2 - 0.55);
+  c.arc(0, 0, R, Math.PI - aFundo, Math.PI * 2 + aFundo, false);
+  c.stroke();
+
+  // linha de baixo, a fechar a figura
+  c.beginPath();
+  c.moveTo(Math.cos(aFundo) * R, R * CHAO);
+  c.lineTo(-Math.cos(aFundo) * R, R * CHAO);
   c.stroke();
 
   // brilho no aro, para dar volume
-  c.strokeStyle = '#3a4243';
-  c.lineWidth = Math.max(1.5, R * 0.10);
+  c.strokeStyle = '#3c4445';
+  c.lineWidth = Math.max(1, R * 0.07);
   c.beginPath();
-  c.arc(0, 0, R - c.lineWidth / 2, 0.55, Math.PI * 2 - 0.55);
+  c.arc(0, 0, R - largura * 0.18, Math.PI - aFundo + 0.5, Math.PI * 2 + aFundo - 0.5, false);
   c.stroke();
 
-  // marca de cima: sem ela nao se ve para que lado rodou
-  c.strokeStyle = v < -0.02 ? '#23CF16' : v > 0.02 ? '#F58020' : '#FFD700';
-  c.lineWidth = Math.max(2, R * 0.13);
-  c.beginPath();
-  c.moveTo(0, -R + c.lineWidth * 0.6);
-  c.lineTo(0, -R + R * 0.42);
-  c.stroke();
-
-  // raios
-  c.strokeStyle = '#232a2b';
-  c.lineWidth = Math.max(2.5, R * 0.16);
-  for (const a of [Math.PI * 0.82, Math.PI * 1.18, Math.PI * 1.5]) {
+  // ---- punhos, a esquerda e a direita ---------------------------------
+  // Sao as zonas mais largas. Sem isto o desenho le-se como um anel.
+  // O centro do punho e' 0 (direita) ou pi (esquerda). Com o sinal
+  // invertido, o arco esquerdo saia com inicio maior que o fim e nao
+  // desenhava nada - o volante ficava sem um dos punhos.
+  for (const centro of [0, Math.PI]) {
+    c.strokeStyle = '#1a2021';
+    c.lineWidth = largura * 1.06;
+    c.lineCap = 'round';
     c.beginPath();
-    c.moveTo(Math.cos(a) * R * 0.22, Math.sin(a) * R * 0.22);
-    c.lineTo(Math.cos(a) * R * 0.92, Math.sin(a) * R * 0.92);
+    c.arc(0, 0, R, centro - 0.42, centro + 0.42, false);
     c.stroke();
   }
 
-  // cubo
-  c.fillStyle = '#171d1e';
+  // ---- dois raios, de baixo para o cubo ------------------------------
+  c.strokeStyle = '#2b3233';
+  c.lineWidth = Math.max(2, R * 0.15);
+  c.lineCap = 'round';
+  for (const sinal of [-1, 1]) {
+    c.beginPath();
+    c.moveTo(sinal * Math.cos(aFundo) * R * 0.94, R * CHAO * 0.94);
+    c.lineTo(sinal * R * 0.26, R * 0.16);
+    c.stroke();
+  }
+
+  // ---- marca do topo: e' ela que diz para que lado rodou --------------
+  const corMarca = v < -0.02 ? '#23CF16' : v > 0.02 ? '#F58020' : '#FFD700';
+  c.fillStyle = corMarca;
+  c.fillRect(-largura * 0.55, -R + largura * 0.12, largura * 1.1, largura * 0.8);
+  // um traço fino a prolongar a marca para o centro
+  c.fillRect(-largura * 0.12, -R + largura * 0.9, largura * 0.24, R * 0.34);
+
+  // ---- cubo com ecra --------------------------------------------------
+  c.fillStyle = '#14191a';
+  c.strokeStyle = '#3c4445';
+  c.lineWidth = 1.4;
   c.beginPath();
-  c.arc(0, 0, R * 0.24, 0, Math.PI * 2);
+  if (c.roundRect) c.roundRect(-R * 0.34, -R * 0.20, R * 0.68, R * 0.40, 4);
+  else c.rect(-R * 0.34, -R * 0.20, R * 0.68, R * 0.40);
   c.fill();
-  c.strokeStyle = '#3a4243';
-  c.lineWidth = 1.5;
   c.stroke();
+
+  // ecra aceso, com o valor
+  c.fillStyle = '#0a2b1a';
+  c.fillRect(-R * 0.28, -R * 0.15, R * 0.56, R * 0.22);
+  c.fillStyle = corMarca;
+  c.font = '900 ' + Math.max(7, Math.round(R * 0.20)) + 'px Titillium, sans-serif';
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  c.fillText((v >= 0 ? '+' : '-') + Math.abs(v * 100).toFixed(0), 0, -R * 0.04);
 
   c.restore();
 
-  // eixo vertical de referencia, para se ver o desvio
-  c.strokeStyle = 'rgba(255,215,0,0.22)';
+  // eixo vertical, para se ver o desvio face ao volante
+  c.strokeStyle = 'rgba(255,215,0,0.18)';
   c.lineWidth = 1;
   c.setLineDash([2, 3]);
   c.beginPath();

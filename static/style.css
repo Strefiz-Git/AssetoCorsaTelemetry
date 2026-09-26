@@ -319,7 +319,10 @@ body{
   flex:0 0 auto;display:flex;align-items:center;gap:10px;
   padding:6px 8px;background:var(--block);border-radius:6px;
 }
-#wheel{width:clamp(58px,7vw,86px);height:clamp(58px,7vw,86px);flex:0 0 auto;display:block}
+/* O canvas e' quadrado. Vale para os dois modos - o #wheel2 do modo
+   misto ficava com os 300x150 por omissao do canvas, que e' o
+   comportamento por omissao do elemento e nao um tamanho escolhido. */
+#wheel,#wheel2{width:clamp(58px,7vw,86px);height:clamp(58px,7vw,86px);flex:0 0 auto;display:block}
 .wheel-side{flex:1 1 auto;min-width:0}
 .wheel-note{
   font-size:10px;font-weight:600;color:var(--grey);line-height:1.35;margin-top:2px;
