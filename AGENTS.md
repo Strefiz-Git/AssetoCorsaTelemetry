@@ -184,11 +184,76 @@ is_nested = (hasattr(elem, "_length_")
 #    c_float * 4 * 3  =  3 linhas de 4   (mesmo tamanho, ordem errada)
 ```
 
+## Regra nº 7 — não inventar propriedades
+
+Só escrever fórmulas com campos que **existem**. Já aconteceu com o
+`ERSPercent`: a propriedade existe no `GameReaderCommon.dll` e aparece na
+lista do SimHub, mas o plugin do AC **nunca a escreve**, por isso dava
+valores ao contrário. O `acshm.py` é lido com atenção precisamente para
+não cair nisto.
+
+Verificar se um campo é mesmo publicado:
+
+```powershell
+Get-ChildItem 'C:\Program Files (x86)\SimHub\ACSharedMemory.dll'
+# procurar a cadeia dentro do binario
+```
+
+Alternativa mais fiável: o struct de `acshm.py` é a lista do que
+existe. Se não está lá, não existe.
+
+### Campos que NÃO existem (já se perdeu tempo com isto)
+
+| Queria-se | Situação real |
+|---|---|
+| `ERSPercent` | definido mas **não publicado** pelo plugin do AC. Usar `ERSStored / ERSMax`. |
+| **Travão de mão** | **não existe** na shared memory do AC. Só há `gas`, `brake` e `clutch`. O handbrake só via API Python dentro do jogo. |
+| `Fuel_LastLapConsumption` | não existe no SimHub. Usar `Fuel_LitersPerLap`. |
+
+---
+
+## Regra nº 8 — unidades misturadas no mesmo nome
+
+`ersMaxJ` e `kersCurrentKJ` diferem por um factor de 1000 — um em
+joules, outro em kilojoules. Um campo chamado `ersMaxKJ` que devolvia
+joules foi um bug real, latente durante várias versões.
+
+Ao acrescentar um campo com unidade no nome, confirmar a unidade contra o
+jogo a correr antes de confiar no nome. A tabela do README é a
+referência.
+
+---
+
+## Regra nº 9 — não afirmar causas sem o dado
+
+Sei que foi tentador dizer "a app do SimHub crasha em
+`getServerName()`" — fazia-me parecer mais competente do que sou, e ainda
+por cima não era verdade. O AC tinha-se fechado entretanto, por isso não
+havia forma de distinguir "a app morreu" de "o jogo não está a correr".
+
+A regra: **quando se propõe uma causa, dizer o que a confirmaria**, e
+não a apresentar como facto enquanto não a houver visto.
+
 ---
 
 ## Arquitetura
 
 | Ficheiro | Responsabilidade |
+|---|---|
+| `acshm.py` | structs do AC, mapeamento, `snapshot()`. **So leitura.** |
+| `server.py` | HTTP + SSE. Um thread le a 200 Hz, cada cliente recebe o que pedir. |
+| `static/app.js` | desenho, mapa, grafico de pedais, delta, idiomas. |
+| `static/index.html` / `style.css` | estrutura, modos, definicoes e paleta. |
+
+Fluxo de dados:
+
+```
+AC -> memoria partilhada -> Hub (200 Hz) -> SSE telemetria (fps escolhido)
+                                           -> SSE adversarios (10 Hz)
+```
+
+O `Hub` tem um lock e so um thread le a memoria, para nao haver leituras
+concorrentes da mesma pagina.
 |---|---|
 | `acshm.py` | structs do AC, mapeamento, `snapshot()`. **Só leitura.** |
 | `server.py` | HTTP + SSE. Um thread lê a 200 Hz, cada cliente recebe a 60 Hz. |

@@ -155,6 +155,80 @@ como forma principal de ver telemetria.
 
 ---
 
+## 2026-09-26 (2.ª parte) — adversários, mão de obra e interface
+
+### O que se descobriu
+
+**1. O SimHub tem uma API JSON que não conhecíamos.** A página de debug
+de leaderboard dele (`/Api/GetLeaderboarddata`, porta 8888) devolve
+`SectorsCount`, `Opponents` e `BestSessionSplits`. Respondia HTTP 200 com
+`Opponents: null`.
+
+**2. Porque vinha vazio — e uma correcção importante.** First TRACE, o
+`acpmf_simhub_v2` (a página que a app Python do SimHub preenche com os
+128 carros) não existia, e a app *está* activa:
+
+```
+[SIMHUB] ACTIVE=1     em python.ini
+SimHub Was Here!      em logs/py_log.txt
+```
+
+Concluí que a app morria ao arrancar em
+`ac.getServerName().encode('utf-8')` quando devolve `None`.
+
+**Isso não está confirmado.** O AC fechou-se entretanto, e sem o jogo a
+corre a página `acpmf_simhub_v2` desaparece de qualquer maneira. Portanto
+a explicação pode ser essa ou pode ser só "o jogo não estava a correr".
+Fica por verificar com o jogo aberto. A hipótese continua plausível — há
+mesmo um bug de escopo no código (`global sharedMem` mas a escrever num
+`sharedmem` novo) — mas não é um facto.
+
+Lição: afirmei uma causa antes de ter o dado que a sustenta.
+
+**3. O travão de mão não existe na shared memory do AC.** A estrutura
+documentada tem `gas`, `brake` e `clutch`. Não há campo de handbrake. Só
+se acede a ele pela API Python dentro do jogo. Ver as opções em
+[ideia.md](ideia.md).
+
+### O que foi feito
+
+**Leitor de adversários** (`Opponents` em `acshm.py`). Estrutura completa
+dos 128 carros: piloto, modelo, posição, volta, tempos, posição no
+mundo, pit. Vai num canal SSE separado a 10 Hz, porque 128 carros a 60 Hz
+seriam ~25 KB por frame.
+
+**Interface reconstruída** por prioridade de leitura, não por tema:
+
+- A luz de DRS passou de chip de 8 px para o elemento mais grande do
+  cabeçalho. **Pisca** a verde quando o DRS está disponível e não está
+  aberto, fica sólida quando abre, apaga-se sem zona.
+- A zona de DRS passa a ser pintada no mapa, a partir do `drsAvailable`.
+- Os pedais passaram de duas barras a um osciloscópio com histórico de
+  ~6 s e quatro traços (acelerador, travão, embragagem, travão de mão).
+- Três modos: telemetria, leaderboard e misto, com menu na primeira
+  entrada.
+- Definições: Celsius/Fahrenheit, km/h/mph, idioma (pt-PT, pt-BR, es,
+  en), mostrar/esconder mapa, e os fps a que o servidor envia.
+
+**Unidades de ERS corrigidas.** `ersMaxJ` vem em joules (4 500 000 num F1
+= 4,5 MJ) e `kersCurrentKJ` em kilojoules. O campo chamava-se
+`ersMaxKJ`, o que anunciava kJ para um valor em J. Passou a `ersMaxJ` e
+`ersMaxMJ`. A interface nunca usou o campo, por isso o erro estava
+latente.
+
+### Em curso
+
+- [ ] `acshm.py`: `Opponents` pronto
+- [x] `server.py`: canal de adversários pronto
+- [ ] `static/index.html`: nova estrutura e menu escritos
+- [ ] `static/style.css`: por reescrever
+- [ ] `static/app.js`: por reescrever (gráfico de pedais, luz de DRS,
+      modos, idiomas, definições, FPS)
+
+Branch: `feat/interface-nova-e-modo-liderboard`
+
+---
+
 ## Resumo do que se aprendeu
 
 | Lição | Onde está registada |
