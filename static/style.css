@@ -155,17 +155,35 @@ body{
 }
 .drs-txt{font-weight:900;font-size:17px;letter-spacing:.12em;color:#3c4344;transition:color .12s}
 
-/* disponivel mas fechado -> pisca a chamar atencao */
-.drs.avail{border-color:var(--green)}
+/* versao junto da velocidade/rpm: banda larga em vez de pilula, para
+   ser vista a reolho enquanto se olha para a velocidade e nao para o
+   cabecalho lá em cima */
+.drs-inline{
+  width:100%;justify-content:center;border-radius:6px;
+  padding:7px 10px;margin:2px 0;flex:0 0 auto;
+}
+.drs-inline .drs-dot{width:16px;height:16px}
+.drs-inline .drs-txt{font-size:15px}
+
+/* disponivel mas fechado -> pisca a CAIXA TODA (fundo + ponto), nao so
+   o ponto pequeno: e' o que se ve com o canto do olho a acelerar */
+.drs.avail{
+  border-color:var(--green);
+  animation:drs-box-flash 1s steps(1,end) infinite;
+}
 .drs.avail .drs-dot{background:var(--green);animation:drs-blink 1s steps(1,end) infinite}
 .drs.avail .drs-txt{color:var(--green)}
 
-/* aberto -> solido e a brilhar */
+/* aberto -> solido e a brilhar, sem piscar (ja nao ha nada para fazer) */
 .drs.open{border-color:var(--green);background:#122a10}
 .drs.open .drs-dot{background:var(--green);box-shadow:0 0 16px 4px rgba(35,207,22,.75);animation:none}
 .drs.open .drs-txt{color:#fff}
 
 @keyframes drs-blink{0%,49%{opacity:1}50%,100%{opacity:.12}}
+@keyframes drs-box-flash{
+  0%,49%{background:rgba(35,207,22,.32)}
+  50%,100%{background:var(--block)}
+}
 
 /* ------------------------------------------------------------ grelhas */
 .view{flex:1 1 auto;min-height:0;display:flex}
@@ -249,9 +267,10 @@ body{
 }
 .rpm-mark{position:absolute;top:-3px;bottom:-3px;width:2px;background:#fff;left:92%;opacity:.9}
 .rpm-foot{
-  display:flex;align-items:center;gap:6px;margin-top:4px;
-  font-size:12px;font-weight:700;color:var(--grey);font-variant-numeric:tabular-nums;
+  display:flex;align-items:baseline;gap:6px;margin-top:4px;
+  font-size:16px;font-weight:900;color:var(--white);font-variant-numeric:tabular-nums;
 }
+.rpm-foot span:last-of-type{font-size:11px;font-weight:700;color:var(--grey)}
 .rpm-gear-hint{margin-left:auto;color:var(--red);font-weight:900;letter-spacing:.08em}
 
 /* ------------------------------------------------------------ clima */
@@ -291,12 +310,12 @@ body{
   background:var(--block);border-radius:6px;padding:6px 8px;min-width:0;
   display:flex;flex-direction:column;gap:3px;
 }
-.l-lbl{font-size:9px;letter-spacing:.14em;color:var(--grey);font-weight:700}
-.l-val{font-size:16px;font-weight:900;color:var(--grey);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.l-lbl{font-size:10px;letter-spacing:.14em;color:var(--grey);font-weight:700}
+.l-val{font-size:22px;font-weight:900;color:var(--grey);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .light.on .l-val{color:var(--green)}
 .light.warn .l-val{color:var(--orange)}
 .light.bad .l-val{color:var(--red)}
-.l-bar{height:4px;background:#20262a;border-radius:2px;overflow:hidden;margin-top:2px}
+.l-bar{height:6px;background:#20262a;border-radius:3px;overflow:hidden;margin-top:3px}
 .l-bar i{display:block;height:100%;width:0;background:var(--orange);transition:width .15s linear}
 .l-bar i.low{background:var(--red)}
 
@@ -369,10 +388,12 @@ body{
 .tyre-name{font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--grey);flex:0 0 auto;width:22px}
 .tyre-mid{display:flex;flex-direction:column;flex:0 0 auto;line-height:1}
 .tyre-temp{font-weight:900;font-size:clamp(17px,1.9vw,24px);font-variant-numeric:tabular-nums}
-.tyre-worn{font-size:9px;font-weight:700;color:var(--grey)}
+.tyre-worn{font-size:12px;font-weight:800;color:var(--white)}
+.tyre-worn.warn{color:var(--orange)}
+.tyre-worn.bad{color:var(--red)}
 .tyre-bar-wrap{flex:1 1 auto;display:flex;flex-direction:column;gap:3px;min-width:0}
 .tyre-bar{width:100%;height:7px;display:block;min-width:0}
-.tyre-press{font-size:9px;font-weight:700;color:var(--grey);text-align:right;font-variant-numeric:tabular-nums}
+.tyre-press{font-size:11px;font-weight:700;color:var(--grey);text-align:right;font-variant-numeric:tabular-nums}
 .brake-row{
   display:flex;align-items:baseline;gap:8px;
   margin-top:7px;padding-top:6px;border-top:1px solid var(--line);flex:0 0 auto;

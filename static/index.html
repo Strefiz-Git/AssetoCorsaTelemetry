@@ -127,12 +127,6 @@
       <svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
     </button>
 
-    <!-- luz de DRS: a maior coisa do cabeçalho, tem de ser vista de relance -->
-    <div class="drs" id="drs-light">
-      <span class="drs-dot"></span>
-      <span class="drs-txt" data-i18n="drs.short">DRS</span>
-    </div>
-
     <div class="head-id">
       <span class="h-track" id="track">—</span>
       <span class="h-car" id="car">—</span>
@@ -189,6 +183,15 @@
             <span id="rpm">0</span> <span data-i18n="unit.rpm">rpm</span>
             <span class="rpm-gear-hint" id="shift-hint"></span>
           </div>
+        </div>
+
+        <!-- DRS ao pe da velocidade/rpm, onde os olhos ja estao a olhar
+             a conduzir - antes estava so no cabecalho, longe de tudo o
+             resto. Pisca a caixa toda (nao so o ponto) quando ha zona
+             disponivel e ainda nao foi ligado. -->
+        <div class="drs drs-inline" id="drs-light">
+          <span class="drs-dot"></span>
+          <span class="drs-txt" data-i18n="drs.short">DRS</span>
         </div>
 
         <div class="lights">
@@ -366,6 +369,10 @@
         <div class="rpm">
           <div class="rpm-track"><div class="rpm-fill" id="b-rpm-fill"></div><div class="rpm-mark"></div></div>
           <div class="rpm-foot"><span id="b-rpm">0</span> <span data-i18n="unit.rpm">rpm</span></div>
+        </div>
+        <div class="drs drs-inline" id="b-drs-light">
+          <span class="drs-dot"></span>
+          <span class="drs-txt" data-i18n="drs.short">DRS</span>
         </div>
         <div class="lights">
           <div class="light" id="b-l-ers"><span class="l-lbl" data-i18n="ers.short">ERS</span><span class="l-val">—</span><div class="l-bar"><i id="b-ers-bar"></i></div></div>

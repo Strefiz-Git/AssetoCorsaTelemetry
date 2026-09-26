@@ -264,6 +264,8 @@ const S = {
   frames: 0, fpsAt: performance.now(), fps: 0,
   trace: { t: [], th: [], br: [], cl: [], hb: [] },
   lastSample: 0, traceHz: 0,
+  wasLive: false,          // para detectar reinicio/pausa->corrida (novo troco no mapa)
+  forceBreak: false,       // proximo ponto do mapa nao liga ao anterior
   marking: false,          // a marcar a zona de DRS a mao
   // Verificacao do drsAvailable como flag de zona. Fica a medir uma volta
   // antes de dizer que serve: um campo que esta ligado quase sempre nao
@@ -370,49 +372,82 @@ function fecharVoltaDrs() {
    Medido em Spa com 19 adversarios: X 997 m, Y 88 m, Z 2012 m - e o
    desnivel de Spa e' de ~100 m, logo Y nao serve para desenhar a pista.
    Mapear X contra Y dava um rabisco achatado sem ser a pista. */
-const MAP_KEY = 'acmap.v2';   // v2: mudou o plano (X-Z). O v1 esta errado.
+const MAP_KEY = 'acmap.v3';   // v3: um mapa por pista + cortes de teletransporte
+const MAP_MAX_TRACKS = 15;   // quantas pistas ficam guardadas ao mesmo tempo
 
 /* Cada ponto e' [x, z, pintado, sector, drsAvailableOriginal].
    O quinto elemento e' o drsAvailable tal como veio do jogo, guardado para
    poder pintar a zona mais tarde, quando uma volta inteira disser que o
    campo serve. Mapas gravados antes disso tem so quatro: e' aceite, mas
    esses pontos nao podem ser repintados. */
+// Acima disto (em metros) o ponto novo NAO liga ao anterior: e' um
+// teletransporte (reinicio de sessao, carro posto de novo na grelha,
+// voltar aos boxes pelo menu) e nao uma curva apertada a serio. Sem
+// isto, o mapa ficava com uma reta a atravessar a pista toda sempre
+// que se reiniciava a corrida - o "bug" da imagem partida.
+const MAP_JUMP_M = 40;
+
 function pushMapPoint(x, y, drs, sector, drsOriginal) {
   if (!isFinite(x) || !isFinite(y)) return;
   if (x === 0 && y === 0) return;
   const p = S.path[S.path.length - 1];
-  if (p && Math.abs(p[0] - x) + Math.abs(p[1] - y) < 0.3) return;
-  S.path.push([x, y, drs ? 1 : 0, sector | 0, drsOriginal ? 1 : 0]);
+  let brk = 0;
+  if (p) {
+    const dist = Math.abs(p[0] - x) + Math.abs(p[1] - y);
+    if (dist < 0.3) return;                 // parado: nao vale a pena novo ponto
+    if (dist > MAP_JUMP_M) brk = 1;         // salto grande -> novo troco
+  } else {
+    brk = 1;
+  }
+  if (S.forceBreak) { brk = 1; S.forceBreak = false; }
+  S.path.push([x, y, drs ? 1 : 0, sector | 0, drsOriginal ? 1 : 0, brk]);
   if (S.path.length > 24000) S.path.splice(0, 6000);
   if (x < S.minX) S.minX = x; if (x > S.maxX) S.maxX = x;
   if (y < S.minY) S.minY = y; if (y > S.maxY) S.maxY = y;
   if (!S.drsVeredito) { S.drsConta++; if (drsOriginal) S.drsAceso++; }
   saveMap();
 }
+
+// Guarda-se um mapa POR PISTA (nao um unico global): trocar de pista e
+// voltar a ela nao obriga a redesenhar tudo outra vez.
+function loadAllMaps() {
+  try {
+    const raw = localStorage.getItem(MAP_KEY);
+    return raw ? (JSON.parse(raw) || {}) : {};
+  } catch (e) { return {}; }
+}
 function saveMap(force) {
   if (!force && Date.now() - S.lastSave < 5000) return;
   S.lastSave = Date.now();
+  if (!S.trackName) return;
   try {
-    const pts = S.path.map(p => [Math.round(p[0] * 10) / 10, Math.round(p[1] * 10) / 10, p[2], p[3], p[4] || 0]);
-    localStorage.setItem(MAP_KEY, JSON.stringify({
-      t: S.trackName, p: pts, d: S.drsVeredito, da: S.drsAuto ? 1 : 0,
-    }));
+    const all = loadAllMaps();
+    const pts = S.path.map(p => [Math.round(p[0] * 10) / 10, Math.round(p[1] * 10) / 10, p[2], p[3], p[4] || 0, p[5] || 0]);
+    all[S.trackName] = { p: pts, d: S.drsVeredito, da: S.drsAuto ? 1 : 0, ts: Date.now() };
+    // nao deixar crescer para sempre: guarda so as ultimas MAP_MAX_TRACKS pistas
+    const keys = Object.keys(all);
+    if (keys.length > MAP_MAX_TRACKS) {
+      keys.sort((a, b) => (all[a].ts || 0) - (all[b].ts || 0));
+      delete all[keys[0]];
+    }
+    localStorage.setItem(MAP_KEY, JSON.stringify(all));
   } catch (e) { /* quota */ }
 }
-function loadMap() {
-  try {
-    const raw = localStorage.getItem(MAP_KEY);
-    if (!raw) return;
-    const o = JSON.parse(raw);
-    if (!o || !Array.isArray(o.p) || o.p.length < 2) return;
-    S.path = o.p; S.trackName = o.t || '';
-    S.drsVeredito = o.d || null;
-    S.drsAuto = !!o.da;
-    for (const p of S.path) {
-      if (p[0] < S.minX) S.minX = p[0]; if (p[0] > S.maxX) S.maxX = p[0];
-      if (p[1] < S.minY) S.minY = p[1]; if (p[1] > S.maxY) S.maxY = p[1];
-    }
-  } catch (e) { /* ignora */ }
+// Carrega o mapa desta pista, se ja tiver sido percorrida antes: aparece
+// completo de imediato, em vez de ter de se descobrir outra vez a andar.
+function loadMapFor(trackName) {
+  if (!trackName) return false;
+  const o = loadAllMaps()[trackName];
+  if (!o || !Array.isArray(o.p) || o.p.length < 2) return false;
+  S.path = o.p;
+  S.drsVeredito = o.d || null;
+  S.drsAuto = !!o.da;
+  S.minX = 1e9; S.maxX = -1e9; S.minY = 1e9; S.maxY = -1e9;
+  for (const p of S.path) {
+    if (p[0] < S.minX) S.minX = p[0]; if (p[0] > S.maxX) S.maxX = p[0];
+    if (p[1] < S.minY) S.minY = p[1]; if (p[1] > S.maxY) S.maxY = p[1];
+  }
+  return true;
 }
 function guardarVereditoDrs() { saveMap(true); }
 
@@ -420,7 +455,15 @@ function resetMap(clearStorage) {
   S.path = []; S.minX = 1e9; S.maxX = -1e9; S.minY = 1e9; S.maxY = -1e9;
   S.lapPct = []; S.refLap = null; S.bestMs = null; S.sectorTimes = [];
   S.drsVeredito = null; S.drsAuto = false; S.drsConta = 0; S.drsAceso = 0;
-  if (clearStorage) { try { localStorage.removeItem(MAP_KEY); } catch (e) { } }
+  S.forceBreak = true;
+  // "clearStorage" apaga so o guardado DESTA pista, nunca das outras
+  if (clearStorage && S.trackName) {
+    try {
+      const all = loadAllMaps();
+      delete all[S.trackName];
+      localStorage.setItem(MAP_KEY, JSON.stringify(all));
+    } catch (e) { /* ignora */ }
+  }
 }
 
 function drawMap(canvasId) {
@@ -455,11 +498,18 @@ function drawMap(canvasId) {
   const px = (p) => (p[0] - cx) * sc + w / 2;
   const py = (p) => (cz - p[1]) * sc + h / 2;
 
-  // pista, em duas passagens: contorno claro por baixo, cor por cima
+  // pista, em duas passagens: contorno claro por baixo, cor por cima.
+  // Desenhada em TROÇOS: sempre que um ponto vem marcado como corte
+  // (path[i][5], ver pushMapPoint), comeca-se um troco novo em vez de
+  // ligar ao ponto anterior. E' isto que evita a reta a atravessar a
+  // pista quando a corrida reinicia ou o carro e' teletransportado.
   c.lineJoin = 'round'; c.lineCap = 'round';
   c.beginPath();
-  c.moveTo(px(S.path[0]), py(S.path[0]));
-  for (let i = 1; i < S.path.length; i++) c.lineTo(px(S.path[i]), py(S.path[i]));
+  for (let i = 0; i < S.path.length; i++) {
+    const pt = S.path[i];
+    if (i === 0 || pt[5]) c.moveTo(px(pt), py(pt));
+    else c.lineTo(px(pt), py(pt));
+  }
   c.strokeStyle = 'rgba(85,92,93,.85)'; c.lineWidth = 5.5; c.stroke();
   c.strokeStyle = '#151C1D'; c.lineWidth = 3.5; c.stroke();
 
@@ -469,11 +519,13 @@ function drawMap(canvasId) {
   c.beginPath();
   let drawing = false, hasZone = false;
   for (let i = 0; i < S.path.length; i++) {
-    if (S.path[i][2]) {
+    const pt = S.path[i];
+    if (pt[2]) {
       hasZone = true;
-      if (!drawing) { c.moveTo(px(S.path[i]), py(S.path[i])); drawing = true; }
-      else c.lineTo(px(S.path[i]), py(S.path[i]));
-    } else if (drawing) { drawing = false; }
+      if (!drawing || pt[5]) c.moveTo(px(pt), py(pt));
+      else c.lineTo(px(pt), py(pt));
+      drawing = true;
+    } else { drawing = false; }
   }
   c.stroke();
   if (S.marking) {
@@ -485,10 +537,11 @@ function drawMap(canvasId) {
     c.restore();
   }
 
-  // fronteiras de sector
+  // fronteiras de sector (nunca num corte: um teletransporte muda de
+  // sector sem ser uma fronteira a serio)
   c.strokeStyle = '#FFD700'; c.lineWidth = 2;
   for (let i = 1; i < S.path.length; i++) {
-    if (S.path[i][3] !== S.path[i - 1][3]) {
+    if (S.path[i][3] !== S.path[i - 1][3] && !S.path[i][5]) {
       c.beginPath();
       c.arc(px(S.path[i]), py(S.path[i]), 3.5, 0, Math.PI * 2);
       c.stroke();
@@ -916,6 +969,8 @@ function renderTyres(hostId, d) {
     if (te) te.style.color = tempColor(mid);
     const worn = (d.tyreWearUsed && d.tyreWearUsed[i] != null) ? d.tyreWearUsed[i] : null;
     setTxt(hostId + '-w' + i, worn == null ? '--' : worn.toFixed(1) + '%');
+    const we = $(hostId + '-w' + i);
+    if (we) we.className = 'tyre-worn' + (worn != null && worn >= 30 ? ' bad' : worn != null && worn >= 15 ? ' warn' : '');
     drawTyreBar(hostId + '-b' + i, mid);
     const pr = (d.tyrePressure && d.tyrePressure[i] != null) ? d.tyrePressure[i].toFixed(1) : '--';
     // psi, e nao kPa. Medido num F1: 28.7 a 32.3. Se fossem kPa seriam
@@ -1149,8 +1204,14 @@ function pintarPneu(d) {
 /* ------------------------------------------------------------ widgets */
 function setDrs(els, d) {
   const on = d.drsEnabled >= 1, avail = d.drsAvailable >= 1;
-  const cls = !d.hasDRS ? '' : on ? 'open' : avail ? 'avail' : '';
-  els.forEach((e) => { if (e) e.className = 'drs' + (cls ? ' ' + cls : ''); });
+  // classList.toggle em vez de reescrever o className: assim mantem-se
+  // qualquer classe de posicionamento (ex. "drs-inline") que o HTML ja
+  // tenha, em vez de a apagar a cada frame.
+  els.forEach((e) => {
+    if (!e) return;
+    e.classList.toggle('open', !!(d.hasDRS && on));
+    e.classList.toggle('avail', !!(d.hasDRS && !on && avail));
+  });
   return { on, avail };
 }
 function setLight(id, txt, cls) {
@@ -1250,8 +1311,17 @@ function render(d) {
   setTxt('status', (live ? t('status.live') : (sp < 90 ? t('status.paused') : t('status.closed')))
     + (live ? '' : '  ·  ' + t('status.stale')));
 
-  if (S.trackName && d.track && d.track !== S.trackName) resetMap(true);
-  S.trackName = d.track || S.trackName;
+  // troca de pista: guarda o que tinhamos, limpa o traçado em memoria
+  // (sem apagar o que ja esta guardado de OUTRAS pistas) e, se ja
+  // tivermos mapeado esta pista antes, carrega-a completa de imediato -
+  // e' isto que faz o mapa "estar la" em vez de ser descoberto outra
+  // vez sempre que se entra numa pista ja conhecida.
+  if (d.track && d.track !== S.trackName) {
+    if (S.trackName) saveMap(true);
+    S.trackName = d.track;
+    resetMap(false);
+    loadMapFor(d.track);
+  }
 
   // cabecalho
   setTxt('track', d.track || '—');
@@ -1267,7 +1337,7 @@ function render(d) {
     fl.className = 'h-flag' + (d.flagId === 2 ? ' f-yellow' : d.flagId === 3 ? ' f-red'
       : d.flagId === 1 ? ' f-blue' : d.flagId === 5 ? ' f-checkered' : '');
   }
-  const dr = setDrs([$('drs-light')], d);
+  const dr = setDrs([$('drs-light'), $('b-drs-light')], d);
 
   // central (modo telemetria)
   setTxt('speed', fmtSpeed(d.speed || 0));
@@ -1477,7 +1547,6 @@ function boot() {
   buildTyres('tyres3');
   bindSettings();
   syncSettingsUI();
-  loadMap();
   applyMode();
   document.body.classList.remove('booting');
   connectOpponents();
