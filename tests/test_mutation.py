@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Prova que os testes真的 falham quando devem.
+Prova que os testes falham mesmo quando devem.
 
 Um teste que nunca falha nao prova nada - e foi exactamente assim que a
 estrutura errada passou a 100% no comeco do projecto (AGENTS.md Regra n.4).

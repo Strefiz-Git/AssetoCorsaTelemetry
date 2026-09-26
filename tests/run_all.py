@@ -26,6 +26,7 @@ SUITE = [
     ("leitura de adversarios", "py", "test_opponents.py"),
     ("tempos de volta e delta", "node", "test_tempos.js"),
     ("os testes mordem mesmo", "py", "test_mutation.py"),
+    ("texto sem caracteres estranhos", "py", "verificar_texto.py"),
 ]
 
 # codigo 2 = "o jogo esta a correr, nao se pode testar". Nao e' falha: e

@@ -274,6 +274,40 @@ Fica por decidir. Enquanto isso, o traço aparece mas vazio.
 
 ---
 
+## Chuva: ainda não está provado que não exista
+
+Importa ser preciso aqui. A conclusão "o AC não publica chuva" assenta
+numa coisa que **eu escrevi**: a lista de campos do `acshm.py`. Se a
+struct real for maior, há campos que existem e não estou a ler, e a
+conclusão está errada sem eu dar por isso.
+
+**Já se tentou responder pelo tamanho da página, e não dá.** A memória
+partilhada é sempre alocada em páginas de 4 KB, por isso o SO aceita
+mapear 4096 bytes mesmo que a struct tenha 296 — o resultado é 4096 para
+as três páginas, qualquer que seja a struct. O padding está a zeros.
+`tests/tamanho_real.py` ficou com esse resultado registado, para não se
+tentar o caminho outra vez.
+
+**O método que funciona é comparar antes e depois.** `tests/chuva.py`
+despeja os 4 bytes de cada página — todos, não só os campos declarados, que
+é precisamente o ponto — e compara duas capturas:
+
+```
+python tests\chuva.py antes      # tempo seco
+# mudar o tempo no AC para chuva
+python tests\chuva.py depois     # e comparar
+```
+
+Cada fase tira 40 amostras e fica só com os valores que não mudam de frame
+a frame, para o que muda constantemente (velocidade, rpm) ficar de fora. O
+que sobrar é o que o AC escreveu por causa do novo tempo.
+
+**Estado: a fase "antes" já está capturada.** Falta arrancar uma sessão
+com chuva e correr a fase "depois". Se nada mudar, a conclusão fecha-se
+com prova. Se mudar alguma coisa, aparece o offset e o campo existe.
+
+---
+
 ## Perguntas em aberto
 
 - **`wheelSlip` chega a 177,5** numa roda. Não se sabe se é percentagem

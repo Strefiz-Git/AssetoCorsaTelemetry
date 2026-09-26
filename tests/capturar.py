@@ -94,8 +94,7 @@ for campo in ("drsAvailable", "drsEnabled", "ersCharging", "isInPit",
     print("  %-14s %s" % (campo, dict(c.most_common(8))))
 
 print()
-print("---侮 ---")
-print("--- portagens e temperaturas, por canto ---")
+print("--- pressoes e temperaturas, por canto ---")
 for campo in ("tyreTempI", "tyreTempM", "tyreTempO", "tyreCore",
               "tyrePressure", "brakeTemp", "tyreWearUsed", "wheelSlip"):
     cols = lista(campo)

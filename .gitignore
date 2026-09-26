@@ -30,3 +30,4 @@ $RECYCLE.BIN/
 *.lnk
 _msg.txt
 captura.json
+tests/chuva_dump.json

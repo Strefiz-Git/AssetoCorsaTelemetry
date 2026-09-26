@@ -283,6 +283,35 @@ python tests\run_all.py
 
 ---
 
+## Regra nº 15 — uma lista de campos que escreveste não é uma prova
+
+A Regra nº 7 diz "o struct do `acshm.py` é a lista do que existe". Isso
+vale para os campos **que lá estão** — mas a lista foi escrita por mim, e
+se a struct real for maior, há campos que existem e não são lidos. A
+regra é circular quando usada para afirmar que *algo não existe*.
+
+Exemplo concreto: "o AC não publica chuva". Isso veio de não encontrar
+campo de chuva na lista. Pode ser verdade, mas a evidência é fraca.
+
+**Tentativa que não funcionou, para não repetir:** medir o tamanho real
+das páginas pelo maior `MapViewOfFile` que o SO aceita. A memória
+partilhada é sempre alocada em páginas de 4 KB, por isso o SO aceita
+4096 bytes mesmo quando a struct tem 296. Devolveu 4096 para as três
+páginas. O padding estava a zeros. `tests/tamanho_real.py` ficou com o
+resultado registado de propósito.
+
+**O que funciona:** mudar uma coisa e ver o que muda. `tests/chuva.py`
+compara a memória antes e depois de mudar o tempo, despejando os 4 bytes
+todos — não só os campos declarados, que é o ponto. Cada fase fica só
+com os valores estáveis dentro dela, para o que muda a cada frame não
+aparecer como candidato.
+
+Regra geral: **para afirmar que um dado não existe, mudar a condição e ver
+se aparece alguma coisa nova.** Uma lista de campos que escreveste prova
+o que tem, nunca o que não tem.
+
+---
+
 ## Regra nº 5 — escalas que não são óbvias
 
 Confirmadas contra o AC real:
