@@ -363,7 +363,8 @@ não a apresentar como facto enquanto não a houver visto.
 |---|---|
 | `acshm.py` | structs do AC, mapeamento, `snapshot()`, `Opponents`. **Só leitura.** |
 | `server.py` | HTTP + SSE. Um thread lê a 200 Hz, cada cliente recebe ao ritmo que pediu. |
-| `static/app.js` | desenho, mapa, gráfico de pedais, delta, 4 idiomas, definições. |
+| `static/app.js` | desenho, mapa, gráfico de pedais, 4 idiomas, definições, estado. |
+| `static/tempos.js` | matemática das voltas e do delta. **Pura**, sem DOM nem estado — por isso corre no node e é testada. |
 | `static/index.html` / `style.css` | estrutura, três modos, definições e paleta. |
 
 Fluxo de dados:
@@ -426,10 +427,32 @@ certo, não uma falha. Os testes de memória escrevem em páginas
 | `test_layout.py` | os 3 structs, campo a campo (60 + 30 + 42) |
 | `test_acshm.py` | a leitura de telemetria, 46 valores com unidades |
 | `test_opponents.py` | o struct de 128 carros: ordem dos campos, m/s → km/h, tempos, filtro de carros vazios |
+| `test_tempos.js` | 35 casos de tempos e delta, sem browser |
+| `test_tempos.html` | os mesmos casos, para abrir no browser |
 | `test_mutation.py` | que os testes acima **falham** quando o código está partido |
 | `diag_drs.py` | agrupa o que encontra no canal SSE, para não concluir de duas amostras |
 | `verify_real.py` | valores reais, só com o jogo aberto |
 
+`test_tempos.js` corre com **node**, sem browser. Se o node não estiver
+instalado, o `run_all.py` salta-o e diz isso. Não é dependência do
+projecto: é só o que torna a matemática das voltas testável fora de um
+browser.
+
 Depois de acrescentar um campo a um struct: correr `test_mutation.py`.
 Ele tem mutações para "campo novo a meio" e "campo novo no fim", que
 são as duas formas de um struct passar a ler a partir do sítio errado.
+
+## Ao mexer na matemática das voltas
+
+A parte testável está em `static/tempos.js`, **sem DOM e sem estado
+global** — é por isso que dá para a correr no node. O `app.js` fica só
+com o estado (`S`) e delega. Se acrescentar lógica de tempos, pô-la
+aí, não no `app.js`.
+
+`deltaParaRef` devolve `null` de propósito quando não há referência, ou
+quando o carro está fora do percurso da referência. `null` é diferente
+de zero: `null` quer dizer «não sei» e pinta-se neutro, `0.000` quer
+dizer «estás exactamente na referência».
+
+Perto de zero (menos de 50 ms) o número fica **sem cor**, para não
+piscar a vermelho quando se está a andar na linha.

@@ -256,29 +256,34 @@ function setTime(id, v) {
 }
 
 /* ------------------------------------------------------------ tempos */
-function toSec(t) {
-  if (!t || t.indexOf('--') === 0) return null;
-  const m = t.match(/^(?:(\d+):)?(\d{2})\.(\d{3})$/);
-  if (!m) return null;
-  return (+(m[1] || 0)) * 60 + (+m[2]) + (+m[3]) / 1000;
+/* A matematica vive em tempos.js, sem estado e sem DOM, para poder ser
+   testada sozinha (tests/test_tempos.html). Aqui so fica o estado. */
+
+function computeDelta(pct, nowSec) {
+  return deltaParaRef(S.refLap, pct, nowSec);
 }
 
-/* ------------------------------------------------------------ delta */
-function computeDelta(pct, nowSec) {
-  if (!S.refLap || S.refLap.length < 4) return null;
-  const ref = S.refLap;
-  if (pct < ref[0][0] - 0.01 || pct > ref[ref.length - 1][0] + 0.01) return null;
-  let lo = ref[0], hi = ref[ref.length - 1];
-  for (let i = 1; i < ref.length; i++) {
-    if (ref[i][0] >= pct) { lo = ref[i - 1]; hi = ref[i]; break; }
+/* Escreve a delta e pinta-a. Perto de zero fica neutra: um "+0.000" a
+   vermelho logo no inicio da volta era enganador, e o numero salta 60
+   vezes por segundo, portanto uma zona morta evita tambem o cintilar. */
+const DELTA_NEUTRA = 0.05;
+function pintarDelta(el, dl) {
+  if (!el) return;
+  if (dl == null) {
+    el.textContent = '+0.000';
+    el.style.color = '';
+    return;
   }
-  if (hi[0] === lo[0]) return nowSec - lo[1];
-  const f = (pct - lo[0]) / (hi[0] - lo[0]);
-  return nowSec - (lo[1] + f * (hi[1] - lo[1]));
+  el.textContent = (dl >= 0 ? '+' : '') + dl.toFixed(3);
+  el.style.color = Math.abs(dl) < DELTA_NEUTRA ? ''
+    : dl < 0 ? 'var(--green)' : 'var(--red)';
 }
+
 function onLapComplete(timeSec) {
-  if (timeSec != null && timeSec > 20) {
-    if (S.bestMs == null || timeSec < S.bestMs) { S.bestMs = timeSec; S.refLap = S.lapPct.slice(); }
+  const melhor = melhorTempo(S.bestMs, timeSec);
+  if (melhor != null) {
+    S.bestMs = melhor;
+    S.refLap = S.lapPct.slice();
   }
   S.lapPct = [];
   S.sectorTimes = [];
@@ -838,14 +843,7 @@ function render(d) {
       }
     }
     const dl = computeDelta(p, curSec);
-    const e = $('t-delta');
-    if (e) {
-      if (dl == null) { e.textContent = '+0.000'; e.style.color = ''; }
-      else {
-        e.textContent = (dl >= 0 ? '+' : '') + dl.toFixed(3);
-        e.style.color = dl < 0 ? 'var(--green)' : 'var(--red)';
-      }
-    }
+    pintarDelta($('t-delta'), dl);
     $('lap-progress').style.width = clamp(p * 100, 0, 100) + '%';
   }
   renderSectors(d);
@@ -905,12 +903,7 @@ function render(d) {
   $('m-rpm').style.width = pct + '%';
   setTxt('m-current', d.currentTime || '--:--.---');
   $('m-current').classList.toggle('empty', !d.currentTime || d.currentTime.indexOf('--') === 0);
-  const mde = $('m-delta');
-  if (mde) {
-    const dl2 = computeDelta(d.trackPct || 0, curSec == null ? 0 : curSec);
-    mde.textContent = dl2 == null ? '+0.000' : (dl2 >= 0 ? '+' : '') + dl2.toFixed(3);
-    mde.style.color = dl2 != null && dl2 < 0 ? 'var(--green)' : '';
-  }
+  pintarDelta($('m-delta'), computeDelta(d.trackPct || 0, curSec == null ? 0 : curSec));
   setTxt('m-pen', d.penaltyTime > 0 ? '+' + d.penaltyTime + ' s' : (d.penaltiesEnabled ? t('fuel.none') : '—'));
   setTxt('m-drs', !d.hasDRS ? '—' : dr.on ? t('drs.open') : dr.avail ? t('drs.avail') : t('drs.off'));
   setTxt('m-brake', (d.brakeTemp || []).map((v) => fmtTemp(v)).join(' ') || '—');

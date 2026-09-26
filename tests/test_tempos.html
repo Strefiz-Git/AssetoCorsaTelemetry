@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<title>Tempos de volta - testes</title>
+<style>
+  body{background:#000;color:#fff;font:14px/1.5 "Segoe UI",sans-serif;margin:0;padding:20px}
+  h1{font-size:18px;margin:0 0 4px}
+  p.sub{color:#888;margin:0 0 16px}
+  .ok{color:#23CF16}.falha{color:#FF0000}
+  table{border-collapse:collapse;width:100%;max-width:900px}
+  td,th{border-bottom:1px solid #222;padding:5px 8px;text-align:left;font-size:13px}
+  th{color:#888;font-size:11px;letter-spacing:.1em}
+  .n{color:#888;text-align:right;width:40px}
+  #resumo{font-weight:700;font-size:16px;margin:16px 0 0;padding:10px;border-radius:6px}
+  #resumo.passou{background:#122a10;color:#23CF16}
+  #resumo.perdeu{background:#2a1010;color:#FF0000}
+  code{background:#151C1D;padding:1px 5px;border-radius:3px}
+</style>
+</head>
+<body>
+<h1>Tempos de volta e delta</h1>
+<p class="sub">Testa <code>static/tempos.js</code>, que e' funcao pura: sem DOM, sem estado global.</p>
+
+<table>
+  <thead><tr><th class="n">#</th><th>Teste</th><th>Esperado</th><th>Obtido</th></tr></thead>
+  <tbody id="linhas"></tbody>
+</table>
+<p id="resumo">a correr...</p>
+
+<script src="../static/tempos.js"></script>
+<script>
+'use strict';
+const resultados = [];
+let n = 0;
+
+function ok(nome, obtido, esperado) {
+  n++;
+  const bom = (typeof esperado === 'number')
+    ? Math.abs(obtido - esperado) < 1e-6
+    : obtido === esperado;
+  resultados.push({ nome, esperado, obtido, bom });
+}
+function nulo(nome, v) { ok(nome, v === null ? 'null' : v, 'null'); }
+
+/* ------------------------------------------------------------------ */
+/* 1) toSec: o AC formata como "M:SS.mmm" e uma volta nunca passa de  */
+/*    59:59.999. O que vier fora do formato tem de dar null, nunca     */
+/*    um numero adivinhado.                                             */
+/* ------------------------------------------------------------------ */
+ok('toSec 01:23.456', toSec('01:23.456'), 83.456);
+ok('toSec 00:00.000', toSec('00:00.000'), 0);
+ok('toSec 59:59.999', toSec('59:59.999'), 3599.999);
+ok('toSec 9:05.500 (minutos de um digito)', toSec('9:05.500'), 545.5);
+ok('toSec 10:00.001', toSec('10:00.001'), 600.001);
+nulo('toSec vazio', toSec(''));
+nulo('toSec null', toSec(null));
+nulo('toSec sem tempos (--:--.---)', toSec('--:--.---'));
+nulo('toSec lixo', toSec('abc'));
+nulo('toSec sem milissegundos', toSec('01:23'));
+nulo('toSec com horas (formato que o AC nao usa)', toSec('1:01:05.250'));
+
+/* ------------------------------------------------------------------ */
+/* 2) deltaParaRef: uma referencia que NAO e' linear, para nao testar   */
+/*    so o caso facil. Duas rectas com ritmos diferentes.               */
+/* ------------------------------------------------------------------ */
+function refNaoLinear(n) {
+  const r = [];
+  for (let i = 0; i <= n; i++) {
+    const p = i / n;                                   // 0..1
+    const t = p < 0.5 ? p * 120 : 60 + (p - 0.5) * 80; // 0..60 s, depois 60..100 s
+    r.push([p, t]);
+  }
+  return r;
+}
+const ref = refNaoLinear(400);
+
+// a referencia reproduzida tem de dar exactamente zero, em todo o sitio
+let pior = 0;
+for (const p of ref) {
+  const d = deltaParaRef(ref, p[0], p[1]);
+  if (d !== null) pior = Math.max(pior, Math.abs(d));
+}
+ok('a propria referencia da delta 0 (pior erro em 401 pontos)', pior, 0);
+
+// um offset constante da sempre o mesmo delta, seja onde for
+ok('0.4 s mais lento, 1a recta', deltaParaRef(ref, 0.25, ref[100][1] + 0.4), 0.4);
+ok('0.4 s mais lento, 2a recta', deltaParaRef(ref, 0.75, ref[300][1] + 0.4), 0.4);
+ok('0.4 s mais lento, na viragem', deltaParaRef(ref, 0.5, 60.0 + 0.4), 0.4);
+ok('1.9 s mais rapido', deltaParaRef(ref, 0.25, ref[100][1] - 1.9), -1.9);
+
+// entre dois pontos: tem de interpolar, nao devolver o valor de um vertex.
+// A referencia tem 401 pontos espacados de 0.0025. Entre ref[100] e
+// ref[101]: p = 0.25 -> 30.0 s e p = 0.2525 -> 30.3 s. A meio
+// (p = 0.25125) o tempo da referencia e' 30.15 s.
+const MEIO_P = (ref[100][0] + ref[101][0]) / 2;   // 0.25125
+const MEIO_T = (ref[100][1] + ref[101][1]) / 2;   // 30.15
+ok('o ponto de teste esta no sitio certo', MEIO_T, 30.15);
+ok('interpola entre dois pontos', deltaParaRef(ref, MEIO_P, MEIO_T + 0.5), 0.5);
+ok('interpola, mais rapido', deltaParaRef(ref, MEIO_P, MEIO_T - 2.25), -2.25);
+
+// fora da referencia: null em vez de um numero inventado
+nulo('antes do inicio da referencia', deltaParaRef(ref, -0.02, 1.0));
+nulo('depois do fim da referencia', deltaParaRef(ref, 1.02, 1.0));
+nulo('sem referencia nenhuma', deltaParaRef(null, 0.5, 50));
+nulo('referencia vazia', deltaParaRef([], 0.5, 50));
+nulo('referencia com 3 pontos (de menos)', deltaParaRef([[0,0],[0.5,50],[1,100]], 0.5, 50));
+
+// referencia com os 4 pontos de minimum. p = 0.5 esta entre 0.33 e 0.66,
+// logo f = 0.17/0.33 e o tempo da referencia e' 30 + 40*f.
+const fMin = (0.5 - 0.33) / (0.66 - 0.33);
+ok('referencia minima de 4 pontos',
+   deltaParaRef([[0,0],[0.33,30],[0.66,70],[1,100]], 0.5, 51),
+   51 - (30 + 40 * fMin));
+
+/* ------------------------------------------------------------------ */
+/* 3) melhorTempo: a melhor volta so pode melhorar                    */
+/*    O limite e' EXCLUSIVO: passa dos 20 s para valer.                */
+/* ------------------------------------------------------------------ */
+ok('sem melhor volta ainda, aceita uma volta de 95 s', melhorTempo(null, 95), 95);
+ok('volta mais rapida passa a melhor', melhorTempo(100, 95), 95);
+ok('volta mais lenta nao mexe', melhorTempo(95, 100), null);
+ok('volta igual nao mexe', melhorTempo(95, 95), null);
+ok('volta de 20.1 s aceite', melhorTempo(null, 20.1), 20.1);
+nulo('volta de 20.0 s recusada (limite exclusivo)', melhorTempo(null, 20.0));
+nulo('volta de 19.9 s recusada', melhorTempo(90, 19.9));
+nulo('volta de 3 s recusada (sessao nova, sector solto)', melhorTempo(90, 3));
+nulo('volta nula nao mexe', melhorTempo(90, null));
+ok('o limite esta documentado', VOLTA_MINIMA_S, 20);
+
+/* ------------------------------------------------------------------ */
+/* resultado                                                            */
+/* ------------------------------------------------------------------ */
+const corpo = document.getElementById('linhas');
+for (const r of resultados) {
+  const tr = document.createElement('tr');
+  tr.className = r.bom ? 'ok' : 'falha';
+  tr.innerHTML =
+    '<td class="n"></td><td></td><td></td><td></td>';
+  const c = tr.children;
+  c[0].textContent = resultados.indexOf(r) + 1;
+  c[1].textContent = r.nome;
+  c[2].textContent = r.esperado;
+  c[3].textContent = r.bom ? r.obtido : r.obtido + '   <<< FALHOU';
+  corpo.appendChild(tr);
+}
+
+const falhas = resultados.filter(r => !r.bom).length;
+const res = document.getElementById('resumo');
+res.className = falhas ? 'perdeu' : 'passou';
+res.textContent = falhas
+  ? falhas + ' de ' + resultados.length + ' FALHARAM'
+  : 'todos os ' + resultados.length + ' testes passaram';
+
+// o titulo carrega o resultado, para um script externo o ler sem scraping
+document.title = (falhas ? 'FALHA ' : 'OK ') + (resultados.length - falhas) + '/' + resultados.length;
+</script>
+</body>
+</html>

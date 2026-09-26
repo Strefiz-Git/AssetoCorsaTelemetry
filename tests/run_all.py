@@ -21,10 +21,11 @@ RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ENV = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", PYTHONIOENCODING="utf-8")
 
 SUITE = [
-    ("layout das structs", "test_layout.py"),
-    ("leitura de telemetria", "test_acshm.py"),
-    ("leitura de adversarios", "test_opponents.py"),
-    ("os testes mordem mesmo", "test_mutation.py"),
+    ("layout das structs", "py", "test_layout.py"),
+    ("leitura de telemetria", "py", "test_acshm.py"),
+    ("leitura de adversarios", "py", "test_opponents.py"),
+    ("tempos de volta e delta", "node", "test_tempos.js"),
+    ("os testes mordem mesmo", "py", "test_mutation.py"),
 ]
 
 # codigo 2 = "o jogo esta a correr, nao se pode testar". Nao e' falha: e
@@ -46,19 +47,34 @@ def cabecalho(n, total, nome):
     print("=" * 68)
 
 
+def tem_node():
+    from shutil import which
+    return which("node") is not None
+
+
 def main():
     limpar_cache()
     print("Assetto Corsa Telemetry - suite de testes")
     print("regra: com o AC a correr, os testes de memoria sao ignorados")
+    if not tem_node():
+        print("aviso: node nao esta instalado, o teste de tempos nao corre")
 
     total = len(SUITE)
     falhou, ignorados = [], []
 
-    for i, (nome, ficheiro) in enumerate(SUITE, 1):
+    for i, (nome, tipo, ficheiro) in enumerate(SUITE, 1):
         cabecalho(i, total, nome)
-        limpar_cache()
-        r = subprocess.run([sys.executable, "-u", os.path.join("tests", ficheiro)],
-                           cwd=RAIZ, capture_output=True, text=True,
+        caminho = os.path.join("tests", ficheiro)
+        if tipo == "node":
+            if not tem_node():
+                print("saltado: node nao esta instalado")
+                ignorados.append(nome + " (sem node)")
+                continue
+            argv = ["node", caminho]
+        else:
+            limpar_cache()
+            argv = [sys.executable, "-u", caminho]
+        r = subprocess.run(argv, cwd=RAIZ, capture_output=True, text=True,
                            encoding="utf-8", errors="replace", env=ENV)
         saida = (r.stdout or "") + (r.stderr or "")
         print(saida.rstrip())
