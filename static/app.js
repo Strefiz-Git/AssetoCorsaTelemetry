@@ -496,12 +496,22 @@ function fetchRealMap(track, trackConfig) {
   fetch(url).then((r) => r.json()).then((cfg) => {
     if (S.realMapPending !== key) return; // trocou de pista entretanto
     S.realMapPending = null;
-    if (!cfg || !cfg.available) { S.realMap = null; S.realMapTrack = key; return; }
+    if (!cfg || !cfg.available || cfg.trusted === false) {
+      S.realMap = null; S.realMapTrack = key; return;
+    }
     const img = new Image();
     img.onload = () => {
       S.realMap = {
         img, width: cfg.width, height: cfg.height,
-        scale: cfg.scale || 1, offsetX: cfg.offsetX || 0, offsetZ: cfg.offsetZ || 0,
+        // pixels por metro, medidos na imagem pelo servidor. NAO e' o
+        // SCALE_FACTOR do map.ini: medido em 76 pistas, a imagem tem 1 px
+        // por metro e o WIDTH/HEIGHT do ini batem com as dimensoes do PNG.
+        // Dividir pelo SCALE_FACTOR punha o traçado pequeno e deslocado em
+        // todas as pistas com escala != 1 (imola 1,2; spa 1,3; monza 1,4).
+        pxPerMetre: cfg.pxPerMetre || 1,
+        imageWidth: cfg.imageWidth || img.naturalWidth,
+        imageHeight: cfg.imageHeight || img.naturalHeight,
+        offsetX: cfg.offsetX || 0, offsetZ: cfg.offsetZ || 0,
       };
       S.realMapTrack = key;
     };
@@ -510,12 +520,13 @@ function fetchRealMap(track, trackConfig) {
   }).catch(() => { S.realMapPending = null; S.realMap = null; S.realMapTrack = key; });
 }
 
-/* Mundo (x, z) -> pixel da imagem map.png, com as flips das definicoes. */
+/* Mundo (x, z) -> pixel da imagem map.png, com as inversoes das definicoes. */
 function worldToMapImg(rm, x, z) {
-  let ix = (x + rm.offsetX) / rm.scale;
-  let iy = (z + rm.offsetZ) / rm.scale;
-  if (DEF.mapFlipX) ix = rm.width - ix;
-  if (DEF.mapFlipZ) iy = rm.height - iy;
+  const k = rm.pxPerMetre || 1;
+  let ix = (x + rm.offsetX) * k;
+  let iy = (z + rm.offsetZ) * k;
+  if (DEF.mapFlipX) ix = rm.imageWidth - ix;
+  if (DEF.mapFlipZ) iy = rm.imageHeight - iy;
   return [ix, iy];
 }
 
@@ -562,13 +573,17 @@ function drawMap(canvasId) {
    na primeira vez que se entra na pista. */
 function drawMapReal(c, w, h, rm) {
   const pad = 14;
-  const sc = Math.min((w - pad * 2) / rm.width, (h - pad * 2) / rm.height);
-  const ox = (w - rm.width * sc) / 2, oy = (h - rm.height * sc) / 2;
+  // a escala e' sobre os pixeis da IMAGEM, porque e' isso que
+  // worldToMapImg devolve. Usar rm.width (metros do mundo) aqui punha o
+  // traçado e a imagem com escalas diferentes sempre que pxPerMetre != 1.
+  const iw = rm.imageWidth || rm.width, ih = rm.imageHeight || rm.height;
+  const sc = Math.min((w - pad * 2) / iw, (h - pad * 2) / ih);
+  const ox = (w - iw * sc) / 2, oy = (h - ih * sc) / 2;
   const px = (ix) => ox + ix * sc;
   const py = (iy) => oy + iy * sc;
 
   c.globalAlpha = 0.92;
-  c.drawImage(rm.img, ox, oy, rm.width * sc, rm.height * sc);
+  c.drawImage(rm.img, ox, oy, iw * sc, ih * sc);
   c.globalAlpha = 1;
 
   // zona de DRS marcada a mao, sobre a imagem real (mesmos pontos que o
@@ -647,9 +662,18 @@ function drawMapTraced(c, w, h) {
   // Com um offset era facil errar o sinal ao inverter o Z, e o traçado
   // inteiro saia fora do canvas sem dar erro nenhum.
   const cx = (S.minX + S.maxX) / 2, cz = (S.minY + S.maxY) / 2;
-  // Z cresce para o norte, o canvas cresce para baixo: inverte-se
+  // O Y do canvas CRESCE com o Z. Nao se inverte.
+  //
+  // Invertia-se, e o mapa saia espelhado: o loop grande de Baku ficava em
+  // cima-esquerca em vez de baixo-esquerca, e o piloto notava-o a conduzir
+  // ("virei a direita e o mapa virou a esquerda"). Confirmado de tres
+  // maneiras: a forma desenhada foi comparada com o mapa oficial da
+  // pista, com a imagem real do jogo, e com o relato de quem conduz.
+  // As tres dizem o mesmo.
+  // Ver Regra nº 16 (as duas vistas tem de usar a mesma convencao) e a
+  // imagem em tests/forma_Z_normal.png.
   const px = (p) => (p[0] - cx) * sc + w / 2;
-  const py = (p) => (cz - p[1]) * sc + h / 2;
+  const py = (p) => (p[1] - cz) * sc + h / 2;
 
   // pista, em duas passagens: contorno claro por baixo, cor por cima.
   // Desenhada em TROÇOS: sempre que um ponto vem marcado como corte
