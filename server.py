@@ -223,6 +223,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=8765)
     ap.add_argument("--rate", type=int, default=200, help="amostras por segundo")
+    ap.add_argument("--abrir", action="store_true",
+                    help="abre o browser quando o servidor ja esta a ouvir")
     args = ap.parse_args()
 
     hub = Hub(rate_hz=args.rate)
@@ -241,6 +243,24 @@ def main():
     print(f"  leitura : {args.rate} amostras/s, difusao a 60 Hz")
     print("  Ctrl+C para parar")
     print("=" * 56)
+
+    # Abrir o browser e' trabalho do servidor, e nao do .bat, porque o
+    # servidor e' o unico que sabe quando a porta ja esta a aceitar
+    # ligacoes. Do lado do .bat era preciso adivinhar com um sleep, e
+    # adivinhar o tempo de arranque e' correr: ou o browser pede a pagina
+    # cedo demais e da erro de ligacao, ou espera-se sem necessidade.
+    # O socket ja esta em listen aqui, porque o ThreadingHTTPServer faz
+    # listen no construtor.
+    if args.abrir:
+        def abrir():
+            time.sleep(0.2)
+            try:
+                import webbrowser
+                webbrowser.open(f"http://localhost:{args.port}/")
+            except Exception:
+                pass          # sem browser registado no sistema: nao e' fatal
+        threading.Thread(target=abrir, daemon=True).start()
+
     try:
         srv.serve_forever()
     except KeyboardInterrupt:

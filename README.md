@@ -49,7 +49,14 @@ Depois abre **http://localhost:8765**.
 ```
 python server.py --port 9000     # mudar a porta
 python server.py --rate 400      # amostrar mais depressa (predefinição: 200)
+python server.py --abrir         # abre o browser assim que a porta aceita ligações
 ```
+
+O `--abrir` existe porque o servidor é o único que sabe quando está
+pronto. Abrir o browser a partir de um script que adivinha o tempo de
+arranque dá uma corrida: ou a página é pedida cedo demais e aparece um
+erro de ligação, ou espera-se sem necessidade. É o que o `INICIAR.bat`
+usa.
 
 ### Aceder do telemóvel
 
@@ -128,12 +135,20 @@ AssettoCorsaTelemetry/
 ├── static/
 │   ├── index.html           estrutura
 │   ├── style.css            cores e layout
-│   ├── app.js               desenho, mapa e delta
+│   ├── tempos.js            matemática das voltas e do delta (pura)
+│   ├── app.js               desenho, mapa, idiomas, definições
 │   └── fonts/               Titillium Web (OFL incluída)
 └── tests/
+    ├── run_all.py           corre a suite toda
     ├── test_layout.py       valida as structs campo a campo
     ├── test_acshm.py        testa a leitura com memória fictícia
+    ├── test_opponents.py    testa a leitura dos 128 carros
+    ├── test_tempos.js       tempos e delta, sem browser
+    ├── test_tempos.html     os mesmos casos, no browser
+    ├── test_mutation.py     confirma que os testes falham quando devem
+    ├── check_layout.js      layout nos 3 modos × 13 larguras (colar na consola)
     ├── verify_real.py       confere a leitura contra o jogo a correr
+    ├── diag_drs.py          agrupa o que encontra no canal SSE
     ├── probe_layout.py      sonda os valores reais
     └── diff_offsets.py      compara offsets calculados vs. reais
 ```
@@ -143,10 +158,22 @@ AssettoCorsaTelemetry/
 ## Testes
 
 ```
+python tests\run_all.py        # a suite toda, por ordem
+```
+
+Ou um a um:
+
+```
 python tests\test_layout.py    # não precisa do jogo
 python tests\test_acshm.py     # não pode correr com o jogo aberto
+node    tests\test_tempos.js   # não precisa do jogo nem de browser
 python tests\verify_real.py    # precisa do jogo a correr
 ```
+
+**Com o AC a correr, os testes de memória são saltados** — é o
+comportamento certo, não uma falha. Escrevem em páginas `ac_test_*`, que
+são criadas e destruídas pelo próprio teste, e nunca tocam nas páginas
+reais do jogo.
 
 > **Atenção:** `test_acshm.py` cria páginas de memória partilhada para
 > injectar valores conhecidos. Usa nomes fictícios (`ac_test_*`) e tem uma
