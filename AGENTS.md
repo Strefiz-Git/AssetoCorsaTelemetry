@@ -517,6 +517,9 @@ certo, não uma falha. Os testes de memória escrevem em páginas
 | `test_tempos.html` | os mesmos casos, para abrir no browser |
 | `test_mutation.py` | que os testes acima **falham** quando o código está partido |
 | `diag_drs.py` | agrupa o que encontra no canal SSE, para não concluir de duas amostras |
+| `capturar.py` | grava a série de N segundos num JSON |
+| `analisar.py` | responde às perguntas sobre essa série |
+| `verificar_combustivel.py` | confirma que o depósito desce e que a percentagem bate com os litros |
 | `verify_real.py` | valores reais, só com o jogo aberto |
 
 `test_tempos.js` corre com **node**, sem browser. Se o node não estiver

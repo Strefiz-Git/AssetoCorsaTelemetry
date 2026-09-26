@@ -290,16 +290,27 @@ Fica por decidir. Enquanto isso, o traço aparece mas vazio.
 ## Não são problemas (já esclarecidos)
 
 - **O combustível não mexer dentro da volta.** Cheguei a registar isto
-  como dúvida: 30,0 L constantes em 4502 amostras ao longo de duas
-  voltas. **O consumo de combustível estava desligado no jogo** — é uma
-  opção do AC, não um erro de leitura. Com o consumo ligado o valor
-  desce. Não investigar mais.
+  como dúvida: 30,0 L constantes em 4502 amostras. **O consumo de
+  combustível estava desligado no jogo** — é uma opção do AC, não um erro
+  de leitura. Confirmado depois com o consumo ligado: desce a 0,22 L/min,
+  com 90 valores distintos em 90 s, e a percentagem bate com os litros
+  com menos de 0,06 pontos percentuais de erro (que é só arredondamento).
 - **A delta mostrar −37 s no início.** Numa corrida com largada parada a
   volta 1 inclui a saída e fica muito mais lenta, por isso a delta
   aparecer muito negativa até essa volta ser batida. **Isto é o
   comportamento certo e é o que se quer.** A referência passa logo a ser
   a melhor volta, e a comparação deixa de ter sentido ao fim de uma
   volta. Não mexer.
+
+## Observado, por explicar
+
+- **O combustível salta para exactamente 70,00 L ao entrar na box.** Numa
+  captura de 7201 amostras houve 3 subidas, e as 3 foram no mesmo
+  instante em que `isInPit` passou a verdadeiro: 69,53 → 70,00, depois
+  69,25 → 70,00, depois 69,52 → 70,00. O número redondo é que estranha —
+  uma paragem não devia pôr o depósito a um valor fixo. A leitura está
+  certa (desce a conduzir, e a percentagem bate com os litros); o que é
+  estranho é o que o jogo faz. Fica a watchful, sem conclusão.
 - **O sentido da embraiagem.** A documentação diz que `clutch` é a
   posição do pedal, 1 = totalmente premido. Mas a medir: parado o valor
   é ~0.1, e a 250 km/h é 1.0. Isso só faz sentido como **engate**

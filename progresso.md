@@ -409,7 +409,14 @@ Duas coisas que pareciam bugs e **não são**, para não voltar a elas:
 
 - **O combustível não mexia dentro da volta** (30,0 L constantes em duas
   voltas) porque o **consumo estava desligado no jogo**. Opção do AC, não
-  erro de leitura.
+  erro de leitura. Confirmado depois: com o consumo ligado desce a
+  0,22 L/min, com 90 valores distintos em 90 s, e a percentagem bate com
+  os litros com menos de 0,06 pontos de erro, que é só arredondamento.
+  Durante a confirmação apareceu uma coisa nova: **o depósito salta para
+  exactamente 70,00 L ao entrar na box**, nas 3 vezes em que isso
+  aconteceu em 7201 amostras. A leitura está certa; o que é estranho é o
+  número redondo que o jogo escreve. Anotado em `ideia.md`, sem
+  conclusão.
 - **A delta a −37 s no início** porque a volta de referência foi a da
   largada parada, que é muito mais lenta. É o comportamento certo, e é o
   que se quer: a referência passa a ser a melhor volta e a comparação faz
