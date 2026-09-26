@@ -315,6 +315,14 @@ body{
 }
 .grip-row{margin-top:5px;padding-top:0;border-bottom:0}
 
+/* Vida do pneu: o texto e' longo ("~12 voltas (3.4% por volta)"), por
+   isso vai numa linha so e com o corpo menor. O "--" e o "a medir" saem
+   a cinza, nunca a vermelho: nao ha' estimativa, nao ha' alarme. */
+.tyre-life-row{margin-top:5px;padding-top:0;border-bottom:0}
+.tyre-life-row b{font-size:12px;font-weight:700;white-space:nowrap}
+.tyre-life-row b.warn{color:var(--orange)}
+.tyre-life-row b.bad{color:var(--red)}
+
 /* luzes de estado */
 .lights{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:7px;margin-top:9px;flex:0 0 auto}
 .light{

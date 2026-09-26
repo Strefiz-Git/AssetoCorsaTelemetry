@@ -56,6 +56,9 @@ const I18N = {
     'laps.title': 'VOLTAS', 'laps.current': 'ATUAL', 'laps.best': 'MELHOR',
     'laps.last': 'ANTERIOR', 'laps.delta': 'DELTA',
     'tyres.title': 'PNEUS E TRAVÕES', 'tyres.worn': 'gasto',
+    'tyres.life': 'Vida do pneu', 'tyres.lapsLeft': 'voltas',
+    'tyres.measuring': 'a medir', 'tyres.used': 'gasto', 'tyres.perLap': 'por volta',
+    'tyres.lifeNote': 'Estimativa feita do desgaste que já aconteceu neste stint, não de uma tabela do jogo: o Assetto Corsa não publica a vida do composto. Depois de duas voltas medidas o número já significa alguma coisa; antes disso é um palpite.',
     'brakes.title': 'TRAVÕES', 'fuel.title': 'COMBUSTÍVEL',
     'wx.air': 'AR', 'wx.road': 'PISTA', 'wx.wind': 'VENTO', 'wx.density': 'DENSIDADE', 'wx.grip': 'ADERENCIA', 'unit.c': '°C',
     'fuel.inTank': 'Na reserva', 'fuel.lapsLeft': 'Voltas',
@@ -115,6 +118,9 @@ const I18N = {
     'laps.title': 'VOLTAS', 'laps.current': 'ATUAL', 'laps.best': 'MELHOR',
     'laps.last': 'ANTERIOR', 'laps.delta': 'DELTA',
     'tyres.title': 'PNEUS E FREIOS', 'tyres.worn': 'usado',
+    'tyres.life': 'Vida do pneu', 'tyres.lapsLeft': 'voltas',
+    'tyres.measuring': 'medindo', 'tyres.used': 'usado', 'tyres.perLap': 'por volta',
+    'tyres.lifeNote': 'Estimativa feita do desgaste que já aconteceu neste stint, não de uma tabela do jogo: o Assetto Corsa não publica a vida do pneu. Depois de duas voltas medidas o número já significa alguma coisa; antes disso é um palpite.',
     'brakes.title': 'FREIOS', 'fuel.title': 'COMBUSTÍVEL',
     'wx.air': 'AR', 'wx.road': 'PISTA', 'wx.wind': 'VENTO', 'wx.density': 'DENSIDADE', 'wx.grip': 'ADERENCIA', 'unit.c': '°C',
     'fuel.inTank': 'No tanque', 'fuel.lapsLeft': 'Voltas',
@@ -173,6 +179,9 @@ const I18N = {
     'laps.title': 'VUELTAS', 'laps.current': 'ACTUAL', 'laps.best': 'MEJOR',
     'laps.last': 'ANTERIOR', 'laps.delta': 'DELTA',
     'tyres.title': 'NEUMÁTICOS Y FRENOS', 'tyres.worn': 'gastado',
+    'tyres.life': 'Vida del neumático', 'tyres.lapsLeft': 'vueltas',
+    'tyres.measuring': 'midiendo', 'tyres.used': 'gastado', 'tyres.perLap': 'por vuelta',
+    'tyres.lifeNote': 'Estimación a partir del desgaste que ya ha ocurrido en este stint, no de una tabla del juego: Assetto Corsa no publica la vida del compuesto. Tras dos vueltas medidas el número ya significa algo; antes es una suposición.',
     'brakes.title': 'FRENOS', 'fuel.title': 'COMBUSTIBLE',
     'wx.air': 'AIRE', 'wx.road': 'PISTA', 'wx.wind': 'VIENTO', 'wx.density': 'DENSIDAD', 'wx.grip': 'ADHERENCIA', 'unit.c': '°C',
     'fuel.inTank': 'En el depósito', 'fuel.lapsLeft': 'Vueltas',
@@ -234,6 +243,9 @@ const I18N = {
     'laps.title': 'LAPS', 'laps.current': 'CURRENT', 'laps.best': 'BEST',
     'laps.last': 'LAST', 'laps.delta': 'DELTA',
     'tyres.title': 'TYRES AND BRAKES', 'tyres.worn': 'worn',
+    'tyres.life': 'Tyre life', 'tyres.lapsLeft': 'laps',
+    'tyres.measuring': 'measuring', 'tyres.used': 'worn', 'tyres.perLap': 'per lap',
+    'tyres.lifeNote': 'Estimated from the wear that has already happened on this stint, not from a game table: Assetto Corsa does not publish the compound life. After two measured laps the number means something; before that it is a guess.',
     'brakes.title': 'BRAKES', 'fuel.title': 'FUEL',
     'wx.air': 'AIR', 'wx.road': 'TRACK', 'wx.wind': 'WIND', 'wx.density': 'DENSITY', 'wx.grip': 'GRIP', 'unit.c': '°C',
     'fuel.inTank': 'In tank', 'fuel.lapsLeft': 'Laps',
@@ -286,6 +298,17 @@ function fmtTemp(c) {
   return Math.round(toTemp(c));
 }
 
+/* A unidade de temperatura, para escrever DEPOIS do numero.
+   Nos Cards que tem um <i data-i18n="unit.c"> ao lado, a unidade e' um
+   elemento e' a traducao que a escreve. Nos pneus e nos travoes o valor
+ * e' um texto unico, sem elemento ao lado -- e ai a unidade tinha de
+   ficar de fora, e o '51' nao dizia se era graus Celsius ou Fahrenheit.
+   A unidade e' a do momento: mudar para Fahrenheit muda o numero e a
+ * letra, porque o render corre a cada frame. */
+function unidadeTemp() {
+  return DEF.temp === 'F' ? '°F' : '°C';
+}
+
 /* ------------------------------------------------------------ estado */
 const S = {
   path: [],            // [x, y, drs, sector]
@@ -301,6 +324,9 @@ const S = {
   oppHist: {},
   // o id do TEU carro na lista de adversarios (ver renderOpponents)
   localCarId: null,
+  // estado da medicao da vida do pneu (ver tyres.js). Nao e' reiniciado
+  // a mudanca de pista: so' quando o pneu e' que troca, ou a sessao.
+  pneuStint: null,
   frames: 0, fpsAt: performance.now(), fps: 0,
   trace: { t: [], th: [], br: [], cl: [], hb: [] },
   lastSample: 0, traceHz: 0,
@@ -604,6 +630,68 @@ function mapaEnquadramento(w, h, espW, espH, carroX, carroZ) {
   };
 }
 
+/* As bolas dos adversarios, nas DUAS vistas do mapa (Regra nº 16: um
+ * desenho, um sítio).
+ *
+ * COLORES. A pista e' um traço branco de 2 px sobre preto. Uma bola
+ * cinzenta (#8C9394, o que estava) punha-se em cima do traço e fundia-se
+ * com ele, e o numero escuro dentro ficava ilegível. Agora:
+ *
+ *   - anel preto por fora, para a bola se destacar do traço branco. E' a
+ *     mesma ideia do contorno do texto, e sem ele não ha' separação;
+ *   - preenchimento claro (#D6DCDE), bem acima do cinza-médio, para o
+ *     numero escuro ter contraste dentro da bola;
+ *   - quem esta' na box e' desenhado a vazado, para se ver de relance sem
+ *     gastar uma cor diferente. Antes era branco a 35%, que sobre preto
+ *     quase nao se via.
+ *
+ * TAMANHOS. O minimo subiu de 4 para 7 px: com 4 px de raio o numero de
+ * duas casas nao cabia dentro, e via-se um borrão. E quando a bola e'
+ * mesmo pequena demais para o numero, nao se escreve numero nenhum -- um
+ * '1' cortado lê-se pior do que uma bola sem numero.
+ */
+function desenhaAdversarios(c, q, paraEspaco, pxPorM) {
+  // O piso e' maior na vista relativa: e' a vista de quem esta' a
+  // conduzir, e e' onde se precisa de apanhar carros depressa. Na pista
+  // inteira 7 px chega para distinguir quem e' quem; com o zoom, 9 px
+  // dao o mesmo salto de escala que o resto do mapa.
+  const minimo = q.relativa ? 9 : 7;
+  const r = clamp(3.4 * pxPorM, minimo, 16);
+  const suave = opponentsSuaves(performance.now() - OPP_ATRASO_MS);
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  for (const car of suave) {
+    if (car.id != null && car.id === S.localCarId) continue;
+    const [ex, ey] = paraEspaco(car.x, car.z);
+    const x = q.px(ex), y = q.py(ey);
+    if (x < -20 || y < -20 || x > 1e5 || y > 1e5) continue;
+
+    if (car.inPit) {
+      // vazado: só o anel, para distinguir sem gastar uma cor
+      c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2);
+      c.lineWidth = 2; c.strokeStyle = 'rgba(0,0,0,.85)'; c.stroke();
+      c.lineWidth = 1.2; c.strokeStyle = 'rgba(214,220,222,.75)'; c.stroke();
+      continue;
+    }
+
+    c.beginPath(); c.arc(x, y, r + 1.6, 0, Math.PI * 2);
+    c.fillStyle = 'rgba(0,0,0,.9)'; c.fill();          // anel de separação
+    c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2);
+    c.fillStyle = '#D6DCDE'; c.fill();
+
+    if (car.pos) {
+      const txt = String(car.pos);
+      // só escreve se couber com folga: 2 casas precisam de ~1.3 px por
+      // caracter de raio, mais uma margem
+      if (r >= 8 && txt.length * r * 0.62 <= r * 2) {
+        c.fillStyle = '#0A0E0E';
+        c.font = '700 ' + Math.round(r * 1.35) + 'px Titillium, sans-serif';
+        c.fillText(txt, x, y + 0.5);
+      }
+    }
+  }
+}
+
 function drawMap(canvasId) {
   const cv = $(canvasId);
   if (!cv || DEF.map === 'off') { if (cv) cv.style.visibility = 'hidden'; return; }
@@ -681,23 +769,8 @@ function drawMapReal(c, w, h, rm) {
   // 10 Hz e o ecra a 60, por isso desenhar o ultimo valor dava solavancos.
   // O teu carro e' desenhado a amarelo, em cima disto -- e a lista de
   // adversarios inclui-te, por isso tem de ser filtrado (S.localCarId).
+  desenhaAdversarios(c, q, (x, z) => worldToMapImg(rm, x, z), sc * (rm.pxPerMetre || 1));
   const pxPorM = sc * (rm.pxPerMetre || 1);
-  const rOpp = clamp(3.2 * pxPorM, 4, 12);
-  const suave = opponentsSuaves(performance.now() - OPP_ATRASO_MS);
-  for (const car of suave) {
-    if (car.id != null && car.id === S.localCarId) continue;
-    const [ix, iy] = worldToMapImg(rm, car.x, car.z);
-    const x = px(ix), y = py(iy);
-    c.beginPath(); c.arc(x, y, rOpp, 0, Math.PI * 2);
-    c.fillStyle = car.inPit ? 'rgba(255,255,255,.35)' : '#8C9394';
-    c.fill();
-    if (car.pos) {
-      c.fillStyle = '#0A0E0E';
-      c.font = '700 ' + Math.round(clamp(rOpp * 1.5, 8, 15)) + 'px Titillium, sans-serif';
-      c.textAlign = 'center'; c.textBaseline = 'middle';
-      c.fillText(String(car.pos), x, y + 0.5);
-    }
-  }
 
   // o proprio carro, por cima de tudo
   if (ult) {
@@ -797,20 +870,7 @@ function drawMapTraced(c, w, h) {
   // adversarios, tambem com a posicao interpolada. O tracado usava metros
   // a partir de S.minX/minY, por isso a conversao e' outra -- mas o
   // desenho e' o mesmo, e as duas vistas tem de mostrar o mesmo.
-  const rOppT = clamp(3.2 * sc, 4, 12);
-  for (const car of opponentsSuaves(performance.now() - OPP_ATRASO_MS)) {
-    if (car.id != null && car.id === S.localCarId) continue;
-    const x = q.px(car.x - S.minX), y = q.py(car.z - S.minY);
-    c.beginPath(); c.arc(x, y, rOppT, 0, Math.PI * 2);
-    c.fillStyle = car.inPit ? 'rgba(255,255,255,.35)' : '#8C9394';
-    c.fill();
-    if (car.pos) {
-      c.fillStyle = '#0A0E0E';
-      c.font = '700 ' + Math.round(clamp(rOppT * 1.5, 8, 15)) + 'px Titillium, sans-serif';
-      c.textAlign = 'center'; c.textBaseline = 'middle';
-      c.fillText(String(car.pos), x, y + 0.5);
-    }
-  }
+  desenhaAdversarios(c, q, (x, z) => [x - S.minX, z - S.minY], sc);
 
   // carro
   const p = S.path[S.path.length - 1];
@@ -1232,15 +1292,27 @@ function buildTyres(hostId) {
   }
 }
 function renderTyres(hostId, d) {
+  const u = unidadeTemp();
   for (let i = 0; i < 4; i++) {
     const mid = (d.tyreTempM && d.tyreTempM[i]) || 0;
-    setTxt(hostId + '-t' + i, mid ? fmtTemp(mid) : '--');
+    setTxt(hostId + '-t' + i, mid ? fmtTemp(mid) + unidadeTemp() : '--');
     const te = $(hostId + '-t' + i);
     if (te) te.style.color = tempColor(mid);
-    const worn = (d.tyreWearUsed && d.tyreWearUsed[i] != null) ? d.tyreWearUsed[i] : null;
-    setTxt(hostId + '-w' + i, worn == null ? '--' : worn.toFixed(1) + '%');
+    // O desgaste escreve-se como RESTANTE, nao como usado. '0.0%' ao
+    // inicio da corrida era verdade e nao dizia nada; '99.6% restante'
+    // responde a pergunta que o piloto faz. O underlying e' o mesmo:
+    // 100 - tyreWear.
+    const restante = (d.tyreWear && d.tyreWear[i] != null) ? d.tyreWear[i] : null;
+    const setTxtW = restante == null ? '--' : restante.toFixed(1) + '% restante';
+    setTxt(hostId + '-w' + i, setTxtW);
     const we = $(hostId + '-w' + i);
-    if (we) we.className = 'tyre-worn' + (worn != null && worn >= 30 ? ' bad' : worn != null && worn >= 15 ? ' warn' : '');
+    if (we) {
+      // os avisos invertem-se: agora e' o que resta que interessa
+      const cls = restante == null ? ''
+        : restante <= 20 ? ' bad' : restante <= 40 ? ' warn' : '';
+      we.className = 'tyre-worn' + cls;
+      if (restante != null) we.title = t('tyres.used') + ' ' + (100 - restante).toFixed(1) + '%';
+    }
     drawTyreBar(hostId + '-b' + i, mid);
     const pr = (d.tyrePressure && d.tyrePressure[i] != null) ? d.tyrePressure[i].toFixed(1) : '--';
     // psi, e nao kPa. Medido num F1: 28.7 a 32.3. Se fossem kPa seriam
@@ -1250,6 +1322,37 @@ function renderTyres(hostId, d) {
     // escrito para nao se perder.
     setTxt(hostId + '-p' + i, pr === '--' ? pr : pr + ' psi');
   }
+  if (hostId === 'tyres') renderTyreLife(d);
+}
+
+/* ------------------------------------------------- vida do pneu (medida) */
+function renderTyreLife(d) {
+  const el = $('tyre-life');
+  if (!el) return;
+  // so' faz sentido em corrida: em treino nao ha' stint para medir
+  const restante = (d.tyreWear || []).filter((v) => typeof v === 'number');
+  if (!d.connected || restante.length === 0) {
+    el.textContent = '--';
+    el.className = '';
+    return;
+  }
+  const r = Pneus.estimarPneus(S.pneuStint, {
+    compound: d.compound || '',
+    volta: d.lap,
+    restantePorPneu: restante
+  });
+  S.pneuStint = r.estado;
+  if (!r.valido) {
+    el.textContent = t('tyres.measuring');
+    el.className = '';
+    return;
+  }
+  const voltas = Math.floor(r.voltasRestantes);
+  // arredondar para baixo nunca promete uma volta a mais do que existe
+  el.textContent = '~' + voltas + ' ' + t('tyres.lapsLeft')
+    + '  (' + r.porVolta.toFixed(1) + '% ' + t('tyres.perLap') + ')';
+  el.className = voltas <= 2 ? 'bad' : voltas <= 5 ? 'warn' : '';
+  el.title = t('tyres.lifeNote');
 }
 
 /* ------------------------------------------------------ travões por canto */
@@ -1269,7 +1372,7 @@ function renderBrakes(hostId, d) {
     const v = (d.brakeTemp && d.brakeTemp[i]) || 0;
     const e = $(hostId + '-' + i);
     if (!e) continue;
-    e.textContent = v ? fmtTemp(v) : '--';
+    e.textContent = v ? fmtTemp(v) + unidadeTemp() : '--';
     // a cor e' sempre calculada em Celsius, mude a unidade nao muda a leitura
     e.style.color = !v ? '' : v > 600 ? '#FF0000' : v > 400 ? '#F58020' : '#fff';
   }
