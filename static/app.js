@@ -1676,8 +1676,20 @@ function render(d) {
   // Pintar sem confirmar dava a pista toda a verde num caso e a zona
   // certa no outro. Por isso o drsAvailable so e' aceite se ao fim de
   // uma volta parecer mesmo uma zona; ate la, pinta-se a mao.
-  pushMapPoint(d.x, d.z, S.marking ? 1 : (S.drsAuto ? (d.drsAvailable ? 1 : 0) : 0),
-    d.sector, d.drsAvailable);
+  // So' grava o mapa com a sessao MESMO a correr.
+  //
+  // Sem esta guarda, com o jogo fechado o site continuava a encher o mapa:
+  // mediram-se 7383 pontos quase todos a tremer meio metro em torno da
+  // mesma posicao congelada, mais uns quantos teletransportes. A posicao
+  // parada passa o filtro dos 0,3 m do pushMapPoint porque a telemetria
+  // publication tremula, e o traçado enche-se de ruido.
+  //
+  // Em PAUSA e no menu o packetId tambem para, portanto 'live' e' falso e o
+  // mapa fica como estava -- que e' o que se quer ver.
+  if (d.connected && d.live) {
+    pushMapPoint(d.x, d.z, S.marking ? 1 : (S.drsAuto ? (d.drsAvailable ? 1 : 0) : 0),
+      d.sector, d.drsAvailable);
+  }
   setTxt('trackpct', (clamp(d.trackPct || 0, 0, 1) * 100).toFixed(1) + '%');
   setTxt('sector', t('sector') + ' ' + ((d.sector || 0) + 1) + (d.sectorCount ? '/' + d.sectorCount : ''));
 
