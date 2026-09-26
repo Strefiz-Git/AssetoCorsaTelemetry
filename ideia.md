@@ -14,18 +14,17 @@ mostrá-la no browser a 60 fps, sem depender do SimHub.**
 ## O problema
 
 O SimHub é bom e faz muito. Mas na versão gratuita serve o dashboard no
-browser a **10 fps** — sensível numa curva rápida, e a aplicação de
-telemetria mais rápida acaba por não o ser. Pagar a licença resolve, mas
-nem toda a gente quer.
+browser a **10 fps** — sensível numa curva rápida. Pagar a licença
+resolve, mas nem toda a gente quer.
 
-E há um segundo problema, mais de fundo: o SimHub é um intermediário. Para
-ler dados que o jogo não expõe de forma padronizada, plugins têm de adivinhar
-escalas e compensar lacunas. Já foi assim com o `ERSPercent`, que o plugin
-do AC nunca escreve e que, por isso, aparecia com valores ao contrário.
+E há um segundo problema, mais de fundo: o SimHub é um intermediário.
+Plugins têm de adivinhar escalas e compensar lacunas. Já foi assim com o
+`ERSPercent`, que o plugin do AC nunca escreve e que por isso aparecia
+com valores ao contrário.
 
 Lendo a memória partilhada directamente:
 
-- **Não há limite de fps.** O limite é do browser.
+- **Não há limite de fps.** O limite é o browser.
 - **Não há camadas de tradução.** O que o carro tem, temos.
 - **Não há licença, plugin nem versão do SimHub a acompanhar.**
 
@@ -44,15 +43,120 @@ descobre olhando.
 
 **3. Sem dependências.**
 Só a biblioteca standard do Python. Sem `pip install`, sem `node_modules`.
-Funciona em 2026 e em 2030, num qualquer PC com Python.
 
 **4. Simplicidade à frente degénio.**
 Sem framework no frontend, sem WebSocket, sem base de dados. Um `<canvas>`,
 `EventSource` e um ficheiro de CSS.
 
 **5. Deve correr em qualquer ecrã.**
-No monitor do simulador, num telemóvel no suporte, num tablet. A interface
-adapta-se; os dados não mudam.
+No monitor do simulador, num telemóvel no suporte, num tablet.
+
+**6. Ler de relance, ou não serve.**
+Quem conduz não lê: olha de relance, durante meio segundo. Este princípio
+manda em toda a interface.
+
+---
+
+## A interface
+
+### O que estava mal na primeira versão
+
+Foi feita por temas: um painel por assunto, etiquetas de 8 px, números
+de 26 px. Mucha informação, pouca legibilidade:
+
+- Os chips de estado (DRS, ERS, ABS, TC, PIT) tinham etiquetas de 8 px —
+  ilegíveis a 300 km/h
+- O DRS era um chip minúsculo entre cinco iguais. **O sinal mais
+  importante ficava perdido na grelha**
+- Os pedais eram duas barras finas: informação importante, pouco espaço
+- Muito espaço morto nos cartões de tempos e de travões
+- O mapa era pequeno para a importância que tem
+- Não se via quando o DRS ficava disponível
+
+### A regra que rege a interface nova
+
+Ordenar por **prioridade de leitura**, não por tema:
+
+| # | O quê | Porquê |
+|---|---|---|
+| 1 | **Velocidade** | o número que se procura a cada segundo |
+| 2 | **Caixa** | lê-se mais depressa que qualquer número |
+| 3 | **Barra de rpm** com zona vermelha | aviso de mudança de caixa |
+| 4 | **Luz de DRS** | tem de se ver sem procurar |
+| 5 | **Penalidade e bandeira** | têm de gritar quando existem |
+| 6 | **ERS** | orçamento de deployment |
+| 7 | **Tempos e delta** | a cada entrada de curva |
+| 8 | **Pedais** | sentir o carro |
+| 9 | **Pneus e travões** | entre paragens |
+| 10 | **Combustível** | estratégico |
+| 11 | **Mapa** | orientação |
+
+### As decisões
+
+**A luz de DRS é a coisa mais grande do cabeçalho, e não um chip.**
+
+- **Pisca a verde** quando o DRS está disponível e ainda não foi aberto
+- **Verde sólido e a brilhar** quando está aberto
+- **Apagada** quando não há zona
+
+Piscar é o sinal certo, porque é o mesmo sinal que os carros reais dão
+no volante. Uma cor sólida leria-se uma vez e depois seria ignorada; o
+piscar continua a chamar a atenção em visão periférica.
+
+**A zona de DRS aparece no mapa.** O `drsAvailable` liga e desliga ao
+longo da pista, por isso o mapa guarda em que troços o DRS estava
+disponível e pinta-os a verde. Depois de uma volta já se sabe onde é a
+zona, sem marcar à mão.
+
+**Os pedais deixam de ser barras e passam a ser um gráfico.**
+
+Osciloscópio a correr da direita para a esquerda, cerca de 6 segundos de
+histórico, quatro traços:
+
+| Traço | Cor | Razão da cor |
+|---|---|---|
+| Acelerador | verde `#23CF16` | o que empurra |
+| Travão | vermelho `#FF0000` | perigo, o que trava |
+| Embragagem | azul `#2B6CFF` | desliga do eixo do motor |
+| Travão de mão | dourado `#FFD700` | nitido contra verde e vermelho |
+
+Linhas de 2 px sobrepõem-se melhor do que áreas preenchidas, porque
+áreas escondem-se umas às outras.
+
+**O mapa ganha sectores e linha de meta.** A troca de sector é visível
+(`currentSectorIndex`), o que permite marcar as fronteiras.
+
+**Modo misto não é "os dois lado a lado".** Os dois painéis competem pelo
+mesmo espaço, e o que se sacrifica é o mapa ou o gráfico de pedais.
+
+---
+
+## Os três modos
+
+| Modo | Para quê |
+|---|---|
+| **Telemetria** | conduzir. Só dados. |
+| **Leaderboard** | acompanhar a corrida: tabela grande mais uma faixa compacta do teu carro. |
+| **Misto** | telemetria condensada à esquerda, leaderboard à direita. |
+
+Escolha no menu à primeira entrada, guardada em `localStorage`, mudável
+depois nas definições. O menu não volta a aparecer sozinho.
+
+---
+
+## Definições
+
+| Definição | Valores | Porquê |
+|---|---|---|
+| **Vista** | telemetria / leaderboard / misto | muda o que se quer ver |
+| **Temperatura** | Celsius / Fahrenheit | unidades-De-land nos Estados Unidos |
+| **Velocidade** | km/h / mph | o mesmo |
+| **Idioma** | pt-PT, pt-BR, es, en | o corre em todo o lado |
+| **Mapa** | mostrar / esconder | num ecrã pequeno rouba espaço ao que importa |
+| **FPS de envio** | 10 a 60 | 60 é bonito mas gasta bateria e rede; num telemóvel a 20 chega para conduzir |
+
+A escolha de FPS é do **servidor**: menos difusão é menos trabalho e
+menos bateria. O browser pede o valor e o servidorabranda a mandar.
 
 ---
 
@@ -60,121 +164,165 @@ adapta-se; os dados não mudam.
 
 ```
 Assetto Corsa
-   │  escreve a cada frame (~300 Hz na física)
+   │  escreve a cada frame
    ▼
 acpmf_physics   acpmf_graphics   acpmf_static
    │
    │  ctypes, só leitura
    ▼
-acshm.py → Hub (thread, 200 Hz)
-   │
-   │  Server-Sent Events, 60 Hz
-   ▼
-browser → <canvas> + DOM
+server.py ── SSE telemetria a 60 Hz ──▶ browser
+         └─ SSE adversários a 10 Hz ──▶
 ```
 
-O servidor lê mais depressa do que envia, para não perder frames. Cada
-cliente recebe o seu stream; o telemóvel e o monitor podem estar ligados
-ao mesmo tempo.
+Os adversários vão num canal separado a 10 Hz: 128 carros a 60 Hz seriam
+cerca de 25 KB por frame, e a 10 Hz chega perfeitamente para uma tabela.
 
 ---
 
-## O que a memória do jogo dá (e o que ainda não usamos)
-
-Isto é o terreno disponível. Quase tudo já é[lido](progresso.md) ou é
-fácil de acrescentar.
+## O que a memória do jogo dá
 
 ### Já a mostrar
 
-velocidade · rpm · caixa · pedais · ABS · TC · pit limiter · DRS · ERS ·
-temperaturas de pneu em 3 zonas · desgaste · pressão · temperatura dos
-travões · combustível · ar e pista · tempos de volta · delta · mapa ·
-bandeira · penalidade · posição
+velocidade · rpm · caixa · pedais (acelerador, travão, embragagem) ·
+ABS · TC · pit limiter · DRS · ERS · temperaturas de pneu em 3 zonas ·
+desgaste · pressão · temperatura dos travões · combustível · ar e pista ·
+tempos de volta · delta · sectores · mapa com zona de DRS · bandeira ·
+penalidade · posição · adversário (leaderboard)
 
 ### Disponível e por fazer
 
 | Dado | Onde | Para que serve |
 |---|---|---|
-| `accG` | física | vector G, num painel ou num gráfico |
-| `wheelSlip` | física | quanto cada pneu está a patinar |
+| `accG` | física | vector G |
+| `wheelSlip` | física | quanto cada pneu patina |
 | `wheelLoad` | física | carga transferida entre eixos |
 | `suspensionTravel` | física | curso da suspensão, por canto |
-| `camberRAD` | física | cambagem, útil para setup |
-| `tyreContactPoint/Normal/Heading` | física | **o carro inteiro** — dá para desenhar a suspensão em 3D |
-| `localVelocity` · `steerAngle` | física | predição de trajectória, replay |
-| `carDamage[5]` | física |avuarias por zona |
-| `brakeBias` | física | distribuição de travagem |
-| `surfaceGrip` | gráficos | aderência actual, correlaciona com o delta |
+| `camberRAD` | física | cambagem, para setup |
+| `tyreContactPoint/Normal/Heading` | física | **o carro inteiro** — suspensão em 3D |
+| `steerAngle` · `localVelocity` | física | predição de trajectória, replay |
+| `carDamage[5]` | física | avarias por zona |
+| `surfaceGrip` | gráficos | aderência, correlaciona com o delta |
 | `idealLineOn` | gráficos | se a racing line está ligada |
-| `windSpeed/Direction` | gráficos | vento, para simuladores |
-| `lastSectorTime` | gráficos | tempo do último setor |
-| `numberOfTyresOut` | física | penalização por 4 rodas fora |
+| `windSpeed/Direction` | gráficos | vento |
+| `numberOfTyresOut` | física | penalização por quatro rodas fora |
 | `mandatoryPitDone` | gráficos | paragem obrigatória |
-| `kersCurrentKJ` | física | ERS gasta nesta volta |
-| `ersIsCharging` | física | a recuperar |
 | `trackSPlineLength` | estática | comprimento da racing line |
 
 ### Fora do alcance da memória partilhada
 
-| Queria | Porquê não está | Alternativa |
-|---|---|---|
-| **Posições dos adversários** | O AC não põe as coordenadas dos outros carros na memória partilhada. O SimHub resolve com uma app em Python dentro do jogo, que escreve numa página à parte (`acpmf_simhub_v2`) com os 128 carros. | Ler também essa página. É possível: é mais uma página de memória partilhada, e o AC já a escreve. **Próximo passo natural.** |
-| **Telemetria do CSP** (mods) | Só existe com o Content Manager instalado. | Detectar e ler, se estiver presente. |
-| **Setup ideal** | Não é telemetria, é cálculo. | Precompute, a partir de `tyreCoreTemperature` e `surfaceGrip`. |
-| **Comportamento de pneus** | O AC não expõe o modelo. | Ajustar empiricamente a partir do desgaste medido. |
+| Queria | Situação |
+|---|---|
+| **Travão de mão** | **Não existe** na shared memory do AC. A documentação só tem `gas`, `brake` e `clutch`. Ver a nota abaixo. |
+| **Telemetria do CSP** (mods) | só existe com o Content Manager instalado |
+| **Setup ideal** | não é telemetria, é cálculo |
+
+#### Nota sobre o travão de mão
+
+Não há campo de travão de mão no AC. Há `clutch`, que existe e está a ser
+usado, mas o travão de mão só é acessível pela API Python dentro do
+jogo (`ac.getCarState(..., CS.Handbrake)` ou o botão) — ou seja, com uma
+app a correr lá dentro, exactamente como a do SimHub.
+
+Duas formas de o ter, por ordem de custo:
+
+1. **Derivar** de `wheelAngularSpeed` traseiro: com o travão de mão as
+   rodas traseiras travam, a velocidade angular cai a zero com o carro
+   ainda em movimento. Funciona, mas também dispara com um sautane
+   qualquer, por isso é heurístico e tem de ser rotulado como tal.
+2. **Escrever a app Python** que preenche a página dos adversários, e
+   mandar lá também o estado do travão de mão. Fica exacto.
+
+Fica por decidir. Enquanto isso, o traço aparece mas vazio.
 
 ---
 
 ## Caminho
 
-### Já feito
+### Feito
 
 - [x] Ler a memória partilhada do AC
 - [x] Servir por SSE a 60 Hz
-- [x] Interface F1 responsiva
-- [x] Mapa que se desenha da posição real
-- [x] Delta contra a melhor volta
-- [x] DRS, ERS, penalidade
-- [x] Temperaturas de pneu em 3 zonas
-- [x] Detecção de pausa / jogo encerrado
 - [x] Testes de estrutura e de leitura
-- [x] Mapa persistente
+- [x] Deteção de pausa / jogo encerrado
+- [x] Mapa persistente, com zona de DRS
+- [x] Interface por prioridade de leitura
+- [x] Luz de DRS que pisca
+- [x] Gráfico de pedais
+- [x] Três modos com menu inicial
+- [x] Definições de unidades, idioma e FPS
+- [x] Leitor de adversários
 
 ### A seguir
 
-- [ ] **Adversários** — ler `acpmf_simhub_v2`, pôr todos os carros no mapa
-      e mostrar gaps. É a falta mais visível.
-- [ ] **Leaderboard** — posição de cada carro, volta atual e melhor
-- [ ] **Setores** — os três tempos por setor e o delta por setor
-- [ ] **Gráfico de G** — `accG` em tempo real
-- [ ] **Derrapagem por pneu** — `wheelSlip` como quatro barras
-- [ ] **Exportar CSV** — gravar a sessão para analisar depois
-- [ ] **Perfil por carro** — guardar layouts diferentes para GT e F1
+- [ ] Confirmar o travão de mão
+- [ ] Confirmar a zona de DRS no mapa com uma volta completa
+- [ ] Delta por setor
+- [ ] Gráfico de G
+- [ ] Derrapagem por pneu
+- [ ] Exportar CSV
+- [ ] Perfil por carro (GT vs F1)
 
 ### Mais longe
 
-- [ ] **Raven de loads** — a linha da traces
-- [ ] **Replay** — guardar a posição e reproduzir
-- [ ] **Sugestões de setup** — a partir da temperatura do núcleo do pneu
-      e da aderência
-- [ ] **Vista da suspensão** — `tyreContactPoint` em 3D, para sentir o carro
-- [ ] **Modo pit** — cronómetro de paragem, Yokohama, undercut
-- [ ] **Integração com Discord / Telegram** — avisos de tanda amarela
-- [ ] **Telemetria do CSP** — se o Content Manager estiver instalado
-- [ ] **App nativa** — embrulvar isto num ecrã sempre ligado
+- [ ] Raven de loads
+- [ ] Replay
+- [ ] Sugestões de setup a partir da temperatura do núcleo do pneu
+- [ ] Vista da suspensão em 3D
+- [ ] Modo pit: Yokohama, undercut
+- [ ] Discord / Telegram
+- [ ] App nativa para ecrã sempre ligado
 
 ---
 
 ## Perguntas em aberto
 
-- **Quantos carros并存 na página `acpmf_simhub_v2`?** A estrutura do
-  SimHub sugere 128, mas vale a pena confirmar a versão actual antes de
-  construir o mapa de adversários em cima dela.
-- **Ler vale a pena ou refresca a tela inteira?** A 60 Hz e 128 carros, o
-  JSON deve ficar dentro de uns 4 KB por frame. Deve dar, mas vale medir.
-- **Vale a pena manter o SimHub?** Neste momento, não. Mas se a telemetria
-  do CSP ou o suporte a outro jogo interessarem, os dois podem viver
-  juntos — este site para o AC, o SimHub para o resto.
+- **O travão de mão.** Não existe na shared memory do AC. Falta decidir
+  entre derivar das rodas traseiras (heurístico, pode falhar em curvas
+  de baixa velocidade) ou escrever uma app Python no Content Manager que
+  o publique. Está a ser mostrado como traço vazio, sem inventar valor.
+- **O sentido da embraiagem.** A documentação diz que `clutch` é a
+  posição do pedal, 1 = totalmente premido. Mas a medir: parado o valor
+  é ~0.1, e a 250 km/h é 1.0. Isso só faz sentido como **engate**
+  (1 = encaixada). Mostro o inverso, para se ler "quanto está solta",
+  que é o que interessa para pontas de embraiagem. Continua por
+  confirmar: falta uma leitura com a embraiagem a meio, a fazer uma
+  arrancada, e um valor que fique a meio caminho.
+- **O delta sobrevive a recarregar a página?** Não — a referência da
+  melhor volta vive só em memória JavaScript. Vale a pena guardá-la no
+  `localStorage` junto com o mapa.
+- **O delta no modo leaderboard** só faz sentido contra a melhor volta
+  do jogador. Contra o melhor do mundo é outra coisa. Falta decidir.
+- **A posição mostrada é a oficial ou a ao vivo?** A página traz as duas
+  (`pos` e `livePos`). Na interface usa-se a oficial. Numa corrida em que
+  se estivesse a recuperar posições, a ao vivo seria mais útil.
+- **Pneus e travões com valores iguais nos quatro cantos** quando o
+  carro está parado no fim da sessão. Por confirmar se é o jogo a
+  replicar o valor ou se é a leitura a fazer isso.
+
+## Resolvidas
+
+- **Os adversários funcionam.** A app Python do SimHub escreve a página
+  `acpmf_simhub_v2` e lê-se directamente — sem passar pela API dele nem
+  pelo UDP. Duas correções ao que eu tinha dito antes:
+  1. Eu tinha dito que a app *"morre ao arrancar"*. **Não era verdade.**
+     A página não existia porque o AC estava fechado. Com o jogo a
+     correr vêm 19 carros com nome, carro, posição, voltas, tempos,
+     penalizações, coordenadas e estado de box.
+  2. A zona de DRS no mapa **vê-se** e está desenhada a verde.
+- **A zona de DRS no mapa fica registada entre recarregamentos?** Sim, vai
+  no `localStorage` com o traçado, e sobreviveu a recarregamentos.
+- **Mudar o FPS obriga a reabrir a ligação?** Sim. O servidor lê
+  `?fps=N` por cliente e trava entre 5 e 60. Mudar-se uma vez e fica.
+  **Medido:** a 10 fps chegam exactamente 10 pacotes por segundo.
+- **O plano da pista.** Era a maior dúvida e estava errada: o mapa
+  desenhava X contra Y, e o **Y é a altitude**. O plano é **X-Z**.
+  Ver [AGENTS.md](AGENTS.md).
+- **A zona de DRS no mapa é marcada à mão.** A ideia era pintar
+  automaticamente com o `drsAvailable`. Medido numa volta completa,
+  esse flag esteve a 1 em **98.9% do traçado**, por igual nos cinco
+  quintos da pista: não diz onde acaba a zona. Automático dava a pista
+  toda a verde, que parece informação e não é. Agora marca-se nas
+  definições, a conduzir.
 
 ---
 

@@ -155,6 +155,131 @@ como forma principal de ver telemetria.
 
 ---
 
+## 2026-09-26 (2.ª parte) — adversários, mão de obra e interface
+
+### O que se descobriu
+
+**1. O SimHub tem uma API JSON que não conhecíamos.** A página de debug
+de leaderboard dele (`/Api/GetLeaderboarddata`, porta 8888) devolve
+`SectorsCount`, `Opponents` e `BestSessionSplits`. Respondia HTTP 200 com
+`Opponents: null`.
+
+**2. Porque vinha vazio — e uma correcção importante.** First TRACE, o
+`acpmf_simhub_v2` (a página que a app Python do SimHub preenche com os
+128 carros) não existia, e a app *está* activa:
+
+```
+[SIMHUB] ACTIVE=1     em python.ini
+SimHub Was Here!      em logs/py_log.txt
+```
+
+Concluí que a app morria ao arrancar em
+`ac.getServerName().encode('utf-8')` quando devolve `None`.
+
+**Isso não está confirmado.** O AC fechou-se entretanto, e sem o jogo a
+corre a página `acpmf_simhub_v2` desaparece de qualquer maneira. Portanto
+a explicação pode ser essa ou pode ser só "o jogo não estava a correr".
+Fica por verificar com o jogo aberto. A hipótese continua plausível — há
+mesmo um bug de escopo no código (`global sharedMem` mas a escrever num
+`sharedmem` novo) — mas não é um facto.
+
+Lição: afirmei uma causa antes de ter o dado que a sustenta.
+
+**3. O travão de mão não existe na shared memory do AC.** A estrutura
+documentada tem `gas`, `brake` e `clutch`. Não há campo de handbrake. Só
+se acede a ele pela API Python dentro do jogo. Ver as opções em
+[ideia.md](ideia.md).
+
+### O que foi feito
+
+**Leitor de adversários** (`Opponents` em `acshm.py`). Estrutura completa
+dos 128 carros: piloto, modelo, posição, volta, tempos, posição no
+mundo, pit. Vai num canal SSE separado a 10 Hz, porque 128 carros a 60 Hz
+seriam ~25 KB por frame.
+
+**Interface reconstruída** por prioridade de leitura, não por tema:
+
+- A luz de DRS passou de chip de 8 px para o elemento mais grande do
+  cabeçalho. **Pisca** a verde quando o DRS está disponível e não está
+  aberto, fica sólida quando abre, apaga-se sem zona.
+- A zona de DRS passa a ser pintada no mapa, a partir do `drsAvailable`.
+- Os pedais passaram de duas barras a um osciloscópio com histórico de
+  ~6 s e quatro traços (acelerador, travão, embragagem, travão de mão).
+- Três modos: telemetria, leaderboard e misto, com menu na primeira
+  entrada.
+- Definições: Celsius/Fahrenheit, km/h/mph, idioma (pt-PT, pt-BR, es,
+  en), mostrar/esconder mapa, e os fps a que o servidor envia.
+
+**Unidades de ERS corrigidas.** `ersMaxJ` vem em joules (4 500 000 num F1
+= 4,5 MJ) e `kersCurrentKJ` em kilojoules. O campo chamava-se
+`ersMaxKJ`, o que anunciava kJ para um valor em J. Passou a `ersMaxJ` e
+`ersMaxMJ`. A interface nunca usou o campo, por isso o erro estava
+latente.
+
+### Em curso → concluído
+
+- [x] `acshm.py`: `Opponents` pronto
+- [x] `server.py`: canal de adversários a 10 Hz + fps por cliente
+- [x] `static/index.html`: menu, três modos, definições
+- [x] `static/style.css`: reescrito
+- [x] `static/app.js`: reescrito
+- [x] Testado com o jogo a correr, nos três modos
+
+Branch: `feat/interface-nova-e-modo-liderboard`
+
+### O que está verificado a correr
+
+| | |
+|---|---|
+| 60 fps no modo telemetria | medido |
+| FPS de envio 10 e 30 e 60 | medido: 60→60, 10→10 |
+| Luz de DRS | `avail` pisca a 1 s, `open` sólida com brilho, `off` apagada — confirmado pelo estilo computado |
+| Leaderboard | 19 carros, jogador assinalado |
+| Unidades | °C/°F e km/h/mph a converter nos valores e nos rótulos |
+| Idiomas | pt-PT, pt-BR, es, en |
+| Mapa | forma da pista correcta, zona de DRS pintada, sectores marcados |
+
+### A correção mais importante: o mapa estava no plano errado
+
+O mapa desenhava um rabisco achatado. A causa:
+
+**No AC, Y é a altitude.** O plano da pista é **X-Z**.
+
+Medido com os 19 adversários: X 997 m, **Y 88 m**, Z 2012 m. E o
+desnível de Spa é de ~100 m — logo aqueles 88 m são a altitude. A
+primeira versão desenhava X contra Y, ou seja, distância contra altura.
+
+Com X contra Z aparece a Eau Rouge, o Raidillon e a reta do Kemmel, e
+dá para reconhecer Spa de imediato.
+
+O `acshm.py` nem sequer expunha o `z` — só `x` e `y`.
+
+### Erros meus nesta parte
+
+**Erro de sinal no canvas.** Depois de corrigir o eixo, o mapa ficou
+**completo de vazio** e sem erro nenhum na consola. A causa foi minha:
+calculava o `offset` a partir do mínimo positivo e depois invertia o Z,
+o que invalida o offset. Passou a transformar a partir do centro de
+cada eixo.
+
+**Dois sinais de brakes colados** — estava a injectar quatro `<b>` dentro
+de um `<b>` que já era o elemento alvo, por isso aparecia
+`291287254249`.
+
+**Grelha do leaderboard com 5 colunas para 6 campos**, o que fazia o
+"DIF." cair para a linha seguinte.
+
+**Modo misto completamente desfeito** — dei à tabela de classificação
+duas classes de área (`c-lbtel c-lb`) que se sobrepunham, e o cluster
+transbordava do cartão.
+
+**`NaN` no primeiro frame** — `undefined + 1`. Passou a haver guarda.
+
+**A unidade de velocidade não mudava** — o rótulo era `"km/h"`
+hardcoded no HTML, ligado ao idioma e não à definição de velocidade.
+
+---
+
 ## Resumo do que se aprendeu
 
 | Lição | Onde está registada |
