@@ -26,6 +26,12 @@ const I18N = {
     'set.title': 'Definições', 'set.mode': 'Vista', 'set.units': 'Unidades',
     'set.lang': 'Idioma', 'set.map': 'Mapa', 'set.mapOn': 'Mostrar',
     'set.mapOff': 'Esconder', 'set.clearMap': 'Apagar o mapa desenhado',
+    'set.acPathWhy': 'Para o mapa aparecer completo desde o início (em vez de descoberto a conduzir), indica a pasta onde o Assetto Corsa está instalado.',
+    'set.acPathSave': 'Guardar', 'set.mapFlipX': 'Inverter X', 'set.mapFlipZ': 'Inverter Z',
+    'set.acPathAuto': 'Detetada automaticamente: {p}', 'set.acPathOk': 'Pasta válida: {p}',
+    'set.acPathBad': 'Não encontrei "content/tracks" nessa pasta — confirma o caminho.',
+    'set.acPathNone': 'Ainda não configurada. Sem ela, o mapa é desenhado a conduzir.',
+    'set.acPathSaving': 'A verificar...',
     'set.drsZone': 'Zona de DRS', 'set.drsMark': 'Marcar a zona', 'set.drsMarking': 'A marcar... clica para parar', 'set.drsClear': 'Apagar a zona de DRS',
     'set.drsZoneWhy': 'O jogo nao diz onde acaba a zona: o drsAvailable fica a 1 quase sempre, por isso o mapa teria a pista toda a verde. Marca-se a zona a conduzir, com o tracado real.',
     'set.drsVerdictZona': 'O drsAvailable marca a zona nesta pista - pintado automaticamente.',
@@ -78,6 +84,12 @@ const I18N = {
     'set.title': 'Configurações', 'set.mode': 'Tela', 'set.units': 'Unidades',
     'set.lang': 'Idioma', 'set.map': 'Mapa', 'set.mapOn': 'Mostrar',
     'set.mapOff': 'Esconder', 'set.clearMap': 'Apagar o mapa desenhado',
+    'set.acPathWhy': 'Para o mapa aparecer completo desde o início (em vez de descoberto dirigindo), informe a pasta onde o Assetto Corsa está instalado.',
+    'set.acPathSave': 'Salvar', 'set.mapFlipX': 'Inverter X', 'set.mapFlipZ': 'Inverter Z',
+    'set.acPathAuto': 'Detectada automaticamente: {p}', 'set.acPathOk': 'Pasta válida: {p}',
+    'set.acPathBad': 'Não encontrei "content/tracks" nessa pasta — confira o caminho.',
+    'set.acPathNone': 'Ainda não configurada. Sem ela, o mapa é desenhado dirigindo.',
+    'set.acPathSaving': 'Verificando...',
     'set.drsZone': 'Zona de DRS', 'set.drsMark': 'Marcar a zona', 'set.drsMarking': 'Marcando... clique para parar', 'set.drsClear': 'Apagar a zona de DRS',
     'set.drsZoneWhy': 'O jogo nao diz onde termina a zona: o drsAvailable fica em 1 quase sempre, por isso o mapa teria a pista toda verde. Marque a zona dirigindo, com o tracado real.',
     'set.drsVerdictZona': 'O drsAvailable marca a zona nesta pista - pintado automaticamente.',
@@ -128,6 +140,12 @@ const I18N = {
     'set.title': 'Ajustes', 'set.mode': 'Vista', 'set.units': 'Unidades',
     'set.lang': 'Idioma', 'set.map': 'Mapa', 'set.mapOn': 'Mostrar',
     'set.mapOff': 'Ocultar', 'set.clearMap': 'Borrar el mapa dibujado',
+    'set.acPathWhy': 'Para que el mapa aparezca completo desde el principio (en vez de descubrirse conduciendo), indica la carpeta donde está instalado Assetto Corsa.',
+    'set.acPathSave': 'Guardar', 'set.mapFlipX': 'Invertir X', 'set.mapFlipZ': 'Invertir Z',
+    'set.acPathAuto': 'Detectada automáticamente: {p}', 'set.acPathOk': 'Carpeta válida: {p}',
+    'set.acPathBad': 'No encontré "content/tracks" en esa carpeta — revisa la ruta.',
+    'set.acPathNone': 'Aún no configurada. Sin ella, el mapa se dibuja conduciendo.',
+    'set.acPathSaving': 'Comprobando...',
     'set.drsZone': 'Zona de DRS', 'set.drsMark': 'Marcar la zona', 'set.drsMarking': 'Marcando... pulsa para parar', 'set.drsClear': 'Borrar la zona de DRS',
     'set.drsZoneWhy': 'El juego no dice donde acaba la zona: el drsAvailable se queda en 1 casi siempre, por eso el mapa tendria el circuito todo en verde. Marcala conduciendo, con el trazado real.',
     'set.drsVerdictZona': 'El drsAvailable marca la zona en esta pista - pintado automaticamente.',
@@ -181,6 +199,12 @@ const I18N = {
     'set.title': 'Settings', 'set.mode': 'View', 'set.units': 'Units',
     'set.lang': 'Language', 'set.map': 'Map', 'set.mapOn': 'Show',
     'set.mapOff': 'Hide', 'set.clearMap': 'Clear the drawn map',
+    'set.acPathWhy': 'For the map to appear complete from the start (instead of being discovered while driving), point this at your Assetto Corsa install folder.',
+    'set.acPathSave': 'Save', 'set.mapFlipX': 'Flip X', 'set.mapFlipZ': 'Flip Z',
+    'set.acPathAuto': 'Auto-detected: {p}', 'set.acPathOk': 'Valid folder: {p}',
+    'set.acPathBad': 'Could not find "content/tracks" in that folder — check the path.',
+    'set.acPathNone': 'Not set yet. Without it, the map is drawn while driving.',
+    'set.acPathSaving': 'Checking...',
     'set.drsZone': 'DRS zone', 'set.drsMark': 'Mark the zone', 'set.drsMarking': 'Marking... click to stop', 'set.drsClear': 'Clear the DRS zone',
     'set.drsZoneWhy': 'The game does not say where the zone ends: drsAvailable stays at 1 almost everywhere, so the map would be green all the way round. Mark it while driving, on the real line.',
     'set.drsVerdictZona': 'drsAvailable does mark the zone on this track - painted automatically.',
@@ -227,7 +251,7 @@ function t(k) { return (I18N[LANG] && I18N[LANG][k]) || k; }
 
 /* ------------------------------------------------------------ definicoes */
 const DEF_KEY = 'acdef.v1';
-const DEFAULTS = { mode: null, temp: 'C', speed: 'kmh', lang: 'pt-PT', map: 'on', fps: 60 };
+const DEFAULTS = { mode: null, temp: 'C', speed: 'kmh', lang: 'pt-PT', map: 'on', fps: 60, mapFlipX: false, mapFlipZ: false };
 let DEF = Object.assign({}, DEFAULTS);
 
 function loadDef() {
@@ -260,7 +284,7 @@ const S = {
   minX: 1e9, maxX: -1e9, minY: 1e9, maxY: -1e9,
   lapPct: [], refLap: null, bestMs: null, lastLapPct: 0,
   lastSector: null, sectorTimes: [], bestSectorTimes: [],
-  seenEver: false, trackName: '', lastSave: 0,
+  seenEver: false, trackName: '', lastSave: 0, lastTrackConfig: '',
   frames: 0, fpsAt: performance.now(), fps: 0,
   trace: { t: [], th: [], br: [], cl: [], hb: [] },
   lastSample: 0, traceHz: 0,
@@ -276,6 +300,12 @@ const S = {
   drsAceso: 0,             // quantos estavam com drsAvailable a 1
   drsPctMin: 0.02,         // abaixo disto, a pista toda a verde e' uma zona
   drsPctMax: 0.60,         // acima disto, o campo esta sempre ligado
+
+  // Mapa real (lido dos ficheiros do jogo em vez de tracado a conduzir)
+  realMap: null,           // {img, width, height, scale, offsetX, offsetZ} quando pronto
+  realMapTrack: null,      // 'pista||config' a que o realMap pertence, p/ nao pedir 2x
+  realMapPending: null,    // 'pista||config' que esta a ser pedido ao servidor
+  opponents: null,         // ultimo snapshot de /events/opponents (p/ desenhar no mapa)
 };
 const TRACE_N = 420;              // ~7 s a 60 Hz
 const TRACE_MAXHZ = 60;
@@ -451,6 +481,44 @@ function loadMapFor(trackName) {
 }
 function guardarVereditoDrs() { saveMap(true); }
 
+/* ------------------------------------------------------- mapa real (ficheiros do jogo) */
+/* Em vez de descobrir a pista a conduzir, tenta buscar o map.png + a
+   escala (map.ini) diretamente da instalacao do Assetto Corsa (o server
+   e' que sabe onde isso esta, ver /api/settings). Se nao houver caminho
+   configurado, ou a pista nao for encontrada, fica-se com o tracado
+   feito a conduzir (comportamento antigo) sem qualquer erro visivel. */
+function fetchRealMap(track, trackConfig) {
+  const key = track + '||' + (trackConfig || '');
+  if (S.realMapTrack === key || S.realMapPending === key) return;
+  S.realMapPending = key;
+  const url = '/api/track-map?track=' + encodeURIComponent(track)
+    + '&config=' + encodeURIComponent(trackConfig || '');
+  fetch(url).then((r) => r.json()).then((cfg) => {
+    if (S.realMapPending !== key) return; // trocou de pista entretanto
+    S.realMapPending = null;
+    if (!cfg || !cfg.available) { S.realMap = null; S.realMapTrack = key; return; }
+    const img = new Image();
+    img.onload = () => {
+      S.realMap = {
+        img, width: cfg.width, height: cfg.height,
+        scale: cfg.scale || 1, offsetX: cfg.offsetX || 0, offsetZ: cfg.offsetZ || 0,
+      };
+      S.realMapTrack = key;
+    };
+    img.onerror = () => { S.realMap = null; S.realMapTrack = key; };
+    img.src = cfg.imageUrl;
+  }).catch(() => { S.realMapPending = null; S.realMap = null; S.realMapTrack = key; });
+}
+
+/* Mundo (x, z) -> pixel da imagem map.png, com as flips das definicoes. */
+function worldToMapImg(rm, x, z) {
+  let ix = (x + rm.offsetX) / rm.scale;
+  let iy = (z + rm.offsetZ) / rm.scale;
+  if (DEF.mapFlipX) ix = rm.width - ix;
+  if (DEF.mapFlipZ) iy = rm.height - iy;
+  return [ix, iy];
+}
+
 function resetMap(clearStorage) {
   S.path = []; S.minX = 1e9; S.maxX = -1e9; S.minY = 1e9; S.maxY = -1e9;
   S.lapPct = []; S.refLap = null; S.bestMs = null; S.sectorTimes = [];
@@ -480,6 +548,91 @@ function drawMap(canvasId) {
   c.setTransform(dpr, 0, 0, dpr, 0, 0);
   c.clearRect(0, 0, w, h);
 
+  const rm = S.realMap;
+  if (rm && rm.img && rm.img.complete && rm.width > 0 && rm.height > 0) {
+    drawMapReal(c, w, h, rm);
+  } else {
+    drawMapTraced(c, w, h);
+  }
+}
+
+/* Mapa lido dos ficheiros do jogo: a imagem e' a propria pista, so' e'
+   preciso encaixa-la no canvas e converter (x,z) do carro/adversarios
+   para pixels da imagem. Nao ha "descoberta": aparece completa logo
+   na primeira vez que se entra na pista. */
+function drawMapReal(c, w, h, rm) {
+  const pad = 14;
+  const sc = Math.min((w - pad * 2) / rm.width, (h - pad * 2) / rm.height);
+  const ox = (w - rm.width * sc) / 2, oy = (h - rm.height * sc) / 2;
+  const px = (ix) => ox + ix * sc;
+  const py = (iy) => oy + iy * sc;
+
+  c.globalAlpha = 0.92;
+  c.drawImage(rm.img, ox, oy, rm.width * sc, rm.height * sc);
+  c.globalAlpha = 1;
+
+  // zona de DRS marcada a mao, sobre a imagem real (mesmos pontos que o
+  // tracado manual usa, so' que projectados na imagem em vez do canvas)
+  if (S.path.length > 1) {
+    c.lineCap = 'round'; c.lineJoin = 'round';
+    c.strokeStyle = '#23CF16'; c.lineWidth = 6;
+    c.beginPath();
+    let drawing = false, hasZone = false;
+    for (let i = 0; i < S.path.length; i++) {
+      const pt = S.path[i];
+      const [ix, iy] = worldToMapImg(rm, pt[0], pt[1]);
+      if (pt[2]) {
+        hasZone = true;
+        if (!drawing || pt[5]) c.moveTo(px(ix), py(iy));
+        else c.lineTo(px(ix), py(iy));
+        drawing = true;
+      } else { drawing = false; }
+    }
+    c.stroke();
+    if (S.marking) {
+      c.save();
+      c.globalAlpha = 0.35 + 0.35 * Math.abs(Math.sin(performance.now() / 260));
+      c.strokeStyle = '#23CF16'; c.lineWidth = 12;
+      c.stroke();
+      c.restore();
+    }
+    const key = $('map-drs-key'); if (key) key.classList.toggle('hidden', !hasZone);
+    const key2 = $('map-drs-key2'); if (key2) key2.classList.toggle('hidden', !hasZone);
+  }
+
+  // adversarios: pontos cinzentos com o numero de posicao
+  const opp = S.opponents;
+  if (opp && opp.available && Array.isArray(opp.cars)) {
+    for (const car of opp.cars) {
+      if (car.id === myCarId) continue;
+      if (typeof car.x !== 'number' || typeof car.z !== 'number') continue;
+      const [ix, iy] = worldToMapImg(rm, car.x, car.z);
+      const x = px(ix), y = py(iy);
+      c.beginPath(); c.arc(x, y, 5, 0, Math.PI * 2);
+      c.fillStyle = car.inPit ? 'rgba(255,255,255,.35)' : '#8C9394';
+      c.fill();
+      if (car.pos) {
+        c.fillStyle = '#0A0E0E'; c.font = '700 8px Titillium, sans-serif';
+        c.textAlign = 'center'; c.textBaseline = 'middle';
+        c.fillText(String(car.pos), x, y + 0.5);
+      }
+    }
+  }
+
+  // o proprio carro, por cima de tudo
+  if (S.path.length) {
+    const p = S.path[S.path.length - 1];
+    const [ix, iy] = worldToMapImg(rm, p[0], p[1]);
+    const x = px(ix), y = py(iy);
+    c.beginPath(); c.arc(x, y, 6, 0, Math.PI * 2);
+    c.fillStyle = '#FFD700'; c.fill();
+    c.lineWidth = 1.6; c.strokeStyle = '#fff'; c.stroke();
+  }
+}
+
+/* Mapa tracado a conduzir: usado enquanto nao ha mapa real (pista nao
+   encontrada nos ficheiros do jogo, ou pasta do AC nao configurada). */
+function drawMapTraced(c, w, h) {
   if (S.path.length < 2) {
     c.fillStyle = '#555C5D'; c.font = '600 12px Titillium, sans-serif';
     c.textAlign = 'center';
@@ -1015,6 +1168,7 @@ function applyLang() {
   document.title = t('app.title');
   applyUnits();
   if (typeof syncDrsMarkUI === 'function') syncDrsMarkUI();
+  if (typeof loadAcPathSettings === 'function') loadAcPathSettings();
 }
 
 /* A unidade de velocidade depende de DEF.speed, nao do idioma: com o
@@ -1057,9 +1211,52 @@ function syncSettingsUI() {
   set('set-speed', DEF.speed);
   set('set-lang', DEF.lang);
   set('set-map', DEF.map);
+  document.querySelectorAll('#set-map-flip button').forEach((b) => {
+    const on = b.getAttribute('data-v') === 'flipx' ? !!DEF.mapFlipX : !!DEF.mapFlipZ;
+    b.classList.toggle('on', on);
+  });
   document.querySelectorAll('#set-mode button').forEach((b) => {
     b.classList.toggle('on', b.getAttribute('data-mode') === (DEF.mode || 'telemetry'));
   });
+}
+
+/* ------------------------------------------------- pasta do AC (definicoes) */
+function setAcPathStatus(msg, cls) {
+  const el = $('set-ac-path-status');
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.remove('ok', 'bad');
+  if (cls) el.classList.add(cls);
+}
+function applyAcPathInfo(info) {
+  const input = $('set-ac-path');
+  if (input && document.activeElement !== input) input.value = info.acPath || '';
+  if (!info.acPath) {
+    setAcPathStatus(t('set.acPathNone'), null);
+  } else if (info.acPathValid) {
+    const key = info.autodetected ? 'set.acPathAuto' : 'set.acPathOk';
+    setAcPathStatus(t(key).replace('{p}', info.acPath), 'ok');
+  } else {
+    setAcPathStatus(t('set.acPathBad'), 'bad');
+  }
+}
+function loadAcPathSettings() {
+  fetch('/api/settings').then((r) => r.json()).then(applyAcPathInfo).catch(() => {});
+}
+function saveAcPath() {
+  const input = $('set-ac-path');
+  if (!input) return;
+  setAcPathStatus(t('set.acPathSaving'), null);
+  fetch('/api/settings', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ acPath: input.value.trim() }),
+  }).then((r) => r.json()).then((info) => {
+    applyAcPathInfo(Object.assign({ autodetected: false }, info));
+    // caminho novo: esquece o que sabia da pista atual, para tentar outra vez
+    S.realMapTrack = null; S.realMap = null;
+    if (S.trackName) fetchRealMap(S.trackName, S.lastTrackConfig || '');
+  }).catch(() => setAcPathStatus(t('set.acPathBad'), 'bad'));
 }
 
 function bindSettings() {
@@ -1086,6 +1283,23 @@ function bindSettings() {
   seg('set-speed', 'speed', applyUnits);
   seg('set-lang', 'lang', () => { applyLang(); syncSettingsUI(); });
   seg('set-map', 'map');
+
+  // flips do mapa: cada botao e' um interruptor independente (nao e' um
+  // grupo de escolha unica como os outros 'seg'), por isso nao usa o
+  // helper seg() acima.
+  document.querySelectorAll('#set-map-flip button').forEach((b) => {
+    b.addEventListener('click', () => {
+      const v = b.getAttribute('data-v');
+      if (v === 'flipx') DEF.mapFlipX = !DEF.mapFlipX;
+      else DEF.mapFlipZ = !DEF.mapFlipZ;
+      saveDef();
+      syncSettingsUI();
+    });
+  });
+  $('set-ac-path-save').addEventListener('click', saveAcPath);
+  $('set-ac-path').addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter') saveAcPath();
+  });
 
   $('set-clear').addEventListener('click', () => { resetMap(true); });
   $('set-drs-mark').addEventListener('click', () => { setMarking(!S.marking); });
@@ -1319,8 +1533,11 @@ function render(d) {
   if (d.track && d.track !== S.trackName) {
     if (S.trackName) saveMap(true);
     S.trackName = d.track;
+    S.lastTrackConfig = d.trackConfig || '';
     resetMap(false);
     loadMapFor(d.track);
+    S.realMap = null;                 // nao mostrar o mapa da pista anterior
+    fetchRealMap(d.track, d.trackConfig || '');
   }
 
   // cabecalho
@@ -1474,6 +1691,7 @@ function render(d) {
 let myCarId = null;
 function renderOpponents(o) {
   if (!o) return;
+  S.opponents = o;
   const rows1 = $('lb-rows'), rows2 = $('lb-rows2');
   const note1 = $('lb-note'), note2 = $('lb-note2');
   const compact = !!rows2;

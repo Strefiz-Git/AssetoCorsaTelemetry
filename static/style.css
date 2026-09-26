@@ -98,6 +98,17 @@ body{
 .wide-btn:hover{color:var(--red);border-color:var(--red)}
 .drs-verdict{margin:0 0 8px;color:var(--gold);font-weight:700}
 .drs-verdict.bom{color:var(--green)}
+.ac-path-row{display:flex;gap:6px;margin-top:6px}
+.ac-path-input{
+  flex:1 1 auto;min-width:0;background:var(--block);border:1px solid var(--line);
+  color:var(--white);font-family:inherit;font-weight:600;font-size:12px;
+  padding:9px 10px;border-radius:6px;
+}
+.ac-path-input:focus{outline:none;border-color:var(--gold)}
+.ac-path-row .wide-btn{width:auto;margin-top:0;flex:0 0 auto}
+.ac-path-status{margin:6px 0 8px}
+.ac-path-status.ok{color:var(--green)}
+.ac-path-status.bad{color:var(--red)}
 /* marcar a zona de DRS: enquanto activo nao pode parecer um botao normal */
 .wide-btn.mark{color:var(--green);border-color:#2a3a2b}
 .wide-btn.mark:hover{color:var(--green);border-color:var(--green)}

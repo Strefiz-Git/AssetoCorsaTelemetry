@@ -492,6 +492,7 @@ class ACTelemetry:
             "acVersion": st._acVersion,
             "car": st.carModel,
             "track": st.track,
+            "trackConfig": st.trackConfiguration,
             "compound": gr.tyreCompound,
             "session": SESSION_NAMES.get(gr.session, str(gr.session)),
             "status": {0: "OFF", 1: "REPLAY", 2: "LIVE", 3: "PAUSE"}.get(gr.status, "?"),

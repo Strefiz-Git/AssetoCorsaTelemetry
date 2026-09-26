@@ -9,17 +9,22 @@ SimHub, por isso nao ha limite de 10 fps e nao precisa de licenca.
 """
 
 import argparse
+import configparser
 import json
 import os
+import re
 import socket
+import string
 import threading
 import time
+from urllib.parse import parse_qs, quote
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 
 import acshm
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 STATIC = os.path.join(HERE, "static")
+SETTINGS_FILE = os.path.join(HERE, "ac_settings.json")
 
 MIME = {
     ".html": "text/html; charset=utf-8",
@@ -32,6 +37,190 @@ MIME = {
     ".ico": "image/x-icon",
     ".txt": "text/plain; charset=utf-8",
 }
+
+
+# --------------------------------------------------------- pasta do jogo
+# O jogo nao publica o mapa da pista na shared memory - so a posicao do
+# carro. A imagem (data/map.png) e a escala (data/map.ini) estao nos
+# ficheiros do proprio jogo, por isso e' preciso saber onde o AC esta
+# instalado para ir busca-los. Sem isto, o site so consegue desenhar o
+# tracado a medida que se anda (o comportamento antigo).
+
+def _load_settings():
+    if os.path.isfile(SETTINGS_FILE):
+        try:
+            with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except (OSError, ValueError):
+            pass
+    return {}
+
+
+def _save_settings(data):
+    try:
+        with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f)
+    except OSError:
+        pass
+
+
+def _is_ac_root(path):
+    """Confirma que 'path' e' mesmo a pasta principal do AC (tem content/tracks)."""
+    return bool(path) and os.path.isdir(os.path.join(path, "content", "tracks"))
+
+
+def _steam_library_paths():
+    """Le libraryfolders.vdf do Steam para encontrar TODAS as bibliotecas,
+    nao so a que tem o Steam instalado (o utilizador pode ter o AC noutro
+    disco, como o D:\\SteamLibrary do pedido original)."""
+    libs = []
+    roots = [
+        r"C:\Program Files (x86)\Steam",
+        r"C:\Program Files\Steam",
+        os.path.expanduser("~/.steam/steam"),
+        os.path.expanduser("~/.local/share/Steam"),
+    ]
+    for root in roots:
+        vdf = os.path.join(root, "steamapps", "libraryfolders.vdf")
+        if not os.path.isfile(vdf):
+            continue
+        try:
+            with open(vdf, "r", encoding="utf-8", errors="ignore") as f:
+                content = f.read()
+        except OSError:
+            continue
+        for m in re.finditer(r'"path"\s*"([^"]+)"', content):
+            libs.append(m.group(1).replace("\\\\", "\\"))
+    return libs
+
+
+def autodetect_ac_path():
+    """Tenta encontrar a pasta do Assetto Corsa sozinho: bibliotecas Steam
+    conhecidas (via libraryfolders.vdf) + os sitios mais comuns em cada
+    disco. Devolve None se nao encontrar - ai' e' preciso configurar a mao."""
+    guesses = []
+    for lib in _steam_library_paths():
+        guesses.append(os.path.join(lib, "steamapps", "common", "assettocorsa"))
+    for letter in string.ascii_uppercase:
+        drive = letter + ":\\"
+        if not os.path.isdir(drive):
+            continue
+        for rel in (
+            r"SteamLibrary\steamapps\common\assettocorsa",
+            r"Steam\steamapps\common\assettocorsa",
+            r"Program Files (x86)\Steam\steamapps\common\assettocorsa",
+            r"Program Files\Steam\steamapps\common\assettocorsa",
+            r"Games\assettocorsa",
+        ):
+            guesses.append(os.path.join(drive, rel))
+    seen = set()
+    for g in guesses:
+        g = os.path.normpath(g)
+        if g in seen:
+            continue
+        seen.add(g)
+        if _is_ac_root(g):
+            return g
+    return None
+
+
+def _current_ac_path():
+    """O caminho a usar agora: o que o utilizador guardou, ou (se nunca
+    guardou nada) uma deteccao automatica, que fica logo gravada para nao
+    se repetir a busca em todos os discos a cada pedido."""
+    settings = _load_settings()
+    saved = (settings.get("ac_path") or "").strip()
+    if saved:
+        return saved, False
+    found = autodetect_ac_path()
+    if found:
+        settings["ac_path"] = found
+        _save_settings(settings)
+        return found, True
+    return "", False
+
+
+def _find_track_dir(ac_path, track):
+    """content/tracks/<track>, tolerando maiusculas/minusculas diferentes
+    (o nome que a shared memory da' e' o nome da pasta, mas por seguranca)."""
+    tracks_dir = os.path.join(ac_path, "content", "tracks")
+    direct = os.path.join(tracks_dir, track)
+    if os.path.isdir(direct):
+        return direct
+    try:
+        names = os.listdir(tracks_dir)
+    except OSError:
+        return None
+    low = track.lower()
+    for n in names:
+        if n.lower() == low:
+            return os.path.join(tracks_dir, n)
+    return None
+
+
+def _find_map_files(ac_path, track, track_config):
+    """Devolve (map_ini, map_png) ou None. Pistas com varios tracados
+    (ex.: ks_barcelona) tem o data/ dentro de uma subpasta por tracado
+    (layout_gp, layout_moto, etc) - por isso tenta-se primeiro com o
+    trackConfig que veio da telemetria, depois a pasta raiz da pista, e
+    por fim varre-se um nivel abaixo a' procura de qualquer data/map.ini."""
+    track_dir = _find_track_dir(ac_path, track)
+    if not track_dir:
+        return None
+    candidates = []
+    if track_config:
+        candidates.append(os.path.join(track_dir, track_config))
+    candidates.append(track_dir)
+    for base in candidates:
+        ini = os.path.join(base, "data", "map.ini")
+        png = os.path.join(base, "data", "map.png")
+        if os.path.isfile(ini) and os.path.isfile(png):
+            return ini, png
+    try:
+        entries = os.listdir(track_dir)
+    except OSError:
+        entries = []
+    for entry in entries:
+        sub = os.path.join(track_dir, entry)
+        ini = os.path.join(sub, "data", "map.ini")
+        png = os.path.join(sub, "data", "map.png")
+        if os.path.isdir(sub) and os.path.isfile(ini) and os.path.isfile(png):
+            return ini, png
+    return None
+
+
+def _parse_map_ini(path):
+    cp = configparser.ConfigParser(strict=False)
+    try:
+        with open(path, "r", encoding="utf-8-sig", errors="ignore") as f:
+            content = f.read()
+    except OSError:
+        return None
+    if "[" not in content:
+        content = "[PARAMETERS]\n" + content
+    try:
+        cp.read_string(content)
+    except configparser.Error:
+        return None
+    sec = cp[cp.sections()[0]] if cp.sections() else {}
+
+    def getf(key, default=0.0):
+        for k in sec:
+            if k.lower() == key.lower():
+                try:
+                    return float(sec[k])
+                except ValueError:
+                    return default
+        return default
+
+    scale = getf("SCALE_FACTOR", 1.0) or 1.0
+    return {
+        "width": getf("WIDTH"),
+        "height": getf("HEIGHT"),
+        "scale": scale,
+        "offsetX": getf("X_OFFSET"),
+        "offsetZ": getf("Z_OFFSET"),
+    }
 
 
 # ------------------------------------------------------------------ estado
@@ -113,11 +302,13 @@ class Handler(BaseHTTPRequestHandler):
     # -- utilitarios ---------------------------------------------------
     def _send(self, code, body=b"", ctype="text/plain; charset=utf-8",
               extra=None):
+        extra = extra or {}
         self.send_response(code)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
-        self.send_header("Cache-Control", "no-store")
-        for k, v in (extra or {}).items():
+        if "Cache-Control" not in extra:
+            self.send_header("Cache-Control", "no-store")
+        for k, v in extra.items():
             self.send_header(k, v)
         self.end_headers()
         if body:
@@ -151,7 +342,93 @@ class Handler(BaseHTTPRequestHandler):
             return self._events(query)
         if path == "/events/opponents":
             return self._events_opponents(query)
+        if path == "/api/settings":
+            return self._api_settings_get()
+        if path == "/api/track-map":
+            return self._api_track_map(query)
+        if path == "/api/track-map-image":
+            return self._api_track_map_image(query)
         return self._file(path)
+
+    def do_POST(self):
+        path = self.path.split("?", 1)[0]
+        if path == "/api/settings":
+            return self._api_settings_post()
+        return self._send(404, b"nao encontrado")
+
+    def _api_settings_get(self):
+        ac_path, autodetected = _current_ac_path()
+        body = {
+            "acPath": ac_path,
+            "acPathValid": _is_ac_root(ac_path),
+            "autodetected": autodetected,
+        }
+        return self._send(200, json.dumps(body).encode(),
+                          "application/json; charset=utf-8")
+
+    def _api_settings_post(self):
+        length = int(self.headers.get("Content-Length", 0) or 0)
+        raw = self.rfile.read(length) if length else b"{}"
+        try:
+            data = json.loads(raw.decode("utf-8"))
+        except (ValueError, UnicodeDecodeError):
+            data = {}
+        ac_path = str(data.get("acPath") or "").strip().strip('"')
+        settings = _load_settings()
+        settings["ac_path"] = ac_path
+        _save_settings(settings)
+        body = {"acPath": ac_path, "acPathValid": _is_ac_root(ac_path)}
+        return self._send(200, json.dumps(body).encode(),
+                          "application/json; charset=utf-8")
+
+    @staticmethod
+    def _qs(query):
+        return {k: v[0] for k, v in parse_qs(query).items()}
+
+    def _api_track_map(self, query):
+        q = self._qs(query)
+        track = q.get("track", "")
+        track_config = q.get("config", "")
+        if not track:
+            return self._send(400, b'{"available":false,"reason":"sem pista"}',
+                              "application/json; charset=utf-8")
+        ac_path, _ = _current_ac_path()
+        if not _is_ac_root(ac_path):
+            body = {"available": False, "reason": "no-path"}
+            return self._send(200, json.dumps(body).encode(),
+                              "application/json; charset=utf-8")
+        found = _find_map_files(ac_path, track, track_config)
+        if not found:
+            body = {"available": False, "reason": "not-found"}
+            return self._send(200, json.dumps(body).encode(),
+                              "application/json; charset=utf-8")
+        ini_path, _png = found
+        cfg = _parse_map_ini(ini_path)
+        if not cfg:
+            body = {"available": False, "reason": "bad-ini"}
+            return self._send(200, json.dumps(body).encode(),
+                              "application/json; charset=utf-8")
+        cfg["available"] = True
+        cfg["imageUrl"] = ("/api/track-map-image?track=" + quote(track)
+                            + "&config=" + quote(track_config or ""))
+        return self._send(200, json.dumps(cfg).encode(),
+                          "application/json; charset=utf-8")
+
+    def _api_track_map_image(self, query):
+        q = self._qs(query)
+        track = q.get("track", "")
+        track_config = q.get("config", "")
+        ac_path, _ = _current_ac_path()
+        found = _find_map_files(ac_path, track, track_config) if _is_ac_root(ac_path) else None
+        if not found:
+            return self._send(404, b"nao encontrado")
+        _ini, png_path = found
+        try:
+            with open(png_path, "rb") as f:
+                data = f.read()
+        except OSError:
+            return self._send(404, b"nao encontrado")
+        return self._send(200, data, "image/png", {"Cache-Control": "public, max-age=3600"})
 
     @staticmethod
     def _fps(query, default=60, lo=5, hi=60):
