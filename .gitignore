@@ -34,3 +34,9 @@ tests/chuva_dump.json
 ac_settings.json
 servidor.log
 servidor.log.err
+
+# trajectos e provas visuais do mapa: dados de execucao, nao codigo.
+# Sao regerados por `python tests\mapa.py cap 150 50` e por forma_mapa.py
+tests/mapa_*.json
+tests/mapa_prova.png
+tests/forma_*.png
