@@ -15,6 +15,7 @@ import os
 import re
 import socket
 import string
+import struct
 import sys
 import threading
 import time
@@ -159,34 +160,70 @@ def _find_track_dir(ac_path, track):
     return None
 
 
+def _png_size(path):
+    """Largura e altura de um PNG, lidas do cabecalho IHDR.
+
+    Nao se abre a imagem toda: um map.png pode ter alguns MB e esta funcao
+    e' chamada a cada pedido. A assinatura sao 8 bytes, o bloco IHDR tem 13
+    e a largura/altura sao os primeiros 4 bytes de cada, em big-endian.
+    """
+    try:
+        with open(path, "rb") as f:
+            cab = f.read(24)
+    except OSError:
+        return None
+    if len(cab) < 24 or cab[:8] != b"\x89PNG\r\n\x1a\n" or cab[12:16] != b"IHDR":
+        return None
+    larg, alt = struct.unpack(">II", cab[16:24])
+    if not larg or not alt:
+        return None
+    return larg, alt
+
+
+def _first_file(bases, *names):
+    """Primeiro ficheiro que exista, testando cada nome em cada base."""
+    for base in bases:
+        for name in names:
+            p = os.path.join(base, name)
+            if os.path.isfile(p):
+                return p
+    return None
+
+
 def _find_map_files(ac_path, track, track_config):
-    """Devolve (map_ini, map_png) ou None. Pistas com varios tracados
-    (ex.: ks_barcelona) tem o data/ dentro de uma subpasta por tracado
-    (layout_gp, layout_moto, etc) - por isso tenta-se primeiro com o
-    trackConfig que veio da telemetria, depois a pasta raiz da pista, e
-    por fim varre-se um nivel abaixo a' procura de qualquer data/map.ini."""
+    """Devolve (map_ini, map_png) ou None.
+
+    ASTRAPOU DO JOGO, e medido em 76 pistas: o map.png esta' NA RAIZ da
+    pista (content/tracks/<pista>/map.png) e o map.ini em data/ da MESMA
+    pasta. Nao estao os dois em data/ -- procurar os dois em data/ e' o que
+    fazia /api/track-map responder sempre "not-found".
+
+    Pistas com varios tracados (ex.: ks_barcelona) tem o data/ dentro de
+    uma subpasta por tracado (layout_gp, layout_moto, etc), por isso
+    tenta-se primeiro com o trackConfig que veio da telemetria.
+    """
     track_dir = _find_track_dir(ac_path, track)
     if not track_dir:
         return None
-    candidates = []
+    bases = []
     if track_config:
-        candidates.append(os.path.join(track_dir, track_config))
-    candidates.append(track_dir)
-    for base in candidates:
-        ini = os.path.join(base, "data", "map.ini")
-        png = os.path.join(base, "data", "map.png")
-        if os.path.isfile(ini) and os.path.isfile(png):
-            return ini, png
+        sub = os.path.join(track_dir, track_config)
+        if os.path.isdir(sub):
+            bases.append(sub)
+    bases.append(track_dir)
     try:
-        entries = os.listdir(track_dir)
+        entries = sorted(os.listdir(track_dir))
     except OSError:
         entries = []
     for entry in entries:
         sub = os.path.join(track_dir, entry)
-        ini = os.path.join(sub, "data", "map.ini")
-        png = os.path.join(sub, "data", "map.png")
-        if os.path.isdir(sub) and os.path.isfile(ini) and os.path.isfile(png):
-            return ini, png
+        if os.path.isdir(sub):
+            bases.append(sub)
+
+    ini = _first_file(bases, os.path.join("data", "map.ini"), "map.ini")
+    png = _first_file(bases, "map.png", os.path.join("data", "map.png"))
+    if ini and png:
+        return ini, png
     return None
 
 
@@ -435,7 +472,7 @@ class Handler(BaseHTTPRequestHandler):
             body = {"available": False, "reason": "not-found"}
             return self._send(200, json.dumps(body).encode(),
                               "application/json; charset=utf-8")
-        ini_path, _png = found
+        ini_path, png_path = found
         cfg = _parse_map_ini(ini_path)
         if not cfg:
             body = {"available": False, "reason": "bad-ini"}
@@ -444,8 +481,50 @@ class Handler(BaseHTTPRequestHandler):
         cfg["available"] = True
         cfg["imageUrl"] = ("/api/track-map-image?track=" + quote(track)
                             + "&config=" + quote(track_config or ""))
+        self._add_image_scale(cfg, png_path)
         return self._send(200, json.dumps(cfg).encode(),
                           "application/json; charset=utf-8")
+
+    @staticmethod
+    def _add_image_scale(cfg, png_path):
+        """Acrescenta os pixels por metro, medidos na imagem.
+
+        MEDIDO NAS 76 PISTAS INSTALADAS: a imagem tem UM pixel por metro do
+        mundo. O WIDTH/HEIGHT do map.ini batem com as dimensoes do PNG em 54
+        delas (imola 1543,9 m -> 1543 px; montreal 508,8 -> 508; spa 1004,8
+        -> 1004; monza 927,4 -> 927).
+
+        O SCALE_FACTOR NAO e' a escala da imagem. Numa pista com
+        SCALE_FACTOR 1,3 e WIDTH 508,8 m, se fosse px/m a imagem teria 661 px
+        -- e tem 508. O SCALE_FACTOR e' a escala de desenho do widget de mapa
+        do proprio jogo.
+
+        Noutras 22 pistas a imagem e' ~20 px maior que o rectangulo do mundo
+        (a margem do map.ini, partida em duas metades), por isso a escala
+        vem sempre de medir a imagem, nunca de presumir. Onde os dados da
+        pista sao incoerentes (a imagem esta mais apertada em X do que em Z
+        face ao mundo) marca-se trusted=False e o cliente volta ao mapa
+        tracado, que e' sempre certo.
+        """
+        dim = _png_size(png_path)
+        if not dim:
+            cfg["available"] = False
+            return
+        img_w, img_h = dim
+        cfg["imageWidth"] = img_w
+        cfg["imageHeight"] = img_h
+        w = cfg.get("width") or 0.0
+        h = cfg.get("height") or 0.0
+        if w <= 0 or h <= 0:
+            cfg["available"] = False
+            return
+        kx = img_w / w
+        ky = img_h / h
+        cfg["pxPerMetre"] = round((kx + ky) / 2.0, 6)
+        # so se confia na transformacao se a escala bate nos dois eixos: se
+        # divergir, os dados da pista estao errados (ex.: ek_irohazaka tem
+        # WIDTH 2368 m numa imagem de 1993 px e HEIGHT 890 m em 872 px)
+        cfg["trusted"] = abs(kx - ky) / max(kx, ky) < 0.02
 
     def _api_track_map_image(self, query):
         q = self._qs(query)
