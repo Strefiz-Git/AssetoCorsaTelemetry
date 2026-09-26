@@ -92,6 +92,8 @@
       </div>
     </section>
 
+    <section class="set-group" id="set-fps-host"></section>
+
     <section class="set-group">
       <h3 data-i18n="set.map">Mapa</h3>
       <div class="seg" id="set-map">
@@ -99,6 +101,13 @@
         <button data-v="off" data-i18n="set.mapOff">Esconder</button>
       </div>
       <button id="set-clear" class="wide-btn" data-i18n="set.clearMap">Apagar o mapa desenhado</button>
+    </section>
+
+    <section class="set-group">
+      <h3 data-i18n="set.drsZone">Zona de DRS</h3>
+      <p class="set-note" data-i18n="set.drsZoneWhy"></p>
+      <button id="set-drs-mark" class="wide-btn mark" data-i18n="set.drsMark">Marcar</button>
+      <button id="set-drs-clear" class="wide-btn" data-i18n="set.drsClear">Apagar a zona de DRS</button>
     </section>
 
     <section class="set-group">
@@ -152,6 +161,7 @@
         <h2 data-i18n="map.title">MAPA DA PISTA</h2>
         <canvas id="map"></canvas>
         <div class="map-legend">
+          <span id="map-drs-key" class="map-key hidden"><i></i><span data-i18n="map.drsKey">zona de DRS</span></span>
           <span id="trackpct">—</span>
           <span id="sector">—</span>
         </div>
@@ -165,7 +175,7 @@
           </div>
           <div class="speed-box">
             <div class="speed" id="speed">0</div>
-            <div class="speed-unit"><span data-i18n="unit.kmh">km/h</span></div>
+            <div class="speed-unit"><span class="u-speed">km/h</span></div>
           </div>
         </div>
 
@@ -232,7 +242,7 @@
         <div class="tyres" id="tyres"></div>
         <div class="brake-row">
           <span data-i18n="brakes.title">TRAVÕES</span>
-          <b id="brake-temp">—</b>
+          <span class="brake-vals" id="brake-temp"></span>
         </div>
       </section>
 
@@ -270,14 +280,17 @@
       <section class="card c-lbtel">
         <h2 data-i18n="lb.telTitle">TEU CARRO</h2>
         <div class="mini">
-          <div class="mini-speed"><span id="m-speed">0</span><small data-i18n="unit.kmh">km/h</small></div>
+          <div class="mini-speed"><span id="m-speed">0</span><small class="u-speed">km/h</small></div>
           <div class="mini-gear" id="m-gear">N</div>
         </div>
         <div class="bar-track"><div class="bar-fill" id="m-rpm"></div></div>
         <div class="kv"><span data-i18n="laps.current">ATUAL</span><b id="m-current">--:--.---</b></div>
         <div class="kv"><span data-i18n="laps.delta">DELTA</span><b id="m-delta">+0.000</b></div>
-        <div class="kv"><span data-i18n="lb.penalty">Penalidade</span><b id="m-pen">—</b></div>
         <div class="kv"><span data-i18n="lb.drs">DRS</span><b id="m-drs">—</b></div>
+        <div class="kv"><span data-i18n="brakes.title">TRAVÕES</span><b id="m-brake">—</b></div>
+        <div class="kv"><span data-i18n="fuel.lapsLeft">Voltas</span><b id="m-fuel">—</b></div>
+        <div class="kv"><span data-i18n="lb.penalty">Penalidade</span><b id="m-pen">—</b></div>
+        <div class="tyres tyres-mini" id="tyres3"></div>
       </section>
     </div>
   </div>
@@ -299,7 +312,7 @@
           </div>
           <div class="speed-box">
             <div class="speed" id="b-speed">0</div>
-            <div class="speed-unit"><span data-i18n="unit.kmh">km/h</span></div>
+            <div class="speed-unit"><span class="u-speed">km/h</span></div>
           </div>
         </div>
         <div class="rpm">
@@ -317,7 +330,7 @@
         <canvas id="pedals2"></canvas>
       </section>
 
-      <section class="card c-lbtel c-lb">
+      <section class="card c-lb2">
         <h2 data-i18n="lb.title">CLASSIFICAÇÃO</h2>
         <div class="lb-head">
           <span class="lb-pos">P</span>
@@ -332,7 +345,10 @@
       <section class="card c-tyres">
         <h2 data-i18n="tyres.title">PNEUS E TRAVÕES</h2>
         <div class="tyres" id="tyres2"></div>
-        <div class="brake-row"><span data-i18n="brakes.title">TRAVÕES</span><b id="brake-temp2">—</b></div>
+        <div class="brake-row">
+          <span data-i18n="brakes.title">TRAVÕES</span>
+          <span class="brake-vals" id="brake-temp2"></span>
+        </div>
       </section>
     </div>
   </div>

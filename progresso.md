@@ -216,16 +216,67 @@ seriam ~25 KB por frame.
 `ersMaxMJ`. A interface nunca usou o campo, por isso o erro estava
 latente.
 
-### Em curso
+### Em curso → concluído
 
-- [ ] `acshm.py`: `Opponents` pronto
-- [x] `server.py`: canal de adversários pronto
-- [ ] `static/index.html`: nova estrutura e menu escritos
-- [ ] `static/style.css`: por reescrever
-- [ ] `static/app.js`: por reescrever (gráfico de pedais, luz de DRS,
-      modos, idiomas, definições, FPS)
+- [x] `acshm.py`: `Opponents` pronto
+- [x] `server.py`: canal de adversários a 10 Hz + fps por cliente
+- [x] `static/index.html`: menu, três modos, definições
+- [x] `static/style.css`: reescrito
+- [x] `static/app.js`: reescrito
+- [x] Testado com o jogo a correr, nos três modos
 
 Branch: `feat/interface-nova-e-modo-liderboard`
+
+### O que está verificado a correr
+
+| | |
+|---|---|
+| 60 fps no modo telemetria | medido |
+| FPS de envio 10 e 30 e 60 | medido: 60→60, 10→10 |
+| Luz de DRS | `avail` pisca a 1 s, `open` sólida com brilho, `off` apagada — confirmado pelo estilo computado |
+| Leaderboard | 19 carros, jogador assinalado |
+| Unidades | °C/°F e km/h/mph a converter nos valores e nos rótulos |
+| Idiomas | pt-PT, pt-BR, es, en |
+| Mapa | forma da pista correcta, zona de DRS pintada, sectores marcados |
+
+### A correção mais importante: o mapa estava no plano errado
+
+O mapa desenhava um rabisco achatado. A causa:
+
+**No AC, Y é a altitude.** O plano da pista é **X-Z**.
+
+Medido com os 19 adversários: X 997 m, **Y 88 m**, Z 2012 m. E o
+desnível de Spa é de ~100 m — logo aqueles 88 m são a altitude. A
+primeira versão desenhava X contra Y, ou seja, distância contra altura.
+
+Com X contra Z aparece a Eau Rouge, o Raidillon e a reta do Kemmel, e
+dá para reconhecer Spa de imediato.
+
+O `acshm.py` nem sequer expunha o `z` — só `x` e `y`.
+
+### Erros meus nesta parte
+
+**Erro de sinal no canvas.** Depois de corrigir o eixo, o mapa ficou
+**completo de vazio** e sem erro nenhum na consola. A causa foi minha:
+calculava o `offset` a partir do mínimo positivo e depois invertia o Z,
+o que invalida o offset. Passou a transformar a partir do centro de
+cada eixo.
+
+**Dois sinais de brakes colados** — estava a injectar quatro `<b>` dentro
+de um `<b>` que já era o elemento alvo, por isso aparecia
+`291287254249`.
+
+**Grelha do leaderboard com 5 colunas para 6 campos**, o que fazia o
+"DIF." cair para a linha seguinte.
+
+**Modo misto completamente desfeito** — dei à tabela de classificação
+duas classes de área (`c-lbtel c-lb`) que se sobrepunham, e o cluster
+transbordava do cartão.
+
+**`NaN` no primeiro frame** — `undefined + 1`. Passou a haver guarda.
+
+**A unidade de velocidade não mudava** — o rótulo era `"km/h"`
+hardcoded no HTML, ligado ao idioma e não à definição de velocidade.
 
 ---
 

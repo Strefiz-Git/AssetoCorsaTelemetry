@@ -138,6 +138,34 @@ Regra prática: **quando um valor de telemetria for implausível
 formato — é o offset.** Dump de floats e procura grupos de 4 valores
 parecidos: é a assinatura de uma temperatura de travões ou de pneu.
 
+O mesmo se aplica a um flag. **`drsAvailable` é um caso real:** ver
+Regra nº 11.
+
+---
+
+## Regra nº 11 — um flag que está quase sempre aceso não é um mapa
+
+Numa volta completa em Suzuka, `drsAvailable` esteve a **1 em 98.9% do
+traçado**, e a distribuição foi igual nos cinco quintos da pista
+(93/93 em cada um). Ou seja: **este flag não diz onde acaba a zona de
+DRS.** Desenhar o mapa com ele dá a pista inteira a verde, que é pior
+do que não pintar nada — parece informação e não é.
+
+Confirmado também com 1501 amostras do canal SSE: `drsAvailable` nunca
+foi 0 e `drsEnabled` só ficou a 1 com o botão do DRS carregado.
+
+O que **funciona**: `drsEnabled` é fiável para a luz (sólida quando
+aberta). E o `drsAvailable` continua a servir para distinguir um carro
+**sem** DRS (o flag nunca acende) de um carro **com** DRS.
+
+Por isso a zona de DRS no mapa **marca-se à mão**, conduzindo, nas
+definições. Ferramenta que regista o que o utilizador sabe e a pista
+que o jogo desenhou.
+
+Regra geral: **antes de desenhar um campo no mapa, confirmar que ele
+varia ao longo da pista.** Um campo constante não é um campo, é
+decoração.
+
 ---
 
 ## Regra nº 5 — escalas que não são óbvias
@@ -149,12 +177,57 @@ Confirmadas contra o AC real:
 - `kersCharge` (ERS) é fracção **0..1**.
 - `tyreTempI / M / O` são três zonas por pneu; a ordem é
   `[FL, FR, RL, RR]` em todos os arrays de 4.
+- **`clutch` é 1.0 = encaixada, 0.0 = solta.** A documentação diz
+  "1 = totalmente premida", o que é enganador. Medido a conduzir:
+  fica em 1.0 durante a condução normal e desce a ~0.63 a travar forte.
+  A interface mostra o **inverso** (quanto está solta), que é o que
+  interessa para pontas de embraiagem e kicking.
 - `iCurrentTime`, `iBestTime`, `iLastTime` em **milissegundos**.
-- `carCoordinates` são metros no mundo, e `y` precisa de ser invertido
-  para desenhar (o AC tem y para cima, o canvas tem y para baixo).
 - No **AC base** a página de gráficos só traz `penaltyTime` (segundos) e a
   bandeira `AC_PENALTY_FLAG`. O enum de tipo de penalidade (`DT`, `SG10`,
   `DSQ`) é do **ACC** e não existe no AC base.
+
+### Eixos do mundo — o que não é óbvio
+
+**No AC, o eixo Y é a ALTITUDE. O plano da pista é X-Z.**
+
+Medido em Spa com 19 adversários:
+
+| eixo | amplitude |
+|---|---|
+| X | 997 m |
+| **Y** | **88 m** ← o desnível de Spa |
+| Z | 2012 m |
+
+Se alguém desenhar o mapa com X contra Y, sai um rabisco achatado que
+**não é a pista** — foi exactamente o que aconteceu na primeira versão.
+A pista de Spa dá para reconhecer (Eau Rouge, Raidillon, Kemmel) assim
+que se usa X contra Z.
+
+Isto também vale para o `acpmf_simhub_v2` dos adversários: as
+coordenadas que lá vêm são as mesmas.
+
+---
+
+## Regra nº 10 — transformações de canvas a partir do centro
+
+Com um `offset` calculado à partida do mínimo, inverter um eixo
+invalida o offset e o desenho sai todo fora do canvas **sem dar erro**.
+Aconteceu com o Z no mapa: o traçado desapareceu sem erro na consola.
+
+Transformar sempre a partir do centro de cada eixo:
+
+```javascript
+// bem
+const cx = (minX + maxX) / 2;
+const px = (p) => (p[0] - cx) * sc + w / 2;
+const py = (p) => (cz - p[1]) * sc + h / 2;   // Z invertido, offset incluido
+
+// mal: inverter p[1] e continuar a usar um offset feito com o min positivo
+const py = (p) => -p[1] * sc + oy;            // oy calculado com min > 0
+```
+
+Vale para os gráficos dos pedais, para o delta e para o mapa.
 
 ---
 
@@ -240,27 +313,17 @@ não a apresentar como facto enquanto não a houver visto.
 
 | Ficheiro | Responsabilidade |
 |---|---|
-| `acshm.py` | structs do AC, mapeamento, `snapshot()`. **So leitura.** |
-| `server.py` | HTTP + SSE. Um thread le a 200 Hz, cada cliente recebe o que pedir. |
-| `static/app.js` | desenho, mapa, grafico de pedais, delta, idiomas. |
-| `static/index.html` / `style.css` | estrutura, modos, definicoes e paleta. |
+| `acshm.py` | structs do AC, mapeamento, `snapshot()`, `Opponents`. **Só leitura.** |
+| `server.py` | HTTP + SSE. Um thread lê a 200 Hz, cada cliente recebe ao ritmo que pediu. |
+| `static/app.js` | desenho, mapa, gráfico de pedais, delta, 4 idiomas, definições. |
+| `static/index.html` / `style.css` | estrutura, três modos, definições e paleta. |
 
 Fluxo de dados:
 
 ```
-AC -> memoria partilhada -> Hub (200 Hz) -> SSE telemetria (fps escolhido)
-                                           -> SSE adversarios (10 Hz)
+AC -> memória partilhada -> Hub (200 Hz) -> SSE telemetria (?fps=N, 5..60)
+                                            -> SSE adversários (10 Hz)
 ```
-
-O `Hub` tem um lock e so um thread le a memoria, para nao haver leituras
-concorrentes da mesma pagina.
-|---|---|
-| `acshm.py` | structs do AC, mapeamento, `snapshot()`. **Só leitura.** |
-| `server.py` | HTTP + SSE. Um thread lê a 200 Hz, cada cliente recebe a 60 Hz. |
-| `static/app.js` | desenha, mapa em canvas, cálculo do delta. |
-| `static/index.html` / `style.css` | estrutura e paleta. |
-
-Fluxo de dados: `AC → memória partilhida → Hub (200 Hz) → SSE (60 Hz) → DOM`.
 
 O `Hub` tem um lock e só um thread lê a memória, para não haver leituras
 concorrentes da mesma página.
@@ -285,8 +348,10 @@ concorrentes da mesma página.
 ## Ao mexer no frontend
 
 - Recarregar a página **não** apaga o mapa: está no `localStorage`
-  (chave `acmap.v1`). Para limpar de propósito, usar o botão **limpar**.
+  (chave `acmap.v2`, no plano X-Z). Para limpar de propósito, usar o botão **limpar**.
 - Ao mudar de pista o mapa é invalidado automaticamente.
+- O `acshm.py` expõe `x`, `y` (altitude) e `z`. O plano da pista é X-Z;
+  um mapa feito com X e Y parece uma pista e não é.
 - Se mudar o layout, verificar nos três tamanhos: ecrã largo (3×2),
   tablet (2 colunas) e telemóvel (1 coluna).
 

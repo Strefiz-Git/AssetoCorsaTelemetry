@@ -276,17 +276,53 @@ Fica por decidir. Enquanto isso, o traço aparece mas vazio.
 
 ## Perguntas em aberto
 
-- **A app Python do SimHub está a correr?** A página
-  `acpmf_simhub_v2` não aparecia, mas o AC fechou-se entretanto, por isso
-  a hipótese de que a app morre ao arrancar **não está confirmada**.
-  Falta arrancar o jogo e voltar a verificar.
-- **A zona de DRS no mapa fica registada entre recarregamentos?** Está no
-  `localStorage` junto com o traçado, mas ainda não foi testado.
-- **Mudar o FPS no servidor obriga a reabrir a ligação?** Se sim, é
-  aceitável — muda-se uma vez e fica.
-- **O delta sobrevive a recarregar a página?** A referência da melhor
-  volta vive em memória JavaScript, portanto **não**. Vale a pena
-  guardá-la.
+- **O travão de mão.** Não existe na shared memory do AC. Falta decidir
+  entre derivar das rodas traseiras (heurístico, pode falhar em curvas
+  de baixa velocidade) ou escrever uma app Python no Content Manager que
+  o publique. Está a ser mostrado como traço vazio, sem inventar valor.
+- **O sentido da embraiagem.** A documentação diz que `clutch` é a
+  posição do pedal, 1 = totalmente premido. Mas a medir: parado o valor
+  é ~0.1, e a 250 km/h é 1.0. Isso só faz sentido como **engate**
+  (1 = encaixada). Mostro o inverso, para se ler "quanto está solta",
+  que é o que interessa para pontas de embraiagem. Continua por
+  confirmar: falta uma leitura com a embraiagem a meio, a fazer uma
+  arrancada, e um valor que fique a meio caminho.
+- **O delta sobrevive a recarregar a página?** Não — a referência da
+  melhor volta vive só em memória JavaScript. Vale a pena guardá-la no
+  `localStorage` junto com o mapa.
+- **O delta no modo leaderboard** só faz sentido contra a melhor volta
+  do jogador. Contra o melhor do mundo é outra coisa. Falta decidir.
+- **A posição mostrada é a oficial ou a ao vivo?** A página traz as duas
+  (`pos` e `livePos`). Na interface usa-se a oficial. Numa corrida em que
+  se estivesse a recuperar posições, a ao vivo seria mais útil.
+- **Pneus e travões com valores iguais nos quatro cantos** quando o
+  carro está parado no fim da sessão. Por confirmar se é o jogo a
+  replicar o valor ou se é a leitura a fazer isso.
+
+## Resolvidas
+
+- **Os adversários funcionam.** A app Python do SimHub escreve a página
+  `acpmf_simhub_v2` e lê-se directamente — sem passar pela API dele nem
+  pelo UDP. Duas correções ao que eu tinha dito antes:
+  1. Eu tinha dito que a app *"morre ao arrancar"*. **Não era verdade.**
+     A página não existia porque o AC estava fechado. Com o jogo a
+     correr vêm 19 carros com nome, carro, posição, voltas, tempos,
+     penalizações, coordenadas e estado de box.
+  2. A zona de DRS no mapa **vê-se** e está desenhada a verde.
+- **A zona de DRS no mapa fica registada entre recarregamentos?** Sim, vai
+  no `localStorage` com o traçado, e sobreviveu a recarregamentos.
+- **Mudar o FPS obriga a reabrir a ligação?** Sim. O servidor lê
+  `?fps=N` por cliente e trava entre 5 e 60. Mudar-se uma vez e fica.
+  **Medido:** a 10 fps chegam exactamente 10 pacotes por segundo.
+- **O plano da pista.** Era a maior dúvida e estava errada: o mapa
+  desenhava X contra Y, e o **Y é a altitude**. O plano é **X-Z**.
+  Ver [AGENTS.md](AGENTS.md).
+- **A zona de DRS no mapa é marcada à mão.** A ideia era pintar
+  automaticamente com o `drsAvailable`. Medido numa volta completa,
+  esse flag esteve a 1 em **98.9% do traçado**, por igual nos cinco
+  quintos da pista: não diz onde acaba a zona. Automático dava a pista
+  toda a verde, que parece informação e não é. Agora marca-se nas
+  definições, a conduzir.
 
 ---
 

@@ -1,0 +1,35 @@
+Interface nova: tres modos, grafico de pedais e canal de adversarios
+
+O que mudou e porque:
+
+- O mapa desenhava a pista no plano errado. No AC o eixo Y e' a
+  ALTITUDE; o plano da pista e' X-Z. Medido com 19 adversarios em
+  Spa: X 997 m, Y 88 m (o desnivel), Z 2012 m. Com X contra Z aparece
+  a Eau Rouge e o Kemmel. O acshm.py nem expunha o 'z'.
+  Como efeito de arrasto, a transformacao do canvas passou a fazer-se
+  a partir do centro de cada eixo: com um offset calculado do minimo,
+  inverter o Z punha o tracado inteiro fora do canvas sem dar erro.
+
+- A zona de DRS deixou de ser automatica. Numa volta completa o
+  drsAvailable esteve a 1 em 98.9% do tracado, por igual nos cinco
+  quintos da pista: nao diz onde acaba a zona. Pintar com ele dava a
+  pista toda a verde, que parece informacao e nao e. Passa a marcar-se
+  a mao, a conduzir, nas definicoes. O drsEnabled continua a ser
+  fiavel para a luz.
+
+- O grafico dos pedais deixou de ser um lenco de verticais: ha ~420
+  amostras para ~300 px e desenhar uma linha por amostra cruzava
+  tracos. Passa a envelope min/max por coluna, como um osciloscopio.
+  Custo medido: 0.14 ms por frame.
+
+- O servidor aceita ?fps=N por cliente e tem /events/opponents a 10 Hz
+  (128 carros a 60 Hz seriam ~25 KB por frame). Medido: 10 fps pedidos
+  dao 10 pacotes por segundo.
+
+- Corrigidos: quatro valores de travao colados num <b> dentro de outro
+  <b>; grelha do leaderboard com 5 colunas para 6 campos; modo misto
+  com duas classes de area em conflito; 'NaN' no primeiro frame; a
+  unidade de velocidade presa ao idioma em vez da definicao.
+
+- O travao de mao continua a nao existir na memoria do AC. Fica um
+  traco vazio, sem inventar valor.

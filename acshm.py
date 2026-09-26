@@ -45,6 +45,7 @@ PENALTY_NAMES = {
 }
 
 c_int32, c_float, c_wchar = ctypes.c_int32, ctypes.c_float, ctypes.c_wchar
+c_char = ctypes.c_char
 
 
 # ---------------------------------------------------------------- structs
@@ -538,8 +539,14 @@ class ACTelemetry:
             "bestTime": _ms(gr.iBestTime),
             "sessionLeft": _ms_plain(int(gr.sessionTimeLeft * 1000)) if gr.sessionTimeLeft > 0 else None,
 
+            # Mundo do AC: X-Z e' o plano da pista, Y e' a ALTITUDE.
+            # Medido em Spa com 19 adversarios: X 997 m, Y 88 m, Z 2012 m.
+            # Como o desnivel de Spa e' ~100 m, os 88 m de Y sao a
+            # altura. Desenhar o mapa com X contra Y da um rabico
+            # achatado que nao e' a pista.
             "x": round(gr.carCoordinates[0], 2),
-            "y": round(gr.carCoordinates[1], 2),
+            "y": round(gr.carCoordinates[1], 2),   # altitude
+            "z": round(gr.carCoordinates[2], 2),
             "trackPct": round(gr.normalizedCarPosition, 4),
             "sector": gr.currentSectorIndex,
             "sectorCount": st.sectorCount,

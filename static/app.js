@@ -1,56 +1,273 @@
-/* Telemetria do Assetto Corsa - recebe os snapshots por Server-Sent Events
-   e actualiza o DOM a 60 fps. Sem bibliotecas externas.                      */
+/* =========================================================================
+   Assetto Corsa Telemetry - cliente
+   Recebe telemetria por SSE e adversarios por um segundo canal.
+   Sem dependencias externas.
+   ========================================================================= */
 'use strict';
 
 const $ = (id) => document.getElementById(id);
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 
-const S = {
-  path: [],            // pontos ja desenhados no mapa [x, y]
-  minX: 1e9, maxX: -1e9, minY: 1e9, maxY: -1e9,
-  lapPct: [],          // [pct, segundos] da volta actual
-  refLap: null,        // melhor volta registada, para o delta
-  lastLapPct: 0,
-  frames: 0, fpsAt: performance.now(), fps: 0,
-  lastPacket: null,
-  bestMs: null,
-  seenEver: false,
+/* ------------------------------------------------------------------ i18n */
+const I18N = {
+  'pt-PT': {
+    'app.title': 'Telemetria AC',
+    'boot.waiting': 'A aguardar o Assetto Corsa',
+    'boot.reading': 'A ler a telemetria directamente do jogo…',
+    'boot.closed': 'Jogo fechado. A abrir o AC, ou a verificar se está a correr.',
+    'menu.title': 'O que queres ver?',
+    'menu.sub': 'Podes mudar a qualquer momento nas definições.',
+    'menu.telemetry': 'Telemetria',
+    'menu.telemetryDesc': 'Velocidade, rpm, pedais, pneus, combustível',
+    'menu.leaderboard': 'Leaderboard',
+    'menu.leaderboardDesc': 'Classificação de todos os carros',
+    'menu.both': 'Misto',
+    'menu.bothDesc': 'Telemetria e leaderboard ao mesmo tempo',
+    'set.title': 'Definições', 'set.mode': 'Vista', 'set.units': 'Unidades',
+    'set.lang': 'Idioma', 'set.map': 'Mapa', 'set.mapOn': 'Mostrar',
+    'set.mapOff': 'Esconder', 'set.clearMap': 'Apagar o mapa desenhado',
+    'set.drsZone': 'Zona de DRS', 'set.drsMark': 'Marcar a zona', 'set.drsMarking': 'A marcar... clica para parar', 'set.drsClear': 'Apagar a zona de DRS',
+    'set.drsZoneWhy': 'O jogo nao diz onde acaba a zona: o drsAvailable fica a 1 quase sempre, por isso o mapa teria a pista toda a verde. Marca-se a zona a conduzir, com o tracado real.',
+    'set.fps': 'Envio de dados', 'set.about': 'Sobre',
+    'set.aboutBody': 'Telemetria lida directamente da memória do Assetto Corsa. Sem SimHub.',
+    'drs.short': 'DRS', 'gear.label': 'CAIXA', 'unit.kmh': 'km/h',
+    'unit.mph': 'mph', 'unit.rpm': 'rpm',
+    'ers.short': 'ERS', 'pit.short': 'PIT', 'state.off': 'OFF',
+    'state.on': 'ON', 'state.lim': 'LIM',
+    'map.title': 'MAPA DA PISTA', 'pedals.title': 'PEDAIS',
+    'map.drsKey': 'zona de DRS',
+    'pedals.throttle': 'ACEL.', 'pedals.brake': 'TRAVA',
+    'pedals.clutch': 'EMBRAIAGEM', 'pedals.handbrake': 'FREIO DE MÃO',
+    'laps.title': 'VOLTAS', 'laps.current': 'ATUAL', 'laps.best': 'MELHOR',
+    'laps.last': 'ANTERIOR', 'laps.delta': 'DELTA',
+    'tyres.title': 'PNEUS E TRAVÕES', 'tyres.worn': 'gasto',
+    'brakes.title': 'TRAVÕES', 'fuel.title': 'COMBUSTÍVEL',
+    'fuel.inTank': 'Na reserva', 'fuel.lapsLeft': 'Voltas',
+    'fuel.ambient': 'Ar / pista', 'fuel.penalty': 'Penalidade',
+    'fuel.ersUsed': 'ERS na volta', 'fuel.none': 'nenhuma',
+    'lb.title': 'CLASSIFICAÇÃO', 'lb.telTitle': 'TEU CARRO',
+    'lb.pos': 'P', 'lb.name': 'PILOTO', 'lb.lap': 'VOLTA',
+    'lb.time': 'TEMPO', 'lb.best': 'MELHOR', 'lb.gap': 'DIF.',
+    'lb.penalty': 'Penalidade', 'lb.drs': 'DRS',
+    'foot.src': 'memória do AC, sem SimHub',
+    'status.live': 'AO VIVO', 'status.paused': 'EM PAUSA',
+    'status.closed': 'JOGO ENCERRADO', 'status.stale': 'últimos valores',
+    'sector': 'SETOR', 'lapCount': 'VOLTA',
+    'drs.off': 'OFF', 'drs.avail': 'LIVRE', 'drs.open': 'ABERTO',
+    'opp.waiting': 'A aguardar os dados dos adversários.',
+    'opp.how': 'A app Python do SimHub escreve a página de memória com os carros. Confirma que está activa no Content Manager (<b>Settings → Python Apps → SimHub</b>) e que o AC está numa sessão com outros carros.',
+    'opp.none': 'Nenhum carro na sessão.',
+    'lb.pit': 'PIT',
+  },
+  'pt-BR': {
+    'app.title': 'Telemetria AC', 'boot.waiting': 'Aguardando o Assetto Corsa',
+    'boot.reading': 'Lendo a telemetria direto do jogo…',
+    'boot.closed': 'Jogo fechado. Abra o AC, ou verifique se está rodando.',
+    'menu.title': 'O que você quer ver?', 'menu.sub': 'Dá para mudar a qualquer momento nas configurações.',
+    'menu.telemetry': 'Telemetria', 'menu.telemetryDesc': 'Velocidade, rpm, pedais, pneus, combustível',
+    'menu.leaderboard': 'Leaderboard', 'menu.leaderboardDesc': 'Classificação de todos os carros',
+    'menu.both': 'Misto', 'menu.bothDesc': 'Telemetria e leaderboard ao mesmo tempo',
+    'set.title': 'Configurações', 'set.mode': 'Tela', 'set.units': 'Unidades',
+    'set.lang': 'Idioma', 'set.map': 'Mapa', 'set.mapOn': 'Mostrar',
+    'set.mapOff': 'Esconder', 'set.clearMap': 'Apagar o mapa desenhado',
+    'set.drsZone': 'Zona de DRS', 'set.drsMark': 'Marcar a zona', 'set.drsMarking': 'Marcando... clique para parar', 'set.drsClear': 'Apagar a zona de DRS',
+    'set.drsZoneWhy': 'O jogo nao diz onde termina a zona: o drsAvailable fica em 1 quase sempre, por isso o mapa teria a pista toda verde. Marque a zona dirigindo, com o tracado real.',
+    'set.fps': 'Envio de dados', 'set.about': 'Sobre',
+    'set.aboutBody': 'Telemetria lida direto da memória do Assetto Corsa. Sem SimHub.',
+    'drs.short': 'DRS', 'gear.label': 'MARCHA', 'unit.kmh': 'km/h',
+    'unit.mph': 'mph', 'unit.rpm': 'rpm', 'ers.short': 'ERS', 'pit.short': 'BOX',
+    'state.off': 'OFF', 'state.on': 'ON', 'state.lim': 'LIM',
+    'map.title': 'MAPA DA PISTA', 'pedals.title': 'PEDAIS',
+    'map.drsKey': 'zona de DRS',
+    'pedals.throttle': 'ACEL.', 'pedals.brake': 'FREIO',
+    'pedals.clutch': 'EMBREAGEM', 'pedals.handbrake': 'FREIO DE MÃO',
+    'laps.title': 'VOLTAS', 'laps.current': 'ATUAL', 'laps.best': 'MELHOR',
+    'laps.last': 'ANTERIOR', 'laps.delta': 'DELTA',
+    'tyres.title': 'PNEUS E FREIOS', 'tyres.worn': 'usado',
+    'brakes.title': 'FREIOS', 'fuel.title': 'COMBUSTÍVEL',
+    'fuel.inTank': 'No tanque', 'fuel.lapsLeft': 'Voltas',
+    'fuel.ambient': 'Ar / pista', 'fuel.penalty': 'Penalty',
+    'fuel.ersUsed': 'ERS na volta', 'fuel.none': 'nenhuma',
+    'lb.title': 'CLASSIFICAÇÃO', 'lb.telTitle': 'SEU CARRO',
+    'lb.pos': 'P', 'lb.name': 'PILOTO', 'lb.lap': 'VOLTA',
+    'lb.time': 'TEMPO', 'lb.best': 'MELHOR', 'lb.gap': 'DIF.',
+    'lb.penalty': 'Penalty', 'lb.drs': 'DRS',
+    'foot.src': 'memória do AC, sem SimHub',
+    'status.live': 'AO VIVO', 'status.paused': 'EM PAUSA',
+    'status.closed': 'JOGO ENCERRADO', 'status.stale': 'últimos valores',
+    'sector': 'SETOR', 'lapCount': 'VOLTA',
+    'drs.off': 'OFF', 'drs.avail': 'LIVRE', 'drs.open': 'ABERTO',
+    'opp.waiting': 'Aguardando os dados dos adversários.',
+    'opp.how': 'O app Python do SimHub escreve a página de memória com os carros. Confirme que está ativo no Content Manager (<b>Settings → Python Apps → SimHub</b>) e que o AC está numa sessão com outros carros.',
+    'opp.none': 'Nenhum carro na sessão.', 'lb.pit': 'BOX',
+  },
+  'es': {
+    'app.title': 'Telemetría AC', 'boot.waiting': 'Esperando al Assetto Corsa',
+    'boot.reading': 'Leyendo la telemetría directamente del juego…',
+    'boot.closed': 'Juego cerrado. Abre el AC, o comprueba si está en marcha.',
+    'menu.title': '¿Qué quieres ver?', 'menu.sub': 'Puedes cambiarlo cuando quieras en los ajustes.',
+    'menu.telemetry': 'Telemetría', 'menu.telemetryDesc': 'Velocidad, rpm, pedales, neumáticos, combustible',
+    'menu.leaderboard': 'Leaderboard', 'menu.leaderboardDesc': 'Clasificación de todos los coches',
+    'menu.both': 'Mixto', 'menu.bothDesc': 'Telemetría y leaderboard a la vez',
+    'set.title': 'Ajustes', 'set.mode': 'Vista', 'set.units': 'Unidades',
+    'set.lang': 'Idioma', 'set.map': 'Mapa', 'set.mapOn': 'Mostrar',
+    'set.mapOff': 'Ocultar', 'set.clearMap': 'Borrar el mapa dibujado',
+    'set.drsZone': 'Zona de DRS', 'set.drsMark': 'Marcar la zona', 'set.drsMarking': 'Marcando... pulsa para parar', 'set.drsClear': 'Borrar la zona de DRS',
+    'set.drsZoneWhy': 'El juego no dice donde acaba la zona: el drsAvailable se queda en 1 casi siempre, por eso el mapa tendria el circuito todo en verde. Marcala conduciendo, con el trazado real.',
+    'set.fps': 'Envío de datos', 'set.about': 'Acerca de',
+    'set.aboutBody': 'Telemetría leída directamente de la memoria del Assetto Corsa. Sin SimHub.',
+    'drs.short': 'DRS', 'gear.label': 'MARCHA', 'unit.kmh': 'km/h',
+    'unit.mph': 'mph', 'unit.rpm': 'rpm', 'ers.short': 'ERS', 'pit.short': 'PIT',
+    'state.off': 'OFF', 'state.on': 'ON', 'state.lim': 'LIM',
+    'map.title': 'MAPA DE LA PISTA', 'pedals.title': 'PEDALES',
+    'map.drsKey': 'zona de DRS',
+    'pedals.throttle': 'ACEL.', 'pedals.brake': 'FRENO',
+    'pedals.clutch': 'EMBRAGUE', 'pedals.handbrake': 'FRENO DE MANO',
+    'laps.title': 'VUELTAS', 'laps.current': 'ACTUAL', 'laps.best': 'MEJOR',
+    'laps.last': 'ANTERIOR', 'laps.delta': 'DELTA',
+    'tyres.title': 'NEUMÁTICOS Y FRENOS', 'tyres.worn': 'gastado',
+    'brakes.title': 'FRENOS', 'fuel.title': 'COMBUSTIBLE',
+    'fuel.inTank': 'En el depósito', 'fuel.lapsLeft': 'Vueltas',
+    'fuel.ambient': 'Aire / pista', 'fuel.penalty': 'Penalización',
+    'fuel.ersUsed': 'ERS en la vuelta', 'fuel.none': 'ninguna',
+    'lb.title': 'CLASIFICACIÓN', 'lb.telTitle': 'TU COCHE',
+    'lb.pos': 'P', 'lb.name': 'PILOTO', 'lb.lap': 'VUELTA',
+    'lb.time': 'TIEMPO', 'lb.best': 'MEJOR', 'lb.gap': 'DIF.',
+    'lb.penalty': 'Penalización', 'lb.drs': 'DRS',
+    'foot.src': 'memoria del AC, sin SimHub',
+    'status.live': 'EN VIVO', 'status.paused': 'EN PAUSA',
+    'status.closed': 'JUEGO CERRADO', 'status.stale': 'últimos valores',
+    'sector': 'SECTOR', 'lapCount': 'VUELTA',
+    'drs.off': 'OFF', 'drs.avail': 'LIBRE', 'drs.open': 'ABIERTO',
+    'opp.waiting': 'Esperando los datos de los rivales.',
+    'opp.how': 'La app Python de SimHub escribe la página de memoria con los coches. Comprueba que está activa en el Content Manager (<b>Settings → Python Apps → SimHub</b>) y que el AC está en una sesión con otros coches.',
+    'opp.none': 'Ningún coche en la sesión.', 'lb.pit': 'PIT',
+  },
+  'en': {
+    'app.title': 'AC Telemetry', 'boot.waiting': 'Waiting for Assetto Corsa',
+    'boot.reading': 'Reading telemetry straight from the game…',
+    'boot.closed': 'Game closed. Start AC, or check that it is running.',
+    'menu.title': 'What do you want to see?',
+    'menu.sub': 'You can change this later in the settings.',
+    'menu.telemetry': 'Telemetry',
+    'menu.telemetryDesc': 'Speed, rpm, pedals, tyres, fuel',
+    'menu.leaderboard': 'Leaderboard',
+    'menu.leaderboardDesc': 'Standings for every car',
+    'menu.both': 'Both', 'menu.bothDesc': 'Telemetry and leaderboard at once',
+    'set.title': 'Settings', 'set.mode': 'View', 'set.units': 'Units',
+    'set.lang': 'Language', 'set.map': 'Map', 'set.mapOn': 'Show',
+    'set.mapOff': 'Hide', 'set.clearMap': 'Clear the drawn map',
+    'set.drsZone': 'DRS zone', 'set.drsMark': 'Mark the zone', 'set.drsMarking': 'Marking... click to stop', 'set.drsClear': 'Clear the DRS zone',
+    'set.drsZoneWhy': 'The game does not say where the zone ends: drsAvailable stays at 1 almost everywhere, so the map would be green all the way round. Mark it while driving, on the real line.',
+    'set.fps': 'Data rate', 'set.about': 'About',
+    'set.aboutBody': 'Telemetry read straight from Assetto Corsa memory. No SimHub.',
+    'drs.short': 'DRS', 'gear.label': 'GEAR', 'unit.kmh': 'km/h',
+    'unit.mph': 'mph', 'unit.rpm': 'rpm', 'ers.short': 'ERS', 'pit.short': 'PIT',
+    'state.off': 'OFF', 'state.on': 'ON', 'state.lim': 'LIM',
+    'map.title': 'TRACK MAP', 'pedals.title': 'PEDALS',
+    'map.drsKey': 'DRS zone',
+    'pedals.throttle': 'THROTTLE', 'pedals.brake': 'BRAKE',
+    'pedals.clutch': 'CLUTCH', 'pedals.handbrake': 'HANDBRAKE',
+    'laps.title': 'LAPS', 'laps.current': 'CURRENT', 'laps.best': 'BEST',
+    'laps.last': 'LAST', 'laps.delta': 'DELTA',
+    'tyres.title': 'TYRES AND BRAKES', 'tyres.worn': 'worn',
+    'brakes.title': 'BRAKES', 'fuel.title': 'FUEL',
+    'fuel.inTank': 'In tank', 'fuel.lapsLeft': 'Laps',
+    'fuel.ambient': 'Air / track', 'fuel.penalty': 'Penalty',
+    'fuel.ersUsed': 'ERS this lap', 'fuel.none': 'none',
+    'lb.title': 'STANDINGS', 'lb.telTitle': 'YOUR CAR',
+    'lb.pos': 'P', 'lb.name': 'DRIVER', 'lb.lap': 'LAP',
+    'lb.time': 'TIME', 'lb.best': 'BEST', 'lb.gap': 'GAP',
+    'lb.penalty': 'Penalty', 'lb.drs': 'DRS',
+    'foot.src': 'AC memory, no SimHub',
+    'status.live': 'LIVE', 'status.paused': 'PAUSED',
+    'status.closed': 'GAME CLOSED', 'status.stale': 'last values',
+    'sector': 'SECTOR', 'lapCount': 'LAP',
+    'drs.off': 'OFF', 'drs.avail': 'READY', 'drs.open': 'OPEN',
+    'opp.waiting': 'Waiting for opponent data.',
+    'opp.how': 'The SimHub Python app writes the memory page with the cars. Check it is enabled in Content Manager (<b>Settings → Python Apps → SimHub</b>) and that AC is in a session with other cars.',
+    'opp.none': 'No cars in the session.', 'lb.pit': 'PIT',
+  },
 };
 
-// ------------------------------------------------------------ rede
-let es = null;
-function connect() {
-  es = new EventSource('/events');
-  es.onmessage = (ev) => {
-    let d;
-    try { d = JSON.parse(ev.data); } catch (e) { return; }
-    render(d);
-  };
-  es.onerror = () => {
-    // o EventSource volta a ligar-se sozinho; so escondemos se parou
-    if (es.readyState === EventSource.CLOSED) {
-      setTimeout(connect, 1500);
-    }
-  };
+let LANG = 'pt-PT';
+function t(k) { return (I18N[LANG] && I18N[LANG][k]) || k; }
+
+/* ------------------------------------------------------------ definicoes */
+const DEF_KEY = 'acdef.v1';
+const DEFAULTS = { mode: null, temp: 'C', speed: 'kmh', lang: 'pt-PT', map: 'on', fps: 60 };
+let DEF = Object.assign({}, DEFAULTS);
+
+function loadDef() {
+  try {
+    const raw = localStorage.getItem(DEF_KEY);
+    if (raw) DEF = Object.assign({}, DEFAULTS, JSON.parse(raw));
+  } catch (e) { /* ignora */ }
+}
+function saveDef() {
+  try { localStorage.setItem(DEF_KEY, JSON.stringify(DEF)); } catch (e) { /* ignora */ }
 }
 
-// ------------------------------------------------------------ texto
-const SECONDS = { '-': null };
+/* ------------------------------------------------------------ unidades */
+const toSpeed = (kmh) => DEF.speed === 'mph' ? kmh / 1.609344 : kmh;
+const toTemp = (c) => DEF.temp === 'F' ? c * 9 / 5 + 32 : c;
+const spUnit = () => DEF.speed === 'mph' ? t('unit.mph') : t('unit.kmh');
+const tUnit = () => DEF.temp === 'F' ? '°F' : '°C';
+
+function fmtSpeed(kmh, dec) {
+  const v = toSpeed(kmh);
+  return DEF.speed === 'mph' ? v.toFixed(1) : v.toFixed(0);
+}
+function fmtTemp(c) {
+  return Math.round(toTemp(c));
+}
+
+/* ------------------------------------------------------------ estado */
+const S = {
+  path: [],            // [x, y, drs, sector]
+  minX: 1e9, maxX: -1e9, minY: 1e9, maxY: -1e9,
+  lapPct: [], refLap: null, bestMs: null, lastLapPct: 0,
+  lastSector: null, sectorTimes: [], bestSectorTimes: [],
+  seenEver: false, trackName: '', lastSave: 0,
+  frames: 0, fpsAt: performance.now(), fps: 0,
+  trace: { t: [], th: [], br: [], cl: [], hb: [] },
+  lastSample: 0, traceHz: 0,
+  marking: false,          // a marcar a zona de DRS a mao
+};
+const TRACE_N = 420;              // ~7 s a 60 Hz
+const TRACE_MAXHZ = 60;
+
+function setTxt(id, v) { const e = $(id); if (e && e.textContent !== v) e.textContent = v; }
+function setHtml(id, v) { const e = $(id); if (e && e.innerHTML !== v) e.innerHTML = v; }
+
+/* Um numero pode faltar no primeiro payload (antes de chegar dados). Sem
+   este guarda, "undefined + 1" da NaN e aparece um "NaN" na faixa. */
+function num(v, def) { return (typeof v === 'number' && isFinite(v)) ? v : (def || 0); }
+
+/* "--:--.---" em Titillium Web Black desenha-se como um bloco pesado.
+   Quando esta vazio, fica mais leve e apagado. */
+function setTime(id, v) {
+  const e = $(id);
+  if (!e) return;
+  const empty = !v || v.indexOf('--') === 0;
+  const txt = v || '--:--.---';
+  if (e.textContent !== txt) e.textContent = txt;
+  e.classList.toggle('empty', empty);
+}
+
+/* ------------------------------------------------------------ tempos */
 function toSec(t) {
   if (!t || t.indexOf('--') === 0) return null;
   const m = t.match(/^(?:(\d+):)?(\d{2})\.(\d{3})$/);
   if (!m) return null;
   return (+(m[1] || 0)) * 60 + (+m[2]) + (+m[3]) / 1000;
 }
-function setTxt(id, v) { const e = $(id); if (e && e.textContent !== v) e.textContent = v; }
 
-// ------------------------------------------------------------ delta
-/* O AC nao da delta pronto. Comparamos a volta actual com a melhor volta
-   registada, interpolando no mesmo ponto da pista (trackPct).            */
+/* ------------------------------------------------------------ delta */
 function computeDelta(pct, nowSec) {
   if (!S.refLap || S.refLap.length < 4) return null;
   const ref = S.refLap;
   if (pct < ref[0][0] - 0.01 || pct > ref[ref.length - 1][0] + 0.01) return null;
-  // vizinho mais proximo em trackPct
   let lo = ref[0], hi = ref[ref.length - 1];
   for (let i = 1; i < ref.length; i++) {
     if (ref[i][0] >= pct) { lo = ref[i - 1]; hi = ref[i]; break; }
@@ -59,180 +276,492 @@ function computeDelta(pct, nowSec) {
   const f = (pct - lo[0]) / (hi[0] - lo[0]);
   return nowSec - (lo[1] + f * (hi[1] - lo[1]));
 }
-
-function onLapComplete(pct, timeSec) {
-  // a volta fechou: se foi a melhor, guardar como referencia
+function onLapComplete(timeSec) {
   if (timeSec != null && timeSec > 20) {
-    if (S.bestMs == null || timeSec < S.bestMs) {
-      S.bestMs = timeSec;
-      S.refLap = S.lapPct.slice();
-    }
+    if (S.bestMs == null || timeSec < S.bestMs) { S.bestMs = timeSec; S.refLap = S.lapPct.slice(); }
   }
   S.lapPct = [];
+  S.sectorTimes = [];
 }
 
-// ------------------------------------------------------------ mapa
-const MAP_KEY = 'acmap.v1';
+/* ------------------------------------------------------------ mapa */
+/* IMPORTANTE: no AC o eixo Y e' a ALTITUDE. O plano da pista e' X-Z.
+   Medido em Spa com 19 adversarios: X 997 m, Y 88 m, Z 2012 m - e o
+   desnivel de Spa e' de ~100 m, logo Y nao serve para desenhar a pista.
+   Mapear X contra Y dava um rabisco achatado sem ser a pista. */
+const MAP_KEY = 'acmap.v2';   // v2: mudou o plano (X-Z). O v1 esta errado.
 
-function saveMap() {
-  // nao vale a pena guardar a cada ponto: o traço muda de forma lenta
-  if (Date.now() - (S.lastSave || 0) < 4000) return;
+function pushMapPoint(x, y, drs, sector) {
+  if (!isFinite(x) || !isFinite(y)) return;
+  if (x === 0 && y === 0) return;
+  const p = S.path[S.path.length - 1];
+  if (p && Math.abs(p[0] - x) + Math.abs(p[1] - y) < 0.3) return;
+  S.path.push([x, y, drs ? 1 : 0, sector | 0]);
+  if (S.path.length > 24000) S.path.splice(0, 6000);
+  if (x < S.minX) S.minX = x; if (x > S.maxX) S.maxX = x;
+  if (y < S.minY) S.minY = y; if (y > S.maxY) S.maxY = y;
+  saveMap();
+}
+function saveMap(force) {
+  if (!force && Date.now() - S.lastSave < 5000) return;
   S.lastSave = Date.now();
   try {
-    // arredonda para nao encher o localStorage
-    const pts = S.path.map(p => [Math.round(p[0] * 10) / 10, Math.round(p[1] * 10) / 10]);
+    const pts = S.path.map(p => [Math.round(p[0] * 10) / 10, Math.round(p[1] * 10) / 10, p[2], p[3]]);
     localStorage.setItem(MAP_KEY, JSON.stringify({ t: S.trackName, p: pts }));
-  } catch (e) { /* quota cheia: ignora */ }
+  } catch (e) { /* quota */ }
 }
-
 function loadMap() {
   try {
     const raw = localStorage.getItem(MAP_KEY);
     if (!raw) return;
     const o = JSON.parse(raw);
     if (!o || !Array.isArray(o.p) || o.p.length < 2) return;
-    S.path = o.p;
-    S.trackName = o.t || '';
-    for (const [x, y] of S.path) {
-      if (x < S.minX) S.minX = x; if (x > S.maxX) S.maxX = x;
-      if (y < S.minY) S.minY = y; if (y > S.maxY) S.maxY = y;
+    S.path = o.p; S.trackName = o.t || '';
+    for (const p of S.path) {
+      if (p[0] < S.minX) S.minX = p[0]; if (p[0] > S.maxX) S.maxX = p[0];
+      if (p[1] < S.minY) S.minY = p[1]; if (p[1] > S.maxY) S.maxY = p[1];
     }
   } catch (e) { /* ignora */ }
 }
-
-function pushMapPoint(x, y) {
-  if (!isFinite(x) || !isFinite(y)) return;
-  if (x === 0 && y === 0) return;                 // sem posicao ainda
-  const p = S.path[S.path.length - 1];
-  if (p && Math.abs(p[0] - x) + Math.abs(p[1] - y) < 0.35) return;  // dedupe
-  S.path.push([x, y]);
-  if (S.path.length > 20000) S.path.splice(0, 5000);
-  if (x < S.minX) S.minX = x; if (x > S.maxX) S.maxX = x;
-  if (y < S.minY) S.minY = y; if (y > S.maxY) S.maxY = y;
-  saveMap();
-}
-
 function resetMap(clearStorage) {
   S.path = []; S.minX = 1e9; S.maxX = -1e9; S.minY = 1e9; S.maxY = -1e9;
-  S.lapPct = []; S.refLap = null; S.bestMs = null;
+  S.lapPct = []; S.refLap = null; S.bestMs = null; S.sectorTimes = [];
   if (clearStorage) { try { localStorage.removeItem(MAP_KEY); } catch (e) { } }
 }
 
-function drawMap() {
-  const cv = $('map');
-  if (!cv) return;
+function drawMap(canvasId) {
+  const cv = $(canvasId);
+  if (!cv || DEF.map === 'off') { if (cv) cv.style.visibility = 'hidden'; return; }
+  cv.style.visibility = 'visible';
   const dpr = window.devicePixelRatio || 1;
   const w = cv.clientWidth, h = cv.clientHeight;
   if (!w || !h) return;
-  if (cv.width !== w * dpr || cv.height !== h * dpr) {
-    cv.width = w * dpr; cv.height = h * dpr;
+  if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) {
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
   }
   const c = cv.getContext('2d');
   c.setTransform(dpr, 0, 0, dpr, 0, 0);
   c.clearRect(0, 0, w, h);
 
   if (S.path.length < 2) {
-    c.fillStyle = '#555C5D';
-    c.font = '600 12px Titillium, sans-serif';
+    c.fillStyle = '#555C5D'; c.font = '600 12px Titillium, sans-serif';
     c.textAlign = 'center';
-    c.fillText('a rodar, o mapa desenha-se sozinho', w / 2, h / 2);
+    c.fillText(t('map.title'), w / 2, h / 2);
     return;
   }
 
-  const spanX = Math.max(S.maxX - S.minX, 1);
-  const spanY = Math.max(S.maxY - S.minY, 1);
-  const pad = 26;
-  const sc = Math.min((w - pad * 2) / spanX, (h - pad * 2) / spanY);
-  const ox = (w - spanX * sc) / 2 - S.minX * sc;
-  const oy = (h - spanY * sc) / 2 - S.minY * sc;
+  const spanX = Math.max(S.maxX - S.minX, 1), spanZ = Math.max(S.maxY - S.minY, 1);
+  const pad = 22;
+  const sc = Math.min((w - pad * 2) / spanX, (h - pad * 2) / spanZ);
+  // transformar a partir do CENTRO de cada eixo, e nao de um offset.
+  // Com um offset era facil errar o sinal ao inverter o Z, e o traçado
+  // inteiro saia fora do canvas sem dar erro nenhum.
+  const cx = (S.minX + S.maxX) / 2, cz = (S.minY + S.maxY) / 2;
+  // Z cresce para o norte, o canvas cresce para baixo: inverte-se
+  const px = (p) => (p[0] - cx) * sc + w / 2;
+  const py = (p) => (cz - p[1]) * sc + h / 2;
 
-  // traco da pista
-  c.lineWidth = 4;
-  c.strokeStyle = '#151C1D';
+  // pista, em duas passagens: contorno claro por baixo, cor por cima
   c.lineJoin = 'round'; c.lineCap = 'round';
   c.beginPath();
-  c.moveTo(S.path[0][0] * sc + ox, -S.path[0][1] * sc + oy);
-  for (let i = 1; i < S.path.length; i++) {
-    c.lineTo(S.path[i][0] * sc + ox, -S.path[i][1] * sc + oy);
+  c.moveTo(px(S.path[0]), py(S.path[0]));
+  for (let i = 1; i < S.path.length; i++) c.lineTo(px(S.path[i]), py(S.path[i]));
+  c.strokeStyle = 'rgba(85,92,93,.85)'; c.lineWidth = 5.5; c.stroke();
+  c.strokeStyle = '#151C1D'; c.lineWidth = 3.5; c.stroke();
+
+  // zona de DRS: os trocos que o utilizador marcou a mao
+  c.lineCap = 'round'; c.lineJoin = 'round';
+  c.strokeStyle = '#23CF16'; c.lineWidth = 7;
+  c.beginPath();
+  let drawing = false, hasZone = false;
+  for (let i = 0; i < S.path.length; i++) {
+    if (S.path[i][2]) {
+      hasZone = true;
+      if (!drawing) { c.moveTo(px(S.path[i]), py(S.path[i])); drawing = true; }
+      else c.lineTo(px(S.path[i]), py(S.path[i]));
+    } else if (drawing) { drawing = false; }
   }
   c.stroke();
+  if (S.marking) {
+    // a marcar: um halo a pulsing para se ver onde se esta a pintar
+    c.save();
+    c.globalAlpha = 0.35 + 0.35 * Math.abs(Math.sin(performance.now() / 260));
+    c.strokeStyle = '#23CF16'; c.lineWidth = 13;
+    c.stroke();
+    c.restore();
+  }
 
-  // contorno fino para se ver sobre fundo escuro
-  c.lineWidth = 1.2;
-  c.strokeStyle = 'rgba(85,92,93,.75)';
-  c.stroke();
+  // fronteiras de sector
+  c.strokeStyle = '#FFD700'; c.lineWidth = 2;
+  for (let i = 1; i < S.path.length; i++) {
+    if (S.path[i][3] !== S.path[i - 1][3]) {
+      c.beginPath();
+      c.arc(px(S.path[i]), py(S.path[i]), 3.5, 0, Math.PI * 2);
+      c.stroke();
+    }
+  }
 
   // carro
   const p = S.path[S.path.length - 1];
-  const cx = p[0] * sc + ox, cy = -p[1] * sc + oy;
-  c.beginPath(); c.arc(cx, cy, 5.5, 0, Math.PI * 2);
+  c.beginPath(); c.arc(px(p), py(p), 5, 0, Math.PI * 2);
   c.fillStyle = '#FFD700'; c.fill();
-  c.lineWidth = 1.5; c.strokeStyle = '#fff'; c.stroke();
+  c.lineWidth = 1.6; c.strokeStyle = '#fff'; c.stroke();
+
+  // a legenda só aparece quando há zona marcada
+  const key = $('map-drs-key');
+  if (key) key.classList.toggle('hidden', !hasZone);
+  const key2 = $('map-drs-key2');
+  if (key2) key2.classList.toggle('hidden', !hasZone);
 }
 
-// ------------------------------------------------------- barras de pneu
+/* ------------------------------------------------- grafico dos pedais */
+function pushTrace(d) {
+  const now = performance.now();
+  if (now - S.lastSample < 1000 / TRACE_MAXHZ) return;
+  S.lastSample = now;
+  const tr = S.trace;
+  tr.t.push(now);
+  tr.th.push(clamp(d.throttle || 0, 0, 100));
+  tr.br.push(clamp(d.brake || 0, 0, 100));
+  // O AC reporta clutch com 1.0 = totalmente encaixada (conducao normal)
+  // e a descer quando se solta. A documentacao diz "1 = totalmente
+  // premida", o que e' enganador. Mostra-se o inverso: quanto esta
+  // solta, que e' o que interessa - pontas de embraiagem e kicking.
+  tr.cl.push(clamp(100 - (d.clutchRaw != null ? d.clutchRaw : 1) * 100, 0, 100));
+  tr.hb.push(d.handbrake != null ? d.handbrake : null);
+  while (tr.t.length > TRACE_N) { tr.t.shift(); tr.th.shift(); tr.br.shift(); tr.cl.shift(); tr.hb.shift(); }
+}
+
+const TRACES = [
+  { key: 'br', color: '#FF0000' },
+  { key: 'th', color: '#23CF16' },
+  { key: 'cl', color: '#2B6CFF' },
+  { key: 'hb', color: '#FFD700' },
+];
+
+function drawPedals(canvasId) {
+  const cv = $(canvasId);
+  if (!cv) return;
+  const dpr = window.devicePixelRatio || 1;
+  const w = cv.clientWidth, h = cv.clientHeight;
+  if (!w || !h) return;
+  if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) {
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+  }
+  const c = cv.getContext('2d');
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  c.clearRect(0, 0, w, h);
+
+  // grelha
+  c.strokeStyle = '#1e2526'; c.lineWidth = 1;
+  for (let i = 1; i < 4; i++) {
+    const y = (h * i) / 4;
+    c.beginPath(); c.moveTo(0, y + .5); c.lineTo(w, y + .5); c.stroke();
+  }
+  c.strokeStyle = '#2a3233';
+  c.beginPath(); c.moveTo(0, h - .5); c.lineTo(w, h - .5); c.stroke();
+
+  const tr = S.trace;
+  const n = tr.t.length;
+  if (n < 2) {
+    c.fillStyle = '#3c4344'; c.font = '600 11px Titillium, sans-serif';
+    c.textAlign = 'center'; c.fillText('—', w / 2, h / 2);
+    return;
+  }
+
+  const span = tr.t[n - 1] - tr.t[0];
+  if (span <= 0) return;
+
+  // Ha ~420 amostras para ~300 px: desenhar uma linha por amostra da
+  // verticais finas que se cruzam e o grafico fica ilegivel. Em vez disso
+  // desenha-se o envelope min/max por coluna de pixel, como um
+  // osciloscopio: nenhum pico se perde e o traço le-se de imediato.
+  // Uma passage por amostra, com um cursor que só avança: daria para
+  // varrer o array inteiro por pixel (300 x 420 x 4) e isso a 60 Hz
+  // custa caro.
+  const colOf = (i) => Math.min(w - 1, Math.floor(((tr.t[i] - tr.t[0]) / span) * w));
+  for (const T of TRACES) {
+    const arr = tr[T.key];
+    let temDados = false;
+    for (let i = n - 1; i >= 0; i--) if (arr[i] != null) { temDados = true; break; }
+    if (!temDados) continue;                       // sem dados (ex.: mao)
+    c.strokeStyle = T.color; c.lineWidth = 1.4;
+    c.lineCap = 'butt';
+    c.beginPath();
+    let i = 0, emCurso = false;
+    for (let px = 0; px < w; px++) {
+      let lo = Infinity, hi = -Infinity;
+      while (i < n && colOf(i) <= px) {
+        const v = arr[i];
+        if (v != null) { if (v < lo) lo = v; if (v > hi) hi = v; }
+        i++;
+      }
+      if (lo === Infinity) { emCurso = false; continue; }
+      const yLo = h - (lo / 100) * h, yHi = h - (hi / 100) * h;
+      if (!emCurso) { c.moveTo(px + 0.5, yHi); emCurso = true; }
+      c.lineTo(px + 0.5, yHi);
+      c.lineTo(px + 0.5, yLo);
+    }
+    c.stroke();
+  }
+}
+
+/* ------------------------------------------------------ barra dos pneus */
 function drawTyreBar(id, mid) {
   const cv = $(id);
   if (!cv) return;
   const w = cv.width, h = cv.height;
   const c = cv.getContext('2d');
   c.clearRect(0, 0, w, h);
-  // escala 40..130 C
   const lo = 40, hi = 130;
-  const f = Math.max(0, Math.min(1, (mid - lo) / (hi - lo)));
-  // verde -> laranja -> vermelho
+  const f = clamp((mid - lo) / (hi - lo), 0, 1);
   const g = c.createLinearGradient(0, 0, w, 0);
-  g.addColorStop(0, '#23CF16'); g.addColorStop(0.55, '#23CF16');
-  g.addColorStop(0.78, '#F58020'); g.addColorStop(1, '#FF0000');
+  g.addColorStop(0, '#23CF16'); g.addColorStop(.55, '#23CF16');
+  g.addColorStop(.78, '#F58020'); g.addColorStop(1, '#FF0000');
   c.fillStyle = g; c.fillRect(0, 0, w, h);
-  // marcador da posicao actual
   c.fillStyle = '#fff';
-  c.fillRect(Math.max(0, Math.min(w - 3, f * w - 1.5)), 0, 3, h);
-  c.strokeStyle = 'rgba(0,0,0,.55)'; c.lineWidth = 1;
-  c.strokeRect(.5, .5, w - 1, h - 1);
+  c.fillRect(clamp(f * w - 1.5, 0, w - 3), 0, 3, h);
 }
-
-function tempColor(t) {
-  if (t >= 105) return '#FF0000';
-  if (t >= 95) return '#F58020';
+function tempColor(v, unit) {
+  // os limites sao em Celsius, seja qual for a unidade mostrada
+  const c = DEF.temp === 'F' ? (v - 32) * 5 / 9 : v;
+  if (c >= 105) return '#FF0000';
+  if (c >= 95) return '#F58020';
   return '#FFFFFF';
 }
 
-// ------------------------------------------------------------ render
+/* ------------------------------------------------------------ construir pneus */
+const TYRE_TAGS = ['FL', 'FR', 'RL', 'RR'];
+function buildTyres(hostId) {
+  const host = $(hostId);
+  if (!host || host.childElementCount === 4) return;
+  host.innerHTML = '';
+  for (let i = 0; i < 4; i++) {
+    const d = document.createElement('div');
+    d.className = 'tyre';
+    d.innerHTML =
+      '<span class="tyre-name">' + TYRE_TAGS[i] + '</span>' +
+      '<span class="tyre-mid">' +
+      '<b class="tyre-temp" id="' + hostId + '-t' + i + '">--</b>' +
+      '<span class="tyre-worn" id="' + hostId + '-w' + i + '">--</span></span>' +
+      '<span class="tyre-bar-wrap">' +
+      '<canvas class="tyre-bar" id="' + hostId + '-b' + i + '" width="120" height="7"></canvas>' +
+      '<span class="tyre-press" id="' + hostId + '-p' + i + '">--</span>' +
+      '</span>';
+    host.appendChild(d);
+  }
+}
+function renderTyres(hostId, d) {
+  for (let i = 0; i < 4; i++) {
+    const mid = (d.tyreTempM && d.tyreTempM[i]) || 0;
+    setTxt(hostId + '-t' + i, mid ? fmtTemp(mid) : '--');
+    const te = $(hostId + '-t' + i);
+    if (te) te.style.color = tempColor(mid);
+    const worn = (d.tyreWearUsed && d.tyreWearUsed[i] != null) ? d.tyreWearUsed[i] : null;
+    setTxt(hostId + '-w' + i, worn == null ? '--' : worn.toFixed(1) + '%');
+    drawTyreBar(hostId + '-b' + i, mid);
+    const pr = (d.tyrePressure && d.tyrePressure[i] != null) ? d.tyrePressure[i].toFixed(1) : '--';
+    setTxt(hostId + '-p' + i, pr);
+  }
+}
+
+/* ------------------------------------------------------ travões por canto */
+function renderBrakes(hostId, d) {
+  const host = $(hostId);
+  if (!host) return;
+  if (host.childElementCount !== 4) {
+    host.innerHTML = '';
+    for (let i = 0; i < 4; i++) {
+      const b = document.createElement('b');
+      b.id = hostId + '-' + i;
+      b.textContent = '--';
+      host.appendChild(b);
+    }
+  }
+  for (let i = 0; i < 4; i++) {
+    const v = (d.brakeTemp && d.brakeTemp[i]) || 0;
+    const e = $(hostId + '-' + i);
+    if (!e) continue;
+    e.textContent = v ? fmtTemp(v) : '--';
+    // a cor e' sempre calculada em Celsius, mude a unidade nao muda a leitura
+    e.style.color = !v ? '' : v > 600 ? '#FF0000' : v > 400 ? '#F58020' : '#fff';
+  }
+}
+
+/* ------------------------------------------------------------ linguas */
+function applyLang() {
+  LANG = DEF.lang;
+  document.documentElement.lang = LANG;
+  document.querySelectorAll('[data-i18n]').forEach((e) => {
+    e.textContent = t(e.getAttribute('data-i18n'));
+  });
+  document.title = t('app.title');
+  applyUnits();
+  if (typeof syncDrsMarkUI === 'function') syncDrsMarkUI();
+}
+
+/* A unidade de velocidade depende de DEF.speed, nao do idioma: com o
+   interface em portugues pode-se querer milhas. Por isso e' separado. */
+function applyUnits() {
+  document.querySelectorAll('.u-speed').forEach((e) => { e.textContent = spUnit(); });
+}
+
+/* ------------------------------------------------------------ modos */
+function applyMode() {
+  const mode = DEF.mode || 'telemetry';
+  document.querySelectorAll('.view').forEach((v) => {
+    v.classList.toggle('hidden', v.getAttribute('data-view') !== mode);
+  });
+  document.querySelectorAll('#set-mode button').forEach((b) => {
+    b.classList.toggle('on', b.getAttribute('data-mode') === mode);
+  });
+}
+function showMenu(first) {
+  $('menu').classList.remove('hidden');
+  if (first) $('app').classList.add('hidden');
+  $('boot').classList.add('hidden');
+}
+function pickMode(mode) {
+  DEF.mode = mode; saveDef(); applyMode();
+  $('menu').classList.add('hidden');
+  $('app').classList.remove('hidden');
+  if (!S.seenEver) $('boot').classList.remove('hidden');
+  connectTelemetry();
+}
+
+/* ------------------------------------------------------------ definicoes UI */
+function syncSettingsUI() {
+  const set = (id, v) => {
+    document.querySelectorAll('#' + id + ' button').forEach((b) => {
+      b.classList.toggle('on', b.getAttribute('data-v') === v);
+    });
+  };
+  set('set-temp', DEF.temp);
+  set('set-speed', DEF.speed);
+  set('set-lang', DEF.lang);
+  set('set-map', DEF.map);
+  document.querySelectorAll('#set-mode button').forEach((b) => {
+    b.classList.toggle('on', b.getAttribute('data-mode') === (DEF.mode || 'telemetry'));
+  });
+}
+
+function bindSettings() {
+  $('btn-set').addEventListener('click', () => $('settings').classList.toggle('hidden'));
+  $('set-close').addEventListener('click', () => $('settings').classList.add('hidden'));
+  $('btn-menu').addEventListener('click', () => showMenu(false));
+
+  document.querySelectorAll('#set-mode button').forEach((b) => {
+    b.addEventListener('click', () => { DEF.mode = b.getAttribute('data-mode'); saveDef(); applyMode(); });
+  });
+  document.querySelectorAll('.menu-card').forEach((b) => {
+    b.addEventListener('click', () => pickMode(b.getAttribute('data-mode')));
+  });
+  const seg = (id, key, after) => {
+    document.querySelectorAll('#' + id + ' button').forEach((b) => {
+      b.addEventListener('click', () => {
+        DEF[key] = b.getAttribute('data-v'); saveDef();
+        syncSettingsUI();
+        if (after) after();
+      });
+    });
+  };
+  seg('set-temp', 'temp', applyLang);
+  seg('set-speed', 'speed', applyUnits);
+  seg('set-lang', 'lang', () => { applyLang(); syncSettingsUI(); });
+  seg('set-map', 'map');
+
+  $('set-clear').addEventListener('click', () => { resetMap(true); });
+  $('set-drs-mark').addEventListener('click', () => { setMarking(!S.marking); });
+  $('set-drs-clear').addEventListener('click', () => {
+    for (const p of S.path) p[2] = 0;
+    S.marking = false;
+    syncDrsMarkUI();
+    saveMap(true);
+  });
+}
+
+/* Liga/desliga a marcacao da zona de DRS. O botao fica com aspecto
+   diferente enquanto marca, para nao se esquecer ligado. */
+function setMarking(on) {
+  S.marking = !!on;
+  syncDrsMarkUI();
+  if (S.marking) saveMap(true);      // grava logo, para nao perder o que ja ha
+}
+function syncDrsMarkUI() {
+  const b = $('set-drs-mark');
+  if (!b) return;
+  b.classList.toggle('on', S.marking);
+  b.textContent = S.marking ? t('set.drsMarking') : t('set.drsMark');
+}
+
+/* ------------------------------------------------------------ widgets */
+function setDrs(els, d) {
+  const on = d.drsEnabled >= 1, avail = d.drsAvailable >= 1;
+  const cls = !d.hasDRS ? '' : on ? 'open' : avail ? 'avail' : '';
+  els.forEach((e) => { if (e) e.className = 'drs' + (cls ? ' ' + cls : ''); });
+  return { on, avail };
+}
+function setLight(id, txt, cls) {
+  const e = $(id);
+  if (!e) return;
+  e.querySelector('.l-val').textContent = txt;
+  e.className = 'light' + (cls ? ' ' + cls : '');
+}
+
+function renderSectors(d) {
+  const host = $('sectors');
+  if (!host) return;
+  const n = d.sectorCount || 0;
+  if (!n) { host.innerHTML = ''; return; }
+  if (host.childElementCount !== n) {
+    host.innerHTML = '';
+    for (let i = 0; i < n; i++) {
+      const b = document.createElement('div');
+      b.className = 'sector-box';
+      b.innerHTML = '<span>S' + (i + 1) + '</span><b>--</b>';
+      host.appendChild(b);
+    }
+  }
+  const last = d.lastSectorTime;
+  const cur = (d.sector || 0);
+  Array.prototype.forEach.call(host.children, (b, i) => {
+    b.classList.toggle('cur', i === cur);
+    b.classList.toggle('best', S.bestSectorTimes[i] != null &&
+      last !== '--:--.---' && last <= S.bestSectorTimes[i]);
+    const v = b.querySelector('b');
+    if (i < cur && S.sectorTimes[i]) v.textContent = S.sectorTimes[i];
+    else v.textContent = i === cur ? '·' : '--';
+  });
+}
+
+/* ------------------------------------------------------------ telemetria */
+let esTel = null, esOpp = null;
+
+function connectTelemetry() {
+  if (esTel) esTel.close();
+  const url = '/events?fps=' + clamp(DEF.fps || 60, 5, 60);
+  esTel = new EventSource(url);
+  esTel.onmessage = (ev) => {
+    let d; try { d = JSON.parse(ev.data); } catch (e) { return; }
+    render(d);
+  };
+  esTel.onerror = () => {
+    if (esTel && esTel.readyState === EventSource.CLOSED) {
+      setTimeout(connectTelemetry, 1500);
+    }
+  };
+}
+function connectOpponents() {
+  if (esOpp) esOpp.close();
+  esOpp = new EventSource('/events/opponents?fps=10');
+  esOpp.onmessage = (ev) => {
+    let d; try { d = JSON.parse(ev.data); } catch (e) { return; }
+    renderOpponents(d);
+  };
+}
+
+let lastD = null;
 function render(d) {
-  const app = $('app'), off = $('offline');
-
-  // so escondemos tudo se nunca houve shared memory. Se o jogo esta em
-  // pausa ou no menu, packetId para - mas os dados continuam a ser uteis,
-  // por isso mostramos e assinamos o estado.
-  const firstEver = S.seenEver === true;
-  if (!d.connected && firstEver) {
-    app.classList.add('hidden'); off.classList.remove('hidden');
-    $('offline-msg').textContent = 'À espera da telemetria do Assetto Corsa…';
-    return;
-  }
-  S.seenEver = true;
-  if (app.classList.contains('hidden')) {
-    app.classList.remove('hidden'); off.classList.add('hidden');
-  }
-
-  // estado: ao vivo / em pausa / jogo encerrado
-  const sp = d.sincePacket || 0;
-  const lbl = d.live ? 'AO VIVO'
-    : sp < 90 ? 'EM PAUSA'
-      : 'JOGO ENCERRADO';
-  setTxt('src', lbl + (d.live ? '' : '  ·  ultimos valores')
-    + '  ·  fonte: shared memory do AC, sem SimHub');
-  document.body.classList.toggle('paused', !d.live);
-
-  // mudar de pista invalida o mapa guardado
-  if (S.trackName && d.track && d.track !== S.trackName) resetMap(true);
-  S.trackName = d.track || S.trackName;
-
-  // reiniciar o mapa quando o jogo reinica a sessao
-  if (S.lastPacket != null && d.packetId < S.lastPacket) resetMap(false);
-  S.lastPacket = d.packetId;
-
   S.frames++;
   const now = performance.now();
   if (now - S.fpsAt >= 1000) {
@@ -241,119 +770,272 @@ function render(d) {
     setTxt('fps', S.fps + ' fps');
   }
 
+  const live = d.live;
+  if (d.connected) {
+    S.seenEver = true;
+    if (DEF.mode) { $('boot').classList.add('hidden'); $('app').classList.remove('hidden'); }
+  }
+  document.body.classList.toggle('paused', !live);
+  const sp = d.sincePacket || 0;
+  setTxt('status', (live ? t('status.live') : (sp < 90 ? t('status.paused') : t('status.closed')))
+    + (live ? '' : '  ·  ' + t('status.stale')));
+
+  if (S.trackName && d.track && d.track !== S.trackName) resetMap(true);
+  S.trackName = d.track || S.trackName;
+
   // cabecalho
   setTxt('track', d.track || '—');
   setTxt('car', d.car || '—');
-  setTxt('session', (d.session || '—') + (d.compound ? '  ·  ' + d.compound.replace('_', ' ') : ''));
+  setTxt('session', d.session || '—');
+  setTxt('compound', (d.compound || '').replace(/_/g, ' '));
   setTxt('pos', d.position > 0 ? 'P' + d.position : '—');
-  setTxt('lap', d.totalLaps ? 'VOLTA ' + (d.lap + 1) + '/' + d.totalLaps : 'VOLTA ' + (d.lap + 1));
-
+  setTxt('lap', t('lapCount') + ' ' + (num(d.lap) + 1) +
+    (d.totalLaps ? '/' + d.totalLaps : ''));
   const fl = $('flag');
-  fl.textContent = d.flag || '—';
-  fl.className = 'flag' + (
-    d.flagId === 2 ? ' f-yellow' : d.flagId === 3 ? ' f-red'
+  if (fl) {
+    fl.textContent = d.flag || '—';
+    fl.className = 'h-flag' + (d.flagId === 2 ? ' f-yellow' : d.flagId === 3 ? ' f-red'
       : d.flagId === 1 ? ' f-blue' : d.flagId === 5 ? ' f-checkered' : '');
+  }
+  const dr = setDrs([$('drs-light')], d);
 
-  // velocidade / caixa / rpm
-  setTxt('speed', Math.round(d.speed || 0));
+  // central (modo telemetria)
+  setTxt('speed', fmtSpeed(d.speed || 0));
   setTxt('gear', d.gear || 'N');
   const maxRpm = d.maxRpm || 12000;
+  const pct = clamp((d.rpm || 0) / maxRpm * 100, 0, 100);
   setTxt('rpm', d.rpm || 0);
-  // a barra e' uma "mascara" escura que cobre a parte ja usada
-  $('rpm-fill').style.width = Math.max(0, 100 - Math.min(100, (d.rpm || 0) / maxRpm * 100)) + '%';
-  $('throttle-bar').style.width = (d.throttle || 0) + '%';
-  $('brake-bar').style.width = (d.brake || 0) + '%';
+  $('rpm-fill').style.width = (100 - pct) + '%';
+  setTxt('shift-hint', pct > 92 ? '▲' : '');
 
-  // chips
-  const chip = (id, txt, cls) => {
-    const e = $(id); if (!e) return;
-    e.querySelector('b').textContent = txt;
-    e.className = 'chip' + (cls ? ' ' + cls : '');
-  };
-  const drsOn = d.drsEnabled >= 1, drsOk = d.drsAvailable >= 1;
-  chip('chip-drs', !d.hasDRS ? 'N/A' : drsOn ? 'ATIVO' : drsOk ? 'LIVRE' : 'OFF',
-       !d.hasDRS ? '' : drsOn ? 'on' : drsOk ? 'warn' : '');
   const hasE = d.hasERS || d.hasKERS;
-  chip('chip-ers', hasE ? Math.round(d.ersPct || 0) + '%' : 'N/A',
-       hasE ? ((d.ersPct || 0) > 25 ? 'on' : 'warn') : '');
-  chip('chip-pen', d.penaltyTime > 0 ? '+' + d.penaltyTime + 's' : (d.penaltyFlag ? 'FLAG' : 'OK'),
-       d.penaltyTime > 0 ? 'bad' : '');
-  chip('chip-abs', d.abs >= 0.5 ? 'ON' : 'OFF', d.abs >= 0.5 ? 'warn' : '');
-  chip('chip-tc', d.tc >= 0.5 ? 'ON' : 'OFF', d.tc >= 0.5 ? 'warn' : '');
-  chip('chip-pit', d.pitLimiter ? 'LIM' : (d.isInPit ? 'PIT' : '—'), d.pitLimiter ? 'bad' : (d.isInPit ? 'warn' : ''));
+  setLight('l-ers', hasE ? Math.round(d.ersPct || 0) + '%' : '—',
+    hasE ? ((d.ersPct || 0) > 25 ? 'on' : 'warn') : '');
+  const eb = $('ers-bar');
+  if (eb) { eb.style.width = clamp(d.ersPct || 0, 0, 100) + '%'; eb.classList.toggle('low', (d.ersPct || 0) <= 20); }
+  setLight('l-abs', (d.abs >= 0.5) ? t('state.on') : t('state.off'), d.abs >= 0.5 ? 'warn' : '');
+  setLight('l-tc', (d.tc >= 0.5) ? t('state.on') : t('state.off'), d.tc >= 0.5 ? 'warn' : '');
+  setLight('l-pit', d.pitLimiter ? t('state.lim') : d.isInPit ? t('lb.pit') : '—',
+    d.pitLimiter ? 'bad' : d.isInPit ? 'warn' : '');
 
   // tempos
-  setTxt('t-current', d.currentTime || '--:--.---');
-  setTxt('t-best', d.bestTime || '--:--.---');
-  setTxt('t-last', d.lastTime || '--:--.---');
-
+  setTime('t-current', d.currentTime);
+  setTime('t-best', d.bestTime);
+  setTime('t-last', d.lastTime);
   const curSec = toSec(d.currentTime);
   if (curSec != null) {
-    const pct = d.trackPct || 0;
-    // virada de volta: o pct volta a zero
-    if (pct < S.lastLapPct - 0.3) onLapComplete(S.lastLapPct, toSec(d.lastTime));
-    S.lastLapPct = pct;
-    S.lapPct.push([pct, curSec]);
+    const p = d.trackPct || 0;
+    if (p < S.lastLapPct - 0.3) onLapComplete(toSec(d.lastTime));
+    S.lastLapPct = p;
+    S.lapPct.push([p, curSec]);
     if (S.lapPct.length > 4000) S.lapPct.shift();
-
-    const dl = computeDelta(pct, curSec);
-    const e = $('t-delta');
-    if (dl == null) { e.textContent = '+0.000'; e.className = 'val'; }
-    else {
-      e.textContent = (dl >= 0 ? '+' : '') + dl.toFixed(3);
-      e.className = 'val' + (dl < 0 ? ' neg' : '');
+    if (d.lastSectorTime && d.lastSectorTime !== '--:--.---') {
+      const st = toSec(d.lastSectorTime);
+      const si = (d.sector || 1) - 1;
+      if (si >= 0 && (S.sectorTimes[si] == null || st < S.sectorTimes[si])) {
+        S.sectorTimes[si] = d.lastSectorTime;
+        if (S.bestSectorTimes[si] == null || st < S.bestSectorTimes[si]) S.bestSectorTimes[si] = st;
+      }
     }
-    $('lap-progress').style.width = Math.min(100, pct * 100) + '%';
+    const dl = computeDelta(p, curSec);
+    const e = $('t-delta');
+    if (e) {
+      if (dl == null) { e.textContent = '+0.000'; e.style.color = ''; }
+      else {
+        e.textContent = (dl >= 0 ? '+' : '') + dl.toFixed(3);
+        e.style.color = dl < 0 ? 'var(--green)' : 'var(--red)';
+      }
+    }
+    $('lap-progress').style.width = clamp(p * 100, 0, 100) + '%';
   }
+  renderSectors(d);
 
-  // mapa
-  pushMapPoint(d.x, d.y);
-  setTxt('trackpct', ((d.trackPct || 0) * 100).toFixed(1) + '%  da volta');
-  setTxt('sector', 'SETOR ' + ((d.sector || 0) + 1) + (d.sectorCount ? '/' + d.sectorCount : ''));
-  drawMap();
+  // pedais
+  pushTrace(d);
+  setTxt('v-throttle', Math.round(d.throttle || 0));
+  setTxt('v-brake', Math.round(d.brake || 0));
+  setTxt('v-clutch', Math.round(100 - (d.clutchRaw != null ? d.clutchRaw : 1) * 100));
+  const hb = $('v-handbrake');
+  if (hb) hb.textContent = d.handbrake != null ? Math.round(d.handbrake) : '—';
 
-  // pneus
-  for (let i = 0; i < 4; i++) {
-    const mid = (d.tyreTempM && d.tyreTempM[i]) || 0;
-    const inn = (d.tyreTempI && d.tyreTempI[i]) || mid;
-    const out = (d.tyreTempO && d.tyreTempO[i]) || mid;
-    setTxt('tt-' + i, mid || '--');
-    const e = $('tt-' + i); if (e) e.style.color = tempColor(mid);
-    drawTyreBar('tb-' + i, mid);
-    // 'tyreWear' vem em 0..100 (100 = novo); mostramos o desgaste
-    const worn = (d.tyreWearUsed && d.tyreWearUsed[i] != null)
-      ? d.tyreWearUsed[i] : null;
-    setTxt('tw-' + i, worn == null ? '--' : worn.toFixed(1) + '%');
-    e.title = 'int ' + inn + '  meio ' + mid + '  ext ' + out + ' °C';
-  }
-
-  // travões
-  for (let i = 0; i < 4; i++) {
-    const t = Math.round((d.brakeTemp && d.brakeTemp[i]) || 0);
-    setTxt('bt-' + i, t || '--');
-    const e = $('bt-' + i);
-    if (e) e.style.color = !t ? '' : t > 600 ? '#FF0000' : t > 400 ? '#F58020' : '#fff';
-  }
+  // pneus e travões
+  renderTyres('tyres', d);
+  renderBrakes('brake-temp', d);
 
   // combustivel
   setTxt('fuel-pct', Math.round(d.fuelPct || 0));
-  $('fuel-bar').style.width = Math.min(100, d.fuelPct || 0) + '%';
+  $('fuel-bar').style.width = clamp(d.fuelPct || 0, 0, 100) + '%';
   setTxt('fuel-l', (d.fuelL || 0).toFixed(1) + ' L');
-  setTxt('fuel-max', (d.maxFuelL || 0).toFixed(0) + ' L');
-  setTxt('temps', Math.round(d.airTemp || 0) + ' / ' + Math.round(d.roadTemp || 0) + ' °C');
+  setTxt('fuel-laps', d.fuelLaps != null ? d.fuelLaps.toFixed(1) : '—');
+  setTxt('temps', fmtTemp(d.airTemp || 0) + ' / ' + fmtTemp(d.roadTemp || 0) + ' ' + tUnit());
   const pe = $('pen-time');
-  pe.textContent = d.penaltyTime > 0 ? '+' + d.penaltyTime + ' s' : (d.penaltiesEnabled ? 'nenhuma' : 'desativadas');
-  pe.className = d.penaltyTime > 0 ? 'alert' : '';
+  if (pe) {
+    pe.textContent = d.penaltyTime > 0 ? '+' + d.penaltyTime + ' s'
+      : d.penaltyFlag ? '!' : (d.penaltiesEnabled ? t('fuel.none') : '—');
+    pe.className = (d.penaltyTime > 0 || d.penaltyFlag) ? 'alert' : '';
+  }
+  setTxt('ers-used', d.ersUsedThisLapKJ ? Math.round(d.ersUsedThisLapKJ) + ' kJ' : '—');
+
+  // mapa: o plano da pista e' X-Z (ver nota acima).
+  // A zona de DRS e' marcada a mao, NAO vem do drsAvailable: medido numa
+  // volta completa esse flag esteve a 1 em 98.9% do tracado, distribuido
+  // por igual nos cinco quintos da pista. Pintar com ele deixava a pista
+  // toda a verde, que e' pior do que nao pintar nada.
+  pushMapPoint(d.x, d.z, S.marking, d.sector);
+  setTxt('trackpct', (clamp(d.trackPct || 0, 0, 1) * 100).toFixed(1) + '%');
+  setTxt('sector', t('sector') + ' ' + ((d.sector || 0) + 1) + (d.sectorCount ? '/' + d.sectorCount : ''));
+
+  // modo misto
+  setTxt('b-speed', fmtSpeed(d.speed || 0));
+  setTxt('b-gear', d.gear || 'N');
+  setTxt('b-rpm', d.rpm || 0);
+  $('b-rpm-fill').style.width = (100 - clamp((d.rpm || 0) / (d.maxRpm || 12000) * 100, 0, 100)) + '%';
+  setLight('b-l-ers', hasE ? Math.round(d.ersPct || 0) + '%' : '—', hasE ? 'on' : '');
+  $('b-ers-bar').style.width = clamp(d.ersPct || 0, 0, 100) + '%';
+  setLight('b-l-pit', d.pitLimiter ? t('state.lim') : d.isInPit ? t('lb.pit') : '—',
+    d.pitLimiter ? 'bad' : d.isInPit ? 'warn' : '');
+  setTxt('b-trackpct', (clamp(d.trackPct || 0, 0, 1) * 100).toFixed(1) + '%');
+  setTxt('b-sector', t('sector') + ' ' + ((d.sector || 0) + 1) + (d.sectorCount ? '/' + d.sectorCount : ''));
+  renderTyres('tyres2', d);
+  renderBrakes('brake-temp2', d);
+
+  // modo leaderboard: faixa do teu carro
+  setTxt('m-speed', fmtSpeed(d.speed || 0));
+  setTxt('m-gear', d.gear || 'N');
+  $('m-rpm').style.width = pct + '%';
+  setTxt('m-current', d.currentTime || '--:--.---');
+  $('m-current').classList.toggle('empty', !d.currentTime || d.currentTime.indexOf('--') === 0);
+  const mde = $('m-delta');
+  if (mde) {
+    const dl2 = computeDelta(d.trackPct || 0, curSec == null ? 0 : curSec);
+    mde.textContent = dl2 == null ? '+0.000' : (dl2 >= 0 ? '+' : '') + dl2.toFixed(3);
+    mde.style.color = dl2 != null && dl2 < 0 ? 'var(--green)' : '';
+  }
+  setTxt('m-pen', d.penaltyTime > 0 ? '+' + d.penaltyTime + ' s' : (d.penaltiesEnabled ? t('fuel.none') : '—'));
+  setTxt('m-drs', !d.hasDRS ? '—' : dr.on ? t('drs.open') : dr.avail ? t('drs.avail') : t('drs.off'));
+  setTxt('m-brake', (d.brakeTemp || []).map((v) => fmtTemp(v)).join(' ') || '—');
+  setTxt('m-fuel', Math.round(d.fuelPct || 0) + '% · ' + (d.fuelL || 0).toFixed(0) + ' L');
+  renderTyres('tyres3', d);
+
+  lastD = d;
 }
 
-let raf = 0;
-function loop() { drawMap(); raf = requestAnimationFrame(loop); }
+/* ------------------------------------------------------------ adversarios */
+let myCarId = null;
+function renderOpponents(o) {
+  if (!o) return;
+  const rows1 = $('lb-rows'), rows2 = $('lb-rows2');
+  const note1 = $('lb-note'), note2 = $('lb-note2');
+  const compact = !!rows2;
 
-window.addEventListener('resize', () => { /* o canvas reajusta no proximo frame */ });
+  if (!o.available || !o.cars || o.cars.length === 0) {
+    const msg = '<b>' + t('opp.waiting') + '</b><br>' + t('opp.how');
+    [rows1, rows2].forEach((r) => { if (r) r.innerHTML = ''; });
+    [note1, note2].forEach((n) => {
+      if (n) { n.innerHTML = o.available ? t('opp.none') : msg; n.classList.remove('hidden'); }
+    });
+    return;
+  }
+  [note1, note2].forEach((n) => { if (n) n.classList.add('hidden'); });
 
-const clearBtn = $('map-clear');
-if (clearBtn) clearBtn.addEventListener('click', () => { resetMap(true); drawMap(); });
+  myCarId = o.focus;
+  // o melhor tempo do jogador, para calcular diferencas
+  let leaderBest = 0;
+  for (const c of o.cars) {
+    const s = toSec(c.best);
+    if (s != null && (leaderBest === 0 || s < leaderBest)) leaderBest = s;
+  }
+  const me = o.cars.find((c) => c.id === myCarId) || null;
+  const html = o.cars.map((c) => {
+    const best = toSec(c.best);
+    let gap = '';
+    if (c.id !== myCarId && best != null && leaderBest > 0) {
+      const d = best - leaderBest;
+      gap = (d >= 0 ? '+' : '') + d.toFixed(3);
+    }
+    const isMe = c.id === myCarId;
+    const cols = compact
+      ? '<span class="lb-pos">' + (c.pos || '-') + '</span>' +
+        '<span class="lb-name">' + esc(c.name) + '<small>' + esc(c.car) + '</small></span>' +
+        '<span class="lb-lap">' + (c.lap + 1) + '</span>' +
+        '<span class="lb-best">' + (c.best || '--') + '</span>'
+      : '<span class="lb-pos">' + (c.pos || '-') + '</span>' +
+        '<span class="lb-name">' + esc(c.name) + '<small>' + esc(c.car) + '</small></span>' +
+        '<span class="lb-lap">' + (c.lap + 1) + '</span>' +
+        '<span class="lb-time">' + (c.last || '--') + '</span>' +
+        '<span class="lb-best">' + (c.best || '--') + '</span>' +
+        '<span class="lb-gap' + (gap ? (gap[0] === '-' ? ' neg' : ' pos') : '') + '">' + gap + '</span>';
+    return '<div class="lb-row' + (isMe ? ' me' : '') + (c.inPit ? ' pit' : '') + '">' + cols + '</div>';
+  }).join('');
 
-loadMap();
-connect();
-loop();
+  if (rows1) rows1.innerHTML = html;
+  if (rows2) rows2.innerHTML = html;
+}
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"]/g, (c) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
+/* ------------------------------------------------------------ loop */
+function loop() {
+  const mode = DEF.mode || 'telemetry';
+  if (DEF.map !== 'off') {
+    if (mode === 'telemetry') drawMap('map');
+    else if (mode === 'both') drawMap('map2');
+  }
+  if (mode === 'telemetry') drawPedals('pedals');
+  else if (mode === 'both') drawPedals('pedals2');
+  requestAnimationFrame(loop);
+}
+
+/* ------------------------------------------------------------ arranque */
+function boot() {
+  loadDef();
+  applyLang();
+  buildTyres('tyres');
+  buildTyres('tyres2');
+  buildTyres('tyres3');
+  bindSettings();
+  syncSettingsUI();
+  loadMap();
+  applyMode();
+  document.body.classList.remove('booting');
+  connectOpponents();
+  connectTelemetry();
+  loop();
+
+  if (DEF.mode) {
+    // ja escolheu antes: nao mostrar o menu, so acionar a vista
+    applyMode();
+  } else {
+    showMenu(true);
+  }
+  addFpsControl();
+}
+
+function addFpsControl() {
+  const host = document.getElementById('set-fps-host');
+  if (!host) return;
+  host.innerHTML =
+    '<h3>' + t('set.fps') + '</h3>' +
+    '<div class="seg" id="set-fps">' +
+    [10, 20, 30, 60].map((v) =>
+      '<button data-v="' + v + '">' + v + ' fps</button>').join('') +
+    '</div>';
+  document.querySelectorAll('#set-fps button').forEach((b) => {
+    b.classList.toggle('on', +b.getAttribute('data-v') === +DEF.fps);
+    b.addEventListener('click', () => {
+      DEF.fps = +b.getAttribute('data-v');
+      saveDef(); syncFpsUI();
+      connectTelemetry();          // reabre com o novo ritmo
+    });
+  });
+}
+function syncFpsUI() {
+  document.querySelectorAll('#set-fps button').forEach((b) => {
+    b.classList.toggle('on', +b.getAttribute('data-v') === +DEF.fps);
+  });
+}
+
+window.addEventListener('resize', () => { /* os canvas reajustam no proximo frame */ });
+document.addEventListener('DOMContentLoaded', boot);

@@ -135,23 +135,41 @@ class Handler(BaseHTTPRequestHandler):
     # -- rotas ---------------------------------------------------------
     def do_GET(self):
         path = self.path.split("?", 1)[0]
+        query = self.path.split("?", 1)[1] if "?" in self.path else ""
         if path in ("/", "/index.html"):
             return self._file("index.html")
         if path == "/api/state":
             return self._send(200, json.dumps(self.hub.get()).encode(),
                               "application/json; charset=utf-8")
+        if path == "/api/opponents":
+            return self._send(200, json.dumps(self.hub.get_opponents()).encode(),
+                              "application/json; charset=utf-8")
         if path == "/api/lan":
             return self._send(200, json.dumps(self._lan()).encode(),
                               "application/json; charset=utf-8")
         if path == "/events":
-            return self._events()
+            return self._events(query)
+        if path == "/events/opponents":
+            return self._events_opponents(query)
         return self._file(path)
+
+    @staticmethod
+    def _fps(query, default=60, lo=5, hi=60):
+        """fps pedido pelo browser (?fps=30). Fica sempre dentro do razoavel:
+        nem 1 fps (inutil), nem 200 (so queima CPU e bateria)."""
+        try:
+            for pair in query.split("&"):
+                if pair.startswith("fps="):
+                    v = int(float(pair[4:]))
+                    return max(lo, min(hi, v))
+        except (ValueError, TypeError):
+            pass
+        return default
 
     def _lan(self):
         return {"ip": lan_ip(), "port": self.server.server_address[1]}
 
-    def _events(self):
-        """Server-Sent Events: empurra um snapshot por frame, a 60 Hz."""
+    def _sse_head(self):
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream; charset=utf-8")
         self.send_header("Cache-Control", "no-cache, no-store")
@@ -159,7 +177,11 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("X-Accel-Buffering", "no")
         self.end_headers()
 
-        period = 1.0 / 60.0
+    def _events(self, query=""):
+        """Telemetria do jogador, ao ritmo que este cliente pediu."""
+        fps = self._fps(query)
+        self._sse_head()
+        period = 1.0 / fps
         next_t = time.time()
         try:
             while True:
@@ -170,6 +192,27 @@ class Handler(BaseHTTPRequestHandler):
                 if next_t < now:              # atrasou: nao acumula
                     next_t = now + period
                 payload = json.dumps(self.hub.get(), separators=(",", ":"))
+                self.wfile.write(b"data: " + payload.encode() + b"\n\n")
+                self.wfile.flush()
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError, OSError):
+            pass
+
+    def _events_opponents(self, query=""):
+        """Adversarios. 10 Hz por predefinicao: 128 carros a 60 Hz seriam
+        ~25 KB por frame, e para uma tabela isso e' desperdicio."""
+        fps = self._fps(query, default=10, lo=2, hi=30)
+        self._sse_head()
+        period = 1.0 / fps
+        next_t = time.time()
+        try:
+            while True:
+                now = time.time()
+                if now < next_t:
+                    time.sleep(next_t - now)
+                next_t += period
+                if next_t < now:
+                    next_t = now + period
+                payload = json.dumps(self.hub.get_opponents(), separators=(",", ":"))
                 self.wfile.write(b"data: " + payload.encode() + b"\n\n")
                 self.wfile.flush()
         except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError, OSError):
