@@ -592,6 +592,10 @@ class ACTelemetry:
             "wheelSlip": [round(v, 3) for v in ph.wheelSlip],
             "clutchRaw": round(ph.clutch, 3),
             "carDamage": [round(v, 3) for v in ph.carDamage],
+            # brakeBias: fracao 0..1, medida 0.58 num Toyota TS040 sem nada
+            # mexido. O HUD do Content Manager le o campo com o mesmo nome e
+            # mostra-o x100, e ajusta-o de 0,5 em 0,5 -- ver Regra nº 18.
+            "brakeBias": round(ph.brakeBias, 4),
             "airTemp": round(ph.airTemp, 1),
             "roadTemp": round(ph.roadTemp, 1),
             "surfaceGrip": round(gr.surfaceGrip, 2),

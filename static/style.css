@@ -448,6 +448,17 @@ body{
 .brake-vals{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;flex:1 1 auto;min-width:0}
 .brake-vals b{font-weight:900;font-size:15px;font-variant-numeric:tabular-nums;text-align:right}
 
+/* Danos: quatro barras, uma por canto. Escondidas enquanto estiver tudo
+   a zero -- um painel de danos vazio e' ruido. */
+.damage-row{margin-top:4px;padding-top:0;border-bottom:0}
+.damage-bars{display:flex;gap:6px;flex:1 1 auto;justify-content:flex-end}
+.dmg{display:flex;align-items:center;gap:3px}
+.dmg-t{font-size:9px;font-weight:700;letter-spacing:.08em;color:var(--grey)}
+.dmg-bar{display:block;width:34px;height:6px;background:#232A2B;border-radius:3px;overflow:hidden}
+.dmg-bar b{display:block;height:100%;width:0;background:var(--gold);transition:width .2s}
+.dmg.warn .dmg-bar b{background:var(--orange)}
+.dmg.bad .dmg-bar b{background:var(--red)}
+
 /* ------------------------------------------------------------ combustivel */
 .fuel-big{font-weight:900;font-size:clamp(30px,3.4vw,50px);line-height:1;display:flex;align-items:baseline;gap:2px;flex:0 0 auto}
 .fuel-big small{font-size:.38em;color:var(--grey)}

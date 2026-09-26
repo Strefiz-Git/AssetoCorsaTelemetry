@@ -63,7 +63,10 @@ const I18N = {
     'tyres.lifeNote': 'Estimativa a partir do desgaste já medido neste stint. O Assetto Corsa não publica a vida do composto, e o desgaste que publica é lento demais para dar um número fiável: se aparecer, é porque o valor desta vez é plausível.',
     'tyres.notWear': 'não dá',
     'tyres.notWearWhy': 'O desgaste que o jogo publica é lento demais para um stint real: 0,17% ao fim de duas voltas dariam 588 voltas de vida. Não dá para prever a partir dele.',
-    'brakes.title': 'TRAVÕES', 'fuel.title': 'COMBUSTÍVEL',
+    'brakes.title': 'TRAVÕES', 'brakes.bias': 'B. TRAVA',
+    'brakes.biasTitle': 'Distribuição da travagem, em percentagem do travão total. Medido 0,58 num TS040 sem nada mexido. O HUD do Content Manager mostra o mesmo campo e ajusta-o de 0,5 em 0,5.',
+    'tyres.damage': 'DANOS',
+    'fuel.title': 'COMBUSTÍVEL',
     'wx.air': 'AR', 'wx.road': 'PISTA', 'wx.wind': 'VENTO', 'wx.density': 'DENSIDADE', 'wx.grip': 'ADERENCIA', 'unit.c': '°C',
     'fuel.inTank': 'Na reserva', 'fuel.lapsLeft': 'Voltas',
     'fuel.ambient': 'Ar / pista', 'fuel.penalty': 'Penalidade',
@@ -128,7 +131,10 @@ const I18N = {
     'tyres.surface': 'Temperatura da banda. O número grande é o do núcleo, que é o que o jogo mostra.',
     'tyres.wornTitle': 'Desgaste, usado', 'tyres.pressTitle': 'Pressão real, em psi. O jogo mostra o desvio para uma nominal que não é publicada.',
     'tyres.lifeNote': 'Estimativa feita do desgaste que já aconteceu neste stint, não de uma tabela do jogo: o Assetto Corsa não publica a vida do pneu. Depois de duas voltas medidas o número já significa alguma coisa; antes disso é um palpite.',
-    'brakes.title': 'FREIOS', 'fuel.title': 'COMBUSTÍVEL',
+    'brakes.title': 'FREIOS', 'brakes.bias': 'B. TRAVA',
+    'brakes.biasTitle': 'Distribuição da frenagem, em porcentagem do freio total. Medido 0,58 num TS040 sem nada mexido. O HUD do Content Manager mostra o mesmo campo e ajusta de 0,5 em 0,5.',
+    'tyres.damage': 'AVARIAS',
+    'fuel.title': 'COMBUSTÍVEL',
     'wx.air': 'AR', 'wx.road': 'PISTA', 'wx.wind': 'VENTO', 'wx.density': 'DENSIDADE', 'wx.grip': 'ADERENCIA', 'unit.c': '°C',
     'fuel.inTank': 'No tanque', 'fuel.lapsLeft': 'Voltas',
     'fuel.ambient': 'Ar / pista', 'fuel.penalty': 'Penalty',
@@ -194,7 +200,10 @@ const I18N = {
     'tyres.notWear': 'no se puede',
     'tyres.notWearWhy': 'El desgaste que publica el juego no acompaña un stint real: da 0,17% tras dos vueltas, o que serían 588 vueltas de vida. No se puede predecir a partir de ahí.',
     'tyres.lifeNote': 'Estimación a partir del desgaste que ya ha ocurrido en este stint, no de una tabla del juego: Assetto Corsa no publica la vida del compuesto. Tras dos vueltas medidas el número ya significa algo; antes es una suposición.',
-    'brakes.title': 'FRENOS', 'fuel.title': 'COMBUSTIBLE',
+    'brakes.title': 'FRENOS', 'brakes.bias': 'B. FRENO',
+    'brakes.biasTitle': 'Distribución de la frenada, en porcentaje del freno total. Medido 0,58 en un TS040 sin tocar nada. El HUD de Content Manager muestra el mismo campo y lo ajusta de 0,5 en 0,5.',
+    'tyres.damage': 'DAÑOS',
+    'fuel.title': 'COMBUSTIBLE',
     'wx.air': 'AIRE', 'wx.road': 'PISTA', 'wx.wind': 'VIENTO', 'wx.density': 'DENSIDAD', 'wx.grip': 'ADHERENCIA', 'unit.c': '°C',
     'fuel.inTank': 'En el depósito', 'fuel.lapsLeft': 'Vueltas',
     'fuel.ambient': 'Aire / pista', 'fuel.penalty': 'Penalización',
@@ -263,7 +272,10 @@ const I18N = {
     'tyres.notWear': 'cannot tell',
     'tyres.notWearWhy': 'The wear the game publishes does not track a real stint: 0.17% after two laps, which would be 588 laps of life. There is no way to predict from it.',
     'tyres.lifeNote': 'Estimated from the wear that has already happened on this stint, not from a game table: Assetto Corsa does not publish the compound life. After two measured laps the number means something; before that it is a guess.',
-    'brakes.title': 'BRAKES', 'fuel.title': 'FUEL',
+    'brakes.title': 'BRAKES', 'brakes.bias': 'B. BIAS',
+    'brakes.biasTitle': 'Brake distribution, as a percentage of total braking. Measured 0.58 on a TS040 untouched. The Content Manager HUD shows the same field and adjusts it in 0.5 steps.',
+    'tyres.damage': 'DAMAGE',
+    'fuel.title': 'FUEL',
     'wx.air': 'AIR', 'wx.road': 'TRACK', 'wx.wind': 'WIND', 'wx.density': 'DENSITY', 'wx.grip': 'GRIP', 'unit.c': '°C',
     'fuel.inTank': 'In tank', 'fuel.lapsLeft': 'Laps',
     'fuel.ambient': 'Air / track', 'fuel.penalty': 'Penalty',
@@ -1375,7 +1387,10 @@ function renderTyres(hostId, d) {
       pe.title = t('tyres.pressTitle');
     }
   }
-  if (hostId === 'tyres') renderTyreLife(d);
+  if (hostId === 'tyres') {
+    renderTyreLife(d);
+    renderDanos(d);
+  }
 }
 
 /* ------------------------------------------------- vida do pneu (medida) */
@@ -1450,6 +1465,68 @@ function renderBrakes(hostId, d) {
     e.textContent = v ? fmtTemp(v) + unidadeTemp() : '--';
     // a cor e' sempre calculada em Celsius, mude a unidade nao muda a leitura
     e.style.color = !v ? '' : v > 600 ? '#FF0000' : v > 400 ? '#F58020' : '#fff';
+  }
+}
+
+/* ------------------------------------------------------- B. Bias (distribuicao)
+ *
+ * Medido: 0,58 num Toyota TS040 sem nada mexido. E' uma FRACAO 0..1, e o
+ * HUD do Content Manager le o campo com o mesmo nome, mostra-o x100 e
+ * ajusta-o de 0,5 em 0,5 (Regra nº 18).
+ */
+function renderBrakeBias(d) {
+  const e = $('brake-bias');
+  if (!e) return;
+  const v = d.brakeBias;
+  if (typeof v !== 'number' || !isFinite(v)) { e.textContent = '—'; return; }
+  e.textContent = Math.round(v * 100) + '%';
+  e.title = t('brakes.biasTitle');
+}
+
+/* ------------------------------------------------------------------ danos
+ *
+ * A memoria partilhada da' CINCO valores em carDamage. O painel de danos
+ * do HUD do Content Manager usa QUATRO, e o desenho diz a ordem:
+ *
+ *   car.damage[0] = para-choques da frente     (o painel drawing-o no topo)
+ *   car.damage[1] = para-choques de tras       (desenhado em baixo)
+ *   car.damage[2] = lado esquerdo
+ *   car.damage[3] = lado direito
+ *
+ * E divide por 60 para obter 0..1. Logo o campo e' 0..60, e 60 e' o
+ * maximo. O quinto valor da struct nao e' usado por ninguem que eu
+ * encontrei -- fica semexplicacao e sem ser mostrado.
+ *
+ * So se mostra quando ha' dano. Um painel de danos vazio e' ruido, e o
+ * HUD do jogo tambem so o mostra quando algo parte.
+ */
+const DANOS_ORDEM = ['F', 'T', 'E', 'D'];
+const DANO_MAX = 60;
+function renderDanos(d) {
+  const row = $('damage-row');
+  const host = $('damage-bars');
+  if (!row || !host) return;
+  const v = d.carDamage;
+  const vals = Array.isArray(v) ? v.slice(0, 4).map((x) => (typeof x === 'number' ? x : 0)) : [];
+  if (vals.length !== 4) { row.classList.add('hidden'); return; }
+  const algum = vals.some((x) => x > 0.01);
+  row.classList.toggle('hidden', !algum);
+  if (!algum) return;
+  if (host.childElementCount !== 4) {
+    host.innerHTML = '';
+    for (let i = 0; i < 4; i++) {
+      const s = document.createElement('span');
+      s.className = 'dmg';
+      s.innerHTML = '<i class="dmg-t">' + DANOS_ORDEM[i] + '</i>'
+        + '<i class="dmg-bar"><b></b></i>';
+      host.appendChild(s);
+    }
+  }
+  for (let i = 0; i < 4; i++) {
+    const f = clamp(vals[i] / DANO_MAX, 0, 1);
+    const b = host.children[i].querySelector('b');
+    if (b) b.style.width = (f * 100).toFixed(0) + '%';
+    host.children[i].className = 'dmg' + (f > 0.6 ? ' bad' : f > 0.2 ? ' warn' : '');
   }
 }
 
@@ -1933,6 +2010,7 @@ function render(d) {
   // pneus e travões
   renderTyres('tyres', d);
   renderBrakes('brake-temp', d);
+  renderBrakeBias(d);
 
   // combustivel
   setTxt('fuel-pct', Math.round(d.fuelPct || 0));
