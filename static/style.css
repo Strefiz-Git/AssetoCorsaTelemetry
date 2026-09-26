@@ -254,6 +254,37 @@ body{
 }
 .rpm-gear-hint{margin-left:auto;color:var(--red);font-weight:900;letter-spacing:.08em}
 
+/* ------------------------------------------------------------ clima */
+/* O AC nao publica chuva. Publica o efeito: temperatura do ar e da
+   pista, densidade do ar, vento. A aderencia e' o unico campo que diz
+   se a pista esta molhada - e por isso fica aixo dos pneus. */
+.weather{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:6px;
+  margin-top:8px;flex:0 0 auto;
+}
+.wx{background:var(--block);border-radius:6px;padding:4px 7px;min-width:0;
+  display:flex;flex-direction:column;gap:1px}
+.wx-lbl{font-size:8px;font-weight:700;letter-spacing:.12em;color:var(--grey);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wx-val{font-weight:900;font-size:clamp(12px,1.2vw,15px);
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+.wx-val i{font-style:normal;font-size:.68em;color:var(--grey);margin-left:2px}
+
+/* pneu: codigo grande ao lado do titulo, nome completo por baixo */
+.card-head{display:flex;align-items:baseline;gap:8px;flex:0 0 auto}
+.card-head h2{margin-bottom:0}
+.compound{
+  margin-left:auto;font-weight:900;font-size:17px;letter-spacing:.04em;
+  color:#000;background:var(--gold);border-radius:5px;padding:1px 8px;
+  line-height:1.25;white-space:nowrap;
+}
+.compound-name{
+  font-size:10px;font-weight:600;color:var(--grey);
+  margin:4px 0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  flex:0 0 auto;
+}
+.grip-row{margin-top:5px;padding-top:0;border-bottom:0}
+
 /* luzes de estado */
 .lights{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:7px;margin-top:9px;flex:0 0 auto}
 .light{

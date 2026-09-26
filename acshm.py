@@ -573,6 +573,16 @@ class ACTelemetry:
             "airTemp": round(ph.airTemp, 1),
             "roadTemp": round(ph.roadTemp, 1),
             "surfaceGrip": round(gr.surfaceGrip, 2),
+
+            # Clima. O AC NAO publica chuva nem estado do tempo em
+            # nenhuma das tres paginas - nao ha campo para isso. O que ha
+            # e' o efeito: a aderencia da pista desce quando esta molhado,
+            # e por isso e' o 'surfaceGrip' que diz mais sobre a chuva do
+            # que um flag que nao existe. Verificado a andar com o carro.
+            "airDensity": round(ph.airDensity, 4),      # kg/m3 (1.225 ao nivel do mar)
+            "windSpeed": round(gr.windSpeed, 2),        # km/h
+            "windDirection": round(gr.windDirection, 1),
+            "trackLength": round(st.trackSPlineLength, 1),   # metros
         }
 
 

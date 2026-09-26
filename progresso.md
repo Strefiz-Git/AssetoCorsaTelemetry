@@ -245,6 +245,8 @@ Branch: `feat/interface-nova-e-modo-liderboard`
 | Pressões em psi | 28,7–32,3 num F1; kPa seria menos que a pressão atmosférica |
 | Embraiagem = engate | 21 mergulhos, 21 mudanças de caixa, 100% |
 | ABS/TC = nível | constantes em 4502 amostras, logo são ajuste e não actividade |
+| Clima | ar, pista, vento e densidade lidos da memória; medido 18,9 °C, 25,1 °C, 0 km/h, 1,2146 kg/m³ |
+| Pneu | código extraído do nome: "Slick Hard (H)" → badge **H**; "Pirelli P Zero 2025 C3 (C3)" → **C3** |
 
 ### Com o AC desligado: a suite de testes
 

@@ -74,6 +74,11 @@ for name, struct in zip(NAMES, (acshm.SPageFilePhysics,
             obj.brakeTemp[i] = 300 + i * 7
             obj.tyreWear[i] = 99.75 - i * 5      # 0..100, 100 = novo
             obj.wheelsPressure[i] = 27.0 + i
+        # clima. airDensity em kg/m3 (1.225 ao nivel do mar); medido num
+        # dia real deu 1.2146, que e' o esperado para alguns metros de
+        # altitude. O AC nao tem campo de chuva - a aderencia e' que diz.
+        obj.airTemp = 18.9; obj.roadTemp = 25.1
+        obj.airDensity = 1.2145
     elif name == NAMES[1]:
         obj.status = 2; obj.session = 0; obj.currentSectorIndex = 1
         obj.iCurrentTime = 83456; obj.iLastTime = 91234; obj.iBestTime = 88999
@@ -82,12 +87,15 @@ for name, struct in zip(NAMES, (acshm.SPageFilePhysics,
         obj.carCoordinates[0] = 123.45; obj.carCoordinates[1] = -678.9
         obj.normalizedCarPosition = 0.4213
         obj.tyreCompound = "dry_compound"
+        obj.surfaceGrip = 1.0                   # seco
+        obj.windSpeed = 12.5; obj.windDirection = 217.0
     else:
         obj._acVersion = "1.16.2"; obj.carModel = "ferrari_488"; obj.track = "monza"
         obj.maxRpm = 12000; obj.maxFuel = 100.0; obj.numCars = 20
         obj.hasDRS = 1; obj.hasERS = 1; obj.hasKERS = 1
         obj.ersMaxJ = 4000000.0; obj.kersMaxJ = 0.0   # 4 MJ, em joules
         obj.sectorCount = 3; obj.penaltiesEnabled = 1
+        obj.trackSPlineLength = 20695.0          # metros
 
 t = acshm.ACTelemetry(names=NAMES)
 assert t.connected, "FAIL: nao consegui abrir as paginas de teste"
@@ -114,7 +122,10 @@ checks = [
     ("tyreWearUsed", [0.25, 5.25, 10.25, 15.25]),
     ("tyrePressure", [27.0, 28.0, 29.0, 30.0]),
     ("compound", "dry_compound"), ("sector", 1), ("sectorCount", 3),
-    ("numCars", 20), ("airTemp", 0.0), ("surfaceGrip", 0.0),
+    ("numCars", 20), ("trackLength", 20695.0),
+    # clima
+    ("airTemp", 18.9), ("roadTemp", 25.1), ("airDensity", 1.2145),
+    ("surfaceGrip", 1.0), ("windSpeed", 12.5), ("windDirection", 217.0),
 ]
 bad = []
 for k, want in checks:

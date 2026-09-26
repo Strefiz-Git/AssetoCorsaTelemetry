@@ -212,6 +212,29 @@
             <span class="l-val">—</span>
           </div>
         </div>
+
+        <!-- Clima. O AC nao publica chuva nem estado do tempo: nao ha
+             campo para isso em nenhuma das tres paginas. O que publica
+             e' o EFEITO - temperatura do ar, da pista, densidade do ar,
+             vento e aderencia. A aderencia e' que diz se esta molhado. -->
+        <div class="weather">
+          <div class="wx">
+            <span class="wx-lbl" data-i18n="wx.air">AR</span>
+            <span class="wx-val"><span id="wx-air">—</span><i data-i18n="unit.c">°C</i></span>
+          </div>
+          <div class="wx">
+            <span class="wx-lbl" data-i18n="wx.road">PISTA</span>
+            <span class="wx-val"><span id="wx-road">—</span><i data-i18n="unit.c">°C</i></span>
+          </div>
+          <div class="wx">
+            <span class="wx-lbl" data-i18n="wx.wind">VENTO</span>
+            <span class="wx-val"><span id="wx-wind">—</span><i data-i18n="unit.kmh">km/h</i></span>
+          </div>
+          <div class="wx">
+            <span class="wx-lbl" data-i18n="wx.density">DENSIDADE</span>
+            <span class="wx-val"><span id="wx-density">—</span><i>kg/m³</i></span>
+          </div>
+        </div>
       </section>
 
       <section class="card c-pedals">
@@ -241,11 +264,19 @@
       </section>
 
       <section class="card c-tyres">
-        <h2 data-i18n="tyres.title">PNEUS E TRAVÕES</h2>
+        <div class="card-head">
+          <h2 data-i18n="tyres.title">PNEUS E TRAVÕES</h2>
+          <span class="compound" id="compound-code" hidden></span>
+        </div>
+        <p class="compound-name" id="compound-name">—</p>
         <div class="tyres" id="tyres"></div>
         <div class="brake-row">
           <span data-i18n="brakes.title">TRAVÕES</span>
           <span class="brake-vals" id="brake-temp"></span>
+        </div>
+        <div class="kv grip-row">
+          <span data-i18n="wx.grip">ADERÊNCIA</span>
+          <b id="wx-grip">—</b>
         </div>
       </section>
 
@@ -326,6 +357,24 @@
           <div class="light" id="b-l-ers"><span class="l-lbl" data-i18n="ers.short">ERS</span><span class="l-val">—</span><div class="l-bar"><i id="b-ers-bar"></i></div></div>
           <div class="light" id="b-l-pit"><span class="l-lbl" data-i18n="pit.short">PIT</span><span class="l-val">—</span></div>
         </div>
+        <div class="weather">
+          <div class="wx">
+            <span class="wx-lbl" data-i18n="wx.air">AR</span>
+            <span class="wx-val"><span id="b-wx-air">—</span><i data-i18n="unit.c">°C</i></span>
+          </div>
+          <div class="wx">
+            <span class="wx-lbl" data-i18n="wx.road">PISTA</span>
+            <span class="wx-val"><span id="b-wx-road">—</span><i data-i18n="unit.c">°C</i></span>
+          </div>
+          <div class="wx">
+            <span class="wx-lbl" data-i18n="wx.wind">VENTO</span>
+            <span class="wx-val"><span id="b-wx-wind">—</span><i data-i18n="unit.kmh">km/h</i></span>
+          </div>
+          <div class="wx">
+            <span class="wx-lbl" data-i18n="wx.grip">ADERÊNCIA</span>
+            <span class="wx-val"><span id="b-wx-grip">—</span></span>
+          </div>
+        </div>
       </section>
 
       <section class="card c-pedals">
@@ -346,7 +395,11 @@
       </section>
 
       <section class="card c-tyres">
-        <h2 data-i18n="tyres.title">PNEUS E TRAVÕES</h2>
+        <div class="card-head">
+          <h2 data-i18n="tyres.title">PNEUS E TRAVÕES</h2>
+          <span class="compound" id="compound-code2" hidden></span>
+        </div>
+        <p class="compound-name" id="compound-name2">—</p>
         <div class="tyres" id="tyres2"></div>
         <div class="brake-row">
           <span data-i18n="brakes.title">TRAVÕES</span>

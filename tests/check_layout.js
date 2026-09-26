@@ -75,6 +75,23 @@
         if (cv && (cv.clientWidth < 20 || cv.clientHeight < 20))
           maus.push(id + ' sem dimensao (' + cv.clientWidth + 'x' + cv.clientHeight + ')');
       });
+      // Só o que está na vista visível. Uma consulta ao documento inteiro
+      // apanha também as vistas escondidas, que têm tamanho zero, e dá
+      // falsos positivos em tudo.
+      d.querySelectorAll('.view:not(.hidden) .weather .wx').forEach(c => {
+        const r = c.getBoundingClientRect();
+        if (r.width < 25 || r.height < 18)
+          maus.push('clima ' + Math.round(r.width) + 'x' + Math.round(r.height));
+      });
+      d.querySelectorAll('.view:not(.hidden) .compound').forEach(b => {
+        if (b.hidden) return;
+        const r = b.getBoundingClientRect();
+        if (r.width < 20 || r.height < 14) maus.push('badge pneu ' + Math.round(r.width) + 'x' + Math.round(r.height));
+        if (r.right > w.innerWidth + 2) maus.push('badge pneu fora do ecra');
+      });
+      d.querySelectorAll('.view:not(.hidden) .compound-name').forEach(nm => {
+        if (nm.scrollWidth > nm.clientWidth + 2) maus.push('nome do pneu cortado');
+      });
       const cab = d.querySelector('.head');
       if (cab && cab.scrollWidth > cab.clientWidth + 2)
         maus.push('cabecalho ' + cab.scrollWidth + '>' + cab.clientWidth);

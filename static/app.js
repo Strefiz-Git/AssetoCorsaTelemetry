@@ -46,6 +46,7 @@ const I18N = {
     'laps.last': 'ANTERIOR', 'laps.delta': 'DELTA',
     'tyres.title': 'PNEUS E TRAVÕES', 'tyres.worn': 'gasto',
     'brakes.title': 'TRAVÕES', 'fuel.title': 'COMBUSTÍVEL',
+    'wx.air': 'AR', 'wx.road': 'PISTA', 'wx.wind': 'VENTO', 'wx.density': 'DENSIDADE', 'wx.grip': 'ADERENCIA', 'unit.c': '°C',
     'fuel.inTank': 'Na reserva', 'fuel.lapsLeft': 'Voltas',
     'fuel.ambient': 'Ar / pista', 'fuel.penalty': 'Penalidade',
     'fuel.ersUsed': 'ERS na volta', 'fuel.none': 'nenhuma',
@@ -93,6 +94,7 @@ const I18N = {
     'laps.last': 'ANTERIOR', 'laps.delta': 'DELTA',
     'tyres.title': 'PNEUS E FREIOS', 'tyres.worn': 'usado',
     'brakes.title': 'FREIOS', 'fuel.title': 'COMBUSTÍVEL',
+    'wx.air': 'AR', 'wx.road': 'PISTA', 'wx.wind': 'VENTO', 'wx.density': 'DENSIDADE', 'wx.grip': 'ADERENCIA', 'unit.c': '°C',
     'fuel.inTank': 'No tanque', 'fuel.lapsLeft': 'Voltas',
     'fuel.ambient': 'Ar / pista', 'fuel.penalty': 'Penalty',
     'fuel.ersUsed': 'ERS na volta', 'fuel.none': 'nenhuma',
@@ -139,6 +141,7 @@ const I18N = {
     'laps.last': 'ANTERIOR', 'laps.delta': 'DELTA',
     'tyres.title': 'NEUMÁTICOS Y FRENOS', 'tyres.worn': 'gastado',
     'brakes.title': 'FRENOS', 'fuel.title': 'COMBUSTIBLE',
+    'wx.air': 'AIRE', 'wx.road': 'PISTA', 'wx.wind': 'VIENTO', 'wx.density': 'DENSIDAD', 'wx.grip': 'ADHERENCIA', 'unit.c': '°C',
     'fuel.inTank': 'En el depósito', 'fuel.lapsLeft': 'Vueltas',
     'fuel.ambient': 'Aire / pista', 'fuel.penalty': 'Penalización',
     'fuel.ersUsed': 'ERS en la vuelta', 'fuel.none': 'ninguna',
@@ -188,6 +191,7 @@ const I18N = {
     'laps.last': 'LAST', 'laps.delta': 'DELTA',
     'tyres.title': 'TYRES AND BRAKES', 'tyres.worn': 'worn',
     'brakes.title': 'BRAKES', 'fuel.title': 'FUEL',
+    'wx.air': 'AIR', 'wx.road': 'TRACK', 'wx.wind': 'WIND', 'wx.density': 'DENSITY', 'wx.grip': 'GRIP', 'unit.c': '°C',
     'fuel.inTank': 'In tank', 'fuel.lapsLeft': 'Laps',
     'fuel.ambient': 'Air / track', 'fuel.penalty': 'Penalty',
     'fuel.ersUsed': 'ERS this lap', 'fuel.none': 'none',
@@ -797,6 +801,76 @@ function syncDrsMarkUI() {
   }
 }
 
+/* ------------------------------------------------------------ clima e pneu */
+/* O AC nao tem campo de chuva nem de estado do tempo em nenhuma das tres
+   paginas. Nao se inventa: mostra-se o que o jogo publica, que e' o
+   efeito do clima - ar, pista, densidade, vento - e a aderencia, que e'
+   o unico sinal de pista molhada. */
+
+function pintarClima(d) {
+  // escrever nos dois modos, para o clima nao desaparecer ao mudar de vista
+  for (const pfx of ['', 'b-']) {
+    setTxt(pfx + 'wx-air', d.airTemp != null ? fmtTemp(d.airTemp) : '—');
+    setTxt(pfx + 'wx-road', d.roadTemp != null ? fmtTemp(d.roadTemp) : '—');
+    setTxt(pfx + 'wx-wind', d.windSpeed != null ? d.windSpeed.toFixed(0) : '—');
+    pintarGrip(pfx + 'wx-grip', d.surfaceGrip);
+  }
+
+  // densidade do ar: 1.225 ao nivel do mar, menos um pouco por altitude
+  // e por ar frio. Mostra-se com tres casas porque a diferenca entre dois
+  // dias e' na terceira casa.
+  const dens = $('wx-density');
+  if (dens) {
+    dens.textContent = d.airDensity != null ? d.airDensity.toFixed(3) : '—';
+    // fora do plausivel (0.9 a 1.4) e' melhor cinzento do que um numero
+    // acredivel mas errado
+    const ok = d.airDensity != null && d.airDensity > 0.9 && d.airDensity < 1.4;
+    dens.style.color = ok ? '' : 'var(--grey)';
+  }
+}
+
+/* Aderencia: 1.0 e' o valor de seco. Só se pinta quando desce, que e'
+   quando chove. Nao se escreve "molhado" com base numa suposicao - o
+   numero fala por si. */
+function pintarGrip(id, v) {
+  const g = $(id);
+  if (!g) return;
+  g.textContent = v != null ? v.toFixed(2) : '—';
+  g.style.color = v == null ? '' : v >= 0.98 ? '' : v >= 0.85 ? 'var(--orange)' : 'var(--red)';
+}
+
+/* O nome do pneu vem do jogo em varios formatos. Nos carros de 2025 e'
+   "Pirelli P Zero 2025 C3 (C3)" - o codigo esta entre parenteses. No AC
+   base pode ser "dry_compound", sem codigo nenhum. Só se mostra o badge
+   quando ha codigo: nada de adivinhar uma sigla a partir de um nome. */
+function codigoPneu(nome) {
+  if (!nome) return '';
+  const m = String(nome).match(/\(([^)]{1,12})\)\s*$/);
+  return m ? m[1].trim() : '';
+}
+function pintarPneu(d) {
+  const nome = d.compound || '';
+  // o modo telemetria e o modo misto tem os seus cartoes, por isso escreve
+  // nos dois senao o pneu so aparecia num dos modos
+  setTxt('compound-name', nome || '—');
+  setTxt('compound-name2', nome || '—');
+  const codigo = codigoPneu(nome);
+  for (const id of ['compound-code', 'compound-code2']) {
+    const badge = $(id);
+    if (!badge) continue;
+    if (codigo) {
+      badge.textContent = codigo;
+      badge.hidden = false;
+    } else if (nome && nome.indexOf('_') < 0) {
+      // sem codigo entre parenteses, mas com um nome limpo: mostra o nome
+      badge.textContent = nome.toUpperCase();
+      badge.hidden = false;
+    } else {
+      badge.hidden = true;
+    }
+  }
+}
+
 /* ------------------------------------------------------------ widgets */
 function setDrs(els, d) {
   const on = d.drsEnabled >= 1, avail = d.drsAvailable >= 1;
@@ -970,6 +1044,10 @@ function render(d) {
     $('lap-progress').style.width = clamp(p * 100, 0, 100) + '%';
   }
   renderSectors(d);
+
+  // clima e pneu
+  pintarClima(d);
+  pintarPneu(d);
 
   // pedais
   pushTrace(d);

@@ -287,6 +287,43 @@ Fica por decidir. Enquanto isso, o traço aparece mas vazio.
   de baixa velocidade) ou escrever uma app Python no Content Manager que
   o publique. Está a ser mostrado como traço vazio, sem inventar valor.
 
+## Clima: o que o AC dá e o que não dá
+
+Procurado campo a campo nas três páginas com
+`tests/clima.py`. O AC **não publica chuva nem estado do tempo** — não há
+campo para isso. Publica o efeito:
+
+| campo | o que é | medido |
+|---|---|---|
+| `airTemp` | temperatura do ar, °C | 18,9 |
+| `roadTemp` | temperatura da pista, °C | 25,1 |
+| `airDensity` | densidade do ar, kg/m³ | 1,2146 (1,225 ao nível do mar) |
+| `windSpeed` | vento, km/h | 0,0 |
+| `windDirection` | direção do vento | 0,0 |
+| `surfaceGrip` | aderência da pista | 1,0 (seco) |
+
+Por isso a interface mostra ar, pista, vento, densidade e aderência, e
+**não mostra "chuva"** — não há nada para mostrar. A aderência é que diz
+se a pista está molhada: 1,0 é seco, e desce com a água. A partir de
+0,85 pinta-se a laranja, abaixo disso a vermelho. O número é sempre
+visível; não se escreve "molhado" com base numa suposição.
+
+Falta confirmar com uma sessão com chuva: não sei a que valor a
+aderência desce, nem se o AC chega a simular vento.
+
+## O pneu
+
+O campo `tyreCompound` traz o nome completo, e nos carros de 2025 traz o
+código entre parênteses: `"Pirelli P Zero 2025 C3 (C3)"`. Noutros
+formatos é `"Slick Hard (H)"`.
+
+A interface mostra o **código num badge dourado** ao lado do título, e o
+nome completo por baixo. O código só aparece se estiver no nome: não se
+adivinha uma sigla a partir de um nome. No AC base, onde o valor pode ser
+`dry_compound`, o badge fica escondido em vez de inventar um código.
+
+---
+
 ## Não são problemas (já esclarecidos)
 
 - **O combustível não mexer dentro da volta.** Cheguei a registar isto

@@ -82,6 +82,8 @@ primeira execução o Python pergunta se aceita em redes privadas.
 | **Pneus** | temperatura interior / meio / exterior, desgaste, pressão |
 | **Travões** | temperatura dos quatro |
 | **Combustível** | %, litros, capacidade, temperatura do ar e da pista |
+| **Clima** | ar, pista, vento, densidade do ar, aderência |
+| **Pneus** | código do pneu (C3, H, …), nome completo, pressão em psi, aderência |
 | **DRS · ERS · ABS · TC** | estado e percentagens |
 | **Penalidade · bandeira · posição** | |
 
