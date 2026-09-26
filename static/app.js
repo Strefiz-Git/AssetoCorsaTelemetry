@@ -24,6 +24,7 @@ const I18N = {
     'menu.both': 'Misto',
     'menu.bothDesc': 'Telemetria e leaderboard ao mesmo tempo',
     'set.title': 'Definições', 'set.mode': 'Vista', 'set.units': 'Unidades',
+    'set.close': 'Fechar', 'set.menu': 'Menu', 'set.open': 'Definições',
     'set.lang': 'Idioma', 'set.map': 'Mapa', 'set.mapOn': 'Mostrar',
     'set.mapOff': 'Esconder', 'set.clearMap': 'Apagar o mapa desenhado',
     'set.mapViewFull': 'Pista inteira', 'set.mapViewRel': 'Vista relativa',
@@ -95,6 +96,7 @@ const I18N = {
     'menu.leaderboard': 'Leaderboard', 'menu.leaderboardDesc': 'Classificação de todos os carros',
     'menu.both': 'Misto', 'menu.bothDesc': 'Telemetria e leaderboard ao mesmo tempo',
     'set.title': 'Configurações', 'set.mode': 'Tela', 'set.units': 'Unidades',
+    'set.close': 'Fechar', 'set.menu': 'Menu', 'set.open': 'Configurações',
     'set.lang': 'Idioma', 'set.map': 'Mapa', 'set.mapOn': 'Mostrar',
     'set.mapOff': 'Esconder', 'set.clearMap': 'Apagar o mapa desenhado',
     'set.mapViewFull': 'Pista inteira', 'set.mapViewRel': 'Vista relativa',
@@ -162,6 +164,7 @@ const I18N = {
     'menu.leaderboard': 'Leaderboard', 'menu.leaderboardDesc': 'Clasificación de todos los coches',
     'menu.both': 'Mixto', 'menu.bothDesc': 'Telemetría y leaderboard a la vez',
     'set.title': 'Ajustes', 'set.mode': 'Vista', 'set.units': 'Unidades',
+    'set.close': 'Cerrar', 'set.menu': 'Menú', 'set.open': 'Ajustes',
     'set.lang': 'Idioma', 'set.map': 'Mapa', 'set.mapOn': 'Mostrar',
     'set.mapOff': 'Ocultar', 'set.clearMap': 'Borrar el mapa dibujado',
     'set.mapViewFull': 'Pista completa', 'set.mapViewRel': 'Vista relativa',
@@ -234,6 +237,7 @@ const I18N = {
     'menu.leaderboardDesc': 'Standings for every car',
     'menu.both': 'Both', 'menu.bothDesc': 'Telemetry and leaderboard at once',
     'set.title': 'Settings', 'set.mode': 'View', 'set.units': 'Units',
+    'set.close': 'Close', 'set.menu': 'Menu', 'set.open': 'Settings',
     'set.lang': 'Language', 'set.map': 'Map', 'set.mapOn': 'Show',
     'set.mapOff': 'Hide', 'set.clearMap': 'Clear the drawn map',
     'set.mapViewFull': 'Full track', 'set.mapViewRel': 'Relative view',
@@ -422,8 +426,11 @@ function pintarDelta(el, dl) {
     return;
   }
   el.textContent = (dl >= 0 ? '+' : '') + dl.toFixed(3);
+  // vermelho aqui quer dizer "mais lento". E' a cor certa, mas o
+  // vermelho puro nao chega aos 4,5:1 que o texto exige -- por isso
+  // --red-txt, e nao --red, que fica para os cheios.
   el.style.color = Math.abs(dl) < DELTA_NEUTRA ? ''
-    : dl < 0 ? 'var(--green)' : 'var(--red)';
+    : dl < 0 ? 'var(--green)' : 'var(--red-txt)';
 }
 
 function onLapComplete(timeSec) {
@@ -1297,8 +1304,10 @@ function drawTyreBar(id, mid) {
 function tempColor(v, unit) {
   // os limites sao em Celsius, seja qual for a unidade mostrada
   const c = DEF.temp === 'F' ? (v - 32) * 5 / 9 : v;
-  if (c >= 105) return '#FF0000';
-  if (c >= 95) return '#F58020';
+  // --red-txt e nao --red: este devolve uma cor de TEXTO, e o vermelho
+  // puro da 4,32:1 sobre o painel, abaixo dos 4,5:1 que o texto exige.
+  if (c >= 105) return 'var(--red-txt)';
+  if (c >= 95) return 'var(--orange)';
   return '#FFFFFF';
 }
 
@@ -1464,7 +1473,7 @@ function renderBrakes(hostId, d) {
     if (!e) continue;
     e.textContent = v ? fmtTemp(v) + unidadeTemp() : '--';
     // a cor e' sempre calculada em Celsius, mude a unidade nao muda a leitura
-    e.style.color = !v ? '' : v > 600 ? '#FF0000' : v > 400 ? '#F58020' : '#fff';
+    e.style.color = !v ? '' : v > 600 ? 'var(--red-txt)' : v > 400 ? 'var(--orange)' : '#fff';
   }
 }
 
@@ -1537,6 +1546,15 @@ function applyLang() {
   document.querySelectorAll('[data-i18n]').forEach((e) => {
     e.textContent = t(e.getAttribute('data-i18n'));
   });
+  // O aria-label tambem e' texto visivel para quem nao ve. Antes ficava
+  // fixo em portugues: em ingles, o botao de fechar anunciava "Fechar".
+  // Um leitor de ecra em ingles lia a interface toda em portugues.
+  document.querySelectorAll('[data-i18n-aria]').forEach((e) => {
+    e.setAttribute('aria-label', t(e.getAttribute('data-i18n-aria')));
+  });
+  document.querySelectorAll('[data-i18n-title]').forEach((e) => {
+    e.setAttribute('title', t(e.getAttribute('data-i18n-title')));
+  });
   document.title = t('app.title');
   applyUnits();
   if (typeof syncDrsMarkUI === 'function') syncDrsMarkUI();
@@ -1563,13 +1581,20 @@ function showMenu(first) {
   $('menu').classList.remove('hidden');
   if (first) $('app').classList.add('hidden');
   $('boot').classList.add('hidden');
+  // o menu e' modal: a aplicacao de baixo nao entra na tabulacao
+  $('app').inert = true;
 }
 function pickMode(mode) {
   DEF.mode = mode; saveDef(); applyMode();
   $('menu').classList.add('hidden');
   $('app').classList.remove('hidden');
+  $('app').inert = false;
   if (!S.seenEver) $('boot').classList.remove('hidden');
   connectTelemetry();
+  // o foco volta para dentro da aplicacao, senao fica no botao do menu
+  // que acabou de desaparecer
+  const alvo = $('btn-menu');
+  if (alvo) alvo.focus();
 }
 
 /* ------------------------------------------------------------ definicoes UI */
@@ -1634,10 +1659,63 @@ function saveAcPath() {
   }).catch(() => setAcPathStatus(t('set.acPathBad'), 'bad'));
 }
 
+/* ------------------------------------------------- gaveta e menu: teclado
+ *
+ * Medido antes de mexer: o foco NAO estava preso. Ao 28.o Tab dentro da
+ * gaveta aberta o foco saltava para o botao do cabecalho, que esta por
+ * baixo do painel. O Escape nao fechava nada. Nao havia uma unica
+ * chamada a .focus() no ficheiro, portanto ao fechar a gaveta o foco
+ * ficava perdido no sitio onde o painel ja nao esta.
+ *
+ * `inert` e' o que resolve a fuga pela raiz: uma subarvore inert nao
+ * entra na ordem de tabulacao, logo nao ha nada para o foco "saltar"
+ * para tras. Nao e' preciso um ciclo de focus-trap feito a mao.
+ *
+ * O `aria-modal` diz ao leitor de ecra que isto e' um dialogo e que o
+ * que esta atras nao interessa -- sem ele, o leitor de ecra continua a
+ * ler o interface de baixo enquanto a gaveta esta aberta.
+ */
+let _gavetaAberta = false;
+let _quemAbriu = null;
+
+function abrirGaveta() {
+  const gav = $('settings');
+  if (!gav || _gavetaAberta) return;
+  _quemAbriu = document.activeElement;
+  _gavetaAberta = true;
+  gav.classList.remove('hidden');
+  $('app').inert = true;          // o interface de baixo sai da tabulacao
+  // o foco vai para o botao de fechar, que e' o primeiro util da gaveta
+  const alvo = $('set-close');
+  if (alvo) alvo.focus();
+}
+
+function fecharGaveta() {
+  const gav = $('settings');
+  if (!gav || !_gavetaAberta) return;
+  _gavetaAberta = false;
+  gav.classList.add('hidden');
+  $('app').inert = false;
+  // devolve o foco a quem abriu. Sem isto, quem fecha com o rato fica
+  // com o foco no sitio onde o painel ja nao esta.
+  if (_quemAbriu && document.contains(_quemAbriu)) _quemAbriu.focus();
+  _quemAbriu = null;
+}
+
+function gavetaAberta() { return _gavetaAberta; }
+
 function bindSettings() {
-  $('btn-set').addEventListener('click', () => $('settings').classList.toggle('hidden'));
-  $('set-close').addEventListener('click', () => $('settings').classList.add('hidden'));
+  $('btn-set').addEventListener('click', () => (gavetaAberta() ? fecharGaveta() : abrirGaveta()));
+  $('set-close').addEventListener('click', fecharGaveta);
   $('btn-menu').addEventListener('click', () => showMenu(false));
+
+  // Escape fecha. Uma tecla que toda a gente espera e que nao existia.
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape' && _gavetaAberta) {
+      ev.preventDefault();
+      fecharGaveta();
+    }
+  });
 
   document.querySelectorAll('#set-mode button').forEach((b) => {
     b.addEventListener('click', () => { DEF.mode = b.getAttribute('data-mode'); saveDef(); applyMode(); });
@@ -1764,7 +1842,7 @@ function pintarGrip(id, v) {
   const g = $(id);
   if (!g) return;
   g.textContent = v != null ? v.toFixed(2) : '—';
-  g.style.color = v == null ? '' : v >= 0.98 ? '' : v >= 0.85 ? 'var(--orange)' : 'var(--red)';
+  g.style.color = v == null ? '' : v >= 0.98 ? '' : v >= 0.85 ? 'var(--orange)' : 'var(--red-txt)';
 }
 
 /* O nome do pneu vem do jogo em varios formatos. Nos carros de 2025 e'

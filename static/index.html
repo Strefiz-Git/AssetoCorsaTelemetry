@@ -20,9 +20,13 @@
 </div>
 
 <!-- ================================================== menu inicial -->
-<div id="menu" class="overlay hidden">
+<!-- role=dialog + aria-modal: sao modais. A aplicacao de baixo e' posta
+     inert pelo JS enquanto estes estao abertos, por isso o leitor de
+     ecra nao le o que esta coberto. -->
+<div id="menu" class="overlay hidden" role="dialog" aria-modal="true"
+     aria-labelledby="menu-title">
   <div class="menu-box">
-    <h1 data-i18n="menu.title">O que queres ver?</h1>
+    <h1 id="menu-title" data-i18n="menu.title">O que queres ver?</h1>
     <p class="menu-sub" data-i18n="menu.sub">Podes mudar a qualquer momento nas definições.</p>
 
     <div class="menu-cards">
@@ -54,10 +58,11 @@
 </div>
 
 <!-- ================================================== definições -->
-<div id="settings" class="drawer hidden">
+<div id="settings" class="drawer hidden" role="dialog" aria-modal="true"
+     aria-labelledby="set-title">
   <div class="drawer-head">
-    <h2 data-i18n="set.title">Definições</h2>
-    <button id="set-close" class="icon-btn" aria-label="Fechar">✕</button>
+    <h2 id="set-title" data-i18n="set.title">Definições</h2>
+    <button id="set-close" class="icon-btn" data-i18n-aria="set.close" aria-label="Fechar">✕</button>
   </div>
 
   <div class="set-body">
@@ -140,7 +145,7 @@
 
   <!-- ------------------------------------------------ cabeçalho -->
   <header class="head">
-    <button id="btn-menu" class="icon-btn" aria-label="Menu">
+    <button id="btn-menu" class="icon-btn" data-i18n-aria="set.menu" aria-label="Menu">
       <svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
     </button>
 
@@ -159,7 +164,7 @@
       <span class="h-flag" id="flag">—</span>
       <span class="h-pos" id="pos">—</span>
       <span class="h-lap" id="lap">—</span>
-      <button id="btn-set" class="icon-btn" aria-label="Definições">
+      <button id="btn-set" class="icon-btn" data-i18n-aria="set.open" aria-label="Definições">
         <svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
     </div>
