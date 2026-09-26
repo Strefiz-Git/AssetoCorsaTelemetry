@@ -296,6 +296,9 @@ const S = {
   // velocidade amortecida, so' para o zoom da vista relativa. A
   // instantanea faz a imagem saltar a cada travagem e fica ilegivel.
   velSuave: 0,
+  // historico de posicao dos adversarios, para os desenhar interpolados.
+  // Ver opponentsSuaves(): o canal vai a 10 Hz e o ecrã a 60.
+  oppHist: {},
   frames: 0, fpsAt: performance.now(), fps: 0,
   trace: { t: [], th: [], br: [], cl: [], hb: [] },
   lastSample: 0, traceHz: 0,
@@ -581,9 +584,14 @@ function mapaEnquadramento(w, h, espW, espH, carroX, carroZ) {
   // Lento => perto (ampliado), rápido => longe (fechado). A velocidade é
   // amortecida (S.velSuave) porque a instantânea faz a imagem saltar a
   // cada travagem e fica ilegível.
+  //
+  // O mais perto são 150 m, e não 70. Com 70 m a bola do carro ficava do
+  // tamanho da pista e via-se menos de um segundo à frente a 300 km/h —
+  // o piloto pediu para não apertar tanto. 150 m é um compromise: dá para
+  // ver a próxima curva sem a bola tapar a estrada.
   const v = clamp(S.velSuave || 0, 0, 320);
-  const t = v / 320;                       // 0 parado .. 1 no limite
-  const perto = Math.max(inteira, Math.min((w - pad * 2) / 70, (h - pad * 2) / 70));
+  const t = clamp(v / 280, 0, 1);
+  const perto = Math.max(inteira, Math.min((w - pad * 2) / 150, (h - pad * 2) / 150));
   const longe = inteira;
   const sc = perto + (longe - perto) * t;
   return {
@@ -667,36 +675,33 @@ function drawMapReal(c, w, h, rm) {
     const key2 = $('map-drs-key2'); if (key2) key2.classList.toggle('hidden', !hasZone);
   }
 
-  // adversarios: pontos cinzentos com o numero de posicao
-  const opp = S.opponents;
-  if (opp && opp.available && Array.isArray(opp.cars)) {
-    // as bolas crescem com o zoom: na vista relativa ha' 6x mais pixeis por
-    // metro, e um circulo de 5 px ficava do tamanho de uma casa
-    const rOpp = q.relativa ? 9 : 5;
-    for (const car of opp.cars) {
-      if (car.id === myCarId) continue;
-      if (typeof car.x !== 'number' || typeof car.z !== 'number') continue;
-      const [ix, iy] = worldToMapImg(rm, car.x, car.z);
-      const x = px(ix), y = py(iy);
-      c.beginPath(); c.arc(x, y, rOpp, 0, Math.PI * 2);
-      c.fillStyle = car.inPit ? 'rgba(255,255,255,.35)' : '#8C9394';
-      c.fill();
-      if (car.pos) {
-        c.fillStyle = '#0A0E0E';
-        c.font = '700 ' + (q.relativa ? 12 : 8) + 'px Titillium, sans-serif';
-        c.textAlign = 'center'; c.textBaseline = 'middle';
-        c.fillText(String(car.pos), x, y + 0.5);
-      }
+  // adversarios: posicao interpolada (ver opponentsSuaves). O canal vai a
+  // 10 Hz e o ecra a 60, por isso desenhar o ultimo valor dava solavancos.
+  const pxPorM = sc * (rm.pxPerMetre || 1);
+  const rOpp = clamp(3.2 * pxPorM, 4, 12);
+  const suave = opponentsSuaves(performance.now() - OPP_ATRASO_MS);
+  for (const car of suave) {
+    if (car.id === myCarId) continue;
+    const [ix, iy] = worldToMapImg(rm, car.x, car.z);
+    const x = px(ix), y = py(iy);
+    c.beginPath(); c.arc(x, y, rOpp, 0, Math.PI * 2);
+    c.fillStyle = car.inPit ? 'rgba(255,255,255,.35)' : '#8C9394';
+    c.fill();
+    if (car.pos) {
+      c.fillStyle = '#0A0E0E';
+      c.font = '700 ' + Math.round(clamp(rOpp * 1.5, 8, 15)) + 'px Titillium, sans-serif';
+      c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText(String(car.pos), x, y + 0.5);
     }
   }
 
   // o proprio carro, por cima de tudo
   if (ult) {
     const x = px(carX), y = py(carZ);
-    const rMeu = q.relativa ? 11 : 6;
+    const rMeu = clamp(4.0 * pxPorM, 5, 16);
     c.beginPath(); c.arc(x, y, rMeu, 0, Math.PI * 2);
     c.fillStyle = '#FFD700'; c.fill();
-    c.lineWidth = q.relativa ? 2.4 : 1.6; c.strokeStyle = '#fff'; c.stroke();
+    c.lineWidth = clamp(rMeu * 0.3, 1.4, 3); c.strokeStyle = '#fff'; c.stroke();
   }
 
   c.restore();
@@ -785,11 +790,33 @@ function drawMapTraced(c, w, h) {
     }
   }
 
+  // adversarios, tambem com a posicao interpolada. O tracado usava metros
+  // a partir de S.minX/minY, por isso a conversao e' outra -- mas o
+  // desenho e' o mesmo, e as duas vistas tem de mostrar o mesmo.
+  const rOppT = clamp(3.2 * sc, 4, 12);
+  for (const car of opponentsSuaves(performance.now() - OPP_ATRASO_MS)) {
+    if (car.id === myCarId) continue;
+    const x = q.px(car.x - S.minX), y = q.py(car.z - S.minY);
+    c.beginPath(); c.arc(x, y, rOppT, 0, Math.PI * 2);
+    c.fillStyle = car.inPit ? 'rgba(255,255,255,.35)' : '#8C9394';
+    c.fill();
+    if (car.pos) {
+      c.fillStyle = '#0A0E0E';
+      c.font = '700 ' + Math.round(clamp(rOppT * 1.5, 8, 15)) + 'px Titillium, sans-serif';
+      c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText(String(car.pos), x, y + 0.5);
+    }
+  }
+
   // carro
   const p = S.path[S.path.length - 1];
-  c.beginPath(); c.arc(px(p), py(p), q.relativa ? 10 : 6, 0, Math.PI * 2);
+  // o raio segue a escala, para o circulo ter sempre o mesmo tamanho
+  // fisico: um carro tem ~4 m. Sem isto, o ponto ficava gigante na vista
+  // relativa e minusculo na pista inteira.
+  const pxPorM = sc;
+  c.beginPath(); c.arc(px(p), py(p), clamp(4.0 * pxPorM, 5, 16), 0, Math.PI * 2);
   c.fillStyle = '#FFD700'; c.fill();
-  c.lineWidth = q.relativa ? 2.4 : 1.6; c.strokeStyle = '#fff'; c.stroke();
+  c.lineWidth = clamp(4.0 * pxPorM * 0.3, 1.4, 3); c.strokeStyle = '#fff'; c.stroke();
 
   // a legenda só aparece quando há zona marcada
   const key = $('map-drs-key');
@@ -1806,9 +1833,84 @@ function render(d) {
 
 /* ------------------------------------------------------------ adversarios */
 let myCarId = null;
+
+/* O canal dos adversarios vai a 10 Hz (100 ms) e o ecra a 60. Desenhar o
+   ultimo valor recebido faz a bola saltar 7 metros de cada vez a 250 km/h
+   -- e foi isso que se viu no mapa: uma bola "tesa" a dar solavancos.
+ *
+ * A correcao e' a mesma que se usa em qualquer jogo com rede: guardar as
+ * ultimas posicoes e DESENHAR NO PASSADO. Com um atraso de 130 ms ha'
+ * sempre duas amostras que encadram o instante que se quer mostrar, e a
+ * posicao interpola-se entre elas. O movimento fica suave a 60 fps sem
+ * mandar mais dados.
+ *
+ * Nao se baixa para a interpolacao: se um adversario teleportar (mudanca
+ * de sessao, reposicao na grelha) nao se desenha uma bola a correr pelo
+ * mapa -- corta-se o troco e salta-se para a posicao nova. E o mesmo
+ * limiar de 40 m que o mapa ja usa para nao ligar um ponto ao seguinte.
+ */
+const OPP_ATRASO_MS = 130;
+const OPP_MAX_AMOSTRAS = 4;
+const OPP_SALTO_M = 40;
+
+function oppChave(c) {
+  return (c.id != null ? 'id' + c.id : 'n' + (c.name || '') + '_' + (c.pos || ''));
+}
+
+function guardarOppHist(o) {
+  const agora = performance.now();
+  const vistos = new Set();
+  for (const c of o.cars) {
+    if (typeof c.x !== 'number' || typeof c.z !== 'number') continue;
+    const k = oppChave(c);
+    vistos.add(k);
+    let h = S.oppHist[k];
+    if (!h) { h = S.oppHist[k] = []; }
+    h.push({ t: agora, x: c.x, z: c.z, pos: c.pos, name: c.name, inPit: c.inPit });
+    while (h.length > OPP_MAX_AMOSTRAS) h.shift();
+  }
+  // limpa o que deixou de aparecer, mas so depois de um segundo sem
+  // ver o carro -- uma falha de um pacote nao deve apagar o historico
+  for (const k of Object.keys(S.oppHist)) {
+    if (vistos.has(k)) continue;
+    const h = S.oppHist[k];
+    if (h.length && agora - h[h.length - 1].t > 1000) delete S.oppHist[k];
+  }
+}
+
+/* Devolve a lista de adversarios com a posicao interpolada no instante
+   pedido. Sem bracket (stream parado) fica na ultima posicao conhecida. */
+function opponentsSuaves(alvo) {
+  const out = [];
+  for (const k of Object.keys(S.oppHist)) {
+    const h = S.oppHist[k];
+    if (!h.length) continue;
+    let x = h[h.length - 1].x, z = h[h.length - 1].z;
+    for (let i = h.length - 1; i > 0; i--) {
+      const a = h[i - 1], b = h[i];
+      if (alvo >= a.t && alvo <= b.t) {
+        const dt = b.t - a.t;
+        // um salto grande NAO se interpola: e' um teleporte
+        if (dt > 0 && Math.abs(a.x - b.x) + Math.abs(a.z - b.z) < OPP_SALTO_M) {
+          const f = (alvo - a.t) / dt;
+          x = a.x + (b.x - a.x) * f;
+          z = a.z + (b.z - a.z) * f;
+        } else {
+          x = b.x; z = b.z;
+        }
+        break;
+      }
+    }
+    const ult = h[h.length - 1];
+    out.push({ id: ult.id != null ? ult.id : null, x: x, z: z, pos: ult.pos, inPit: ult.inPit });
+  }
+  return out;
+}
+
 function renderOpponents(o) {
   if (!o) return;
   S.opponents = o;
+  if (o.available && Array.isArray(o.cars)) guardarOppHist(o);
   const rows1 = $('lb-rows'), rows2 = $('lb-rows2');
   const note1 = $('lb-note'), note2 = $('lb-note2');
   const compact = !!rows2;
