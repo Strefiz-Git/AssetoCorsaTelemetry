@@ -548,6 +548,12 @@ const JANELA_SEG = 6;          // quantos segundos se veem
 const FAIXA_TOPO = 13;        // altura da tira do nome e do valor
 const EIXO_ALTURA_MAX = 15;   // altura da regua do tempo, quando ha espaco
 const PEDIDO_MINIMO = 1.6;    // largura minima da linha
+// Tempo sem amostra nenhuma a partir do qual se admite que o sinal
+// acabou. 150 ms e' folgado para o jitter do SSE (que vai ate ~66 ms
+// medidos) e muito mais curto do que uma pausa do jogo, que sao
+// segundos. Serve para o traço nao inventar uma linha recta atravessada
+// no ecra quando o jogo esta parado.
+const FALTA_REAL = 150;
 
 const FAIXAS = [
   { key: 'th', color: '#23CF16', fill: 'rgba(35,207,22,0.16)', rot: 'pedals.throttle' },
@@ -674,18 +680,26 @@ function drawPedals(canvasId) {
     // VALOR REAL mais recente nessa coluna - nunca uma media, que
     // mostraria valores que nunca aconteceram.
     //
-    // Uma coluna sem amostra NAO desenha. E' uma falha real nos dados
-    // (o jogo em pausa) e a linha tem de se partir ai, senão liga-se o
-    // antes com o depois e finge que o tempo passou.
+    // Uma coluna sem amostra NAO e' uma falha: a janela de 6 s num
+    // rectangulo de ~330 px vale 18 ms por pixel, e o canal SSE entrega
+    // a 30-50 Hz, ou seja 20 a 33 ms por amostra. Metade das colunas
+    // fica entao sem amostra, e partir a linha ai dava uma linha
+    // partida a cada dois pixels - que foi o que se via. Faltar amostra
+    // nao e' faltar dado: o valor continua a ser o ultimo conhecido, e
+    // e' esse que se desenha.
+    //
+    // A linha so parte quando passa mesmo tempo sem amostra nenhuma,
+    // que e' o jogo em pausa. Antes disso, nao.
     const pontos = [];
-    let i = 0, pendente = null;
+    let i = 0, pendente = null, ultimoT = -1e9;
     for (let x = 0; x < w; x++) {
-      let houve = false;
+      const tCol = inicio + (x / w) * JANELA_SEG * 1000;
       while (i < n && colOf(i) <= x) {
-        if (arr[i] != null) { pendente = arr[i]; houve = true; }
+        if (arr[i] != null) { pendente = arr[i]; ultimoT = tr.t[i]; }
         i++;
       }
-      if (!houve) { pendente = null; continue; }
+      if (pendente == null) continue;             // nada a desenhar ainda
+      if (tCol - ultimoT > FALTA_REAL) { pendente = null; continue; }  // falha a serio
       pontos.push(x, y(fy, pendente));
     }
     if (pontos.length < 4) continue;
