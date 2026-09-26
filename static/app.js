@@ -131,7 +131,7 @@ const I18N = {
     'tyres.surface': 'Temperatura da banda. O número grande é o do núcleo, que é o que o jogo mostra.',
     'tyres.wornTitle': 'Desgaste, usado', 'tyres.pressTitle': 'Pressão real, em psi. O jogo mostra o desvio para uma nominal que não é publicada.',
     'tyres.lifeNote': 'Estimativa feita do desgaste que já aconteceu neste stint, não de uma tabela do jogo: o Assetto Corsa não publica a vida do pneu. Depois de duas voltas medidas o número já significa alguma coisa; antes disso é um palpite.',
-    'brakes.title': 'FREIOS', 'brakes.bias': 'B. TRAVA',
+    'brakes.title': 'FREIOS', 'brakes.bias': 'B. FREIO',
     'brakes.biasTitle': 'Distribuição da frenagem, em porcentagem do freio total. Medido 0,58 num TS040 sem nada mexido. O HUD do Content Manager mostra o mesmo campo e ajusta de 0,5 em 0,5.',
     'tyres.damage': 'AVARIAS',
     'fuel.title': 'COMBUSTÍVEL',
