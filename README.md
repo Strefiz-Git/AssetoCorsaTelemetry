@@ -49,9 +49,13 @@ abrir o browser assim que a porta aceita ligações.
 
 | Ficheiro | O que faz |
 |---|---|
-| `INICIAR.bat` | arranca o servidor e abre o browser |
+| `INICIAR.bat` | arranca o servidor **em segundo plano** e abre o browser |
 | `PARAR.bat` | **para o servidor** |
 | `REINICIAR.bat` | para e arranca de novo |
+
+**O servidor fica a correr em segundo plano.** Pode fechar a janela do
+`INICIAR.bat` (ou do `REINICIAR.bat`) que o dashboard continua a
+funcionar. Para o parar, é o `PARAR.bat`.
 
 O `REINICIAR.bat` é o que se usa **depois de mexer no `acshm.py` ou no
 `server.py`**: o servidor lê o código uma vez só, no arranque, e por isso
@@ -64,6 +68,16 @@ processos python". Isto importa porque o Python do Content Manager, o do
 SimHub e o de outras ferramentas também se chama `python.exe`. Antes de
 matar, confirma pela linha de comando que o processo é mesmo o
 servidor; se for outra coisa na mesma porta, diz e não toca.
+
+Se o `INICIAR.bat` for aberto com o servidor já a correr, ele avisa e
+limita-se a abrir o browser — não arranca uma segunda cópia.
+
+### Quando algo corre mal
+
+O servidor corre sem janela, por isso não há consola onde ver erros. O
+que sai dele vai para **`servidor.log`** e **`servidor.log.err`**, no
+directório do projecto. É o primeiro sítio a olhar se o dashboard não
+actualizar.
 
 ### Opções
 
@@ -152,9 +166,10 @@ referência no mesmo ponto da pista, interpolado.
 
 ```
 AssettoCorsaTelemetry/
-├── INICIAR.bat              arranca o servidor e abre o browser
+├── INICIAR.bat              arranca o servidor em segundo plano e abre o browser
 ├── PARAR.bat                para o servidor
 ├── REINICIAR.bat            para e arranca de novo
+├── arrancar.ps1             a lógica do INICIAR (o .bat chama esta)
 ├── parar.ps1                a lógica do PARAR (o .bat chama esta)
 ├── server.py                servidor HTTP + SSE
 ├── acshm.py                 leitura da memória partilhada e structs do AC

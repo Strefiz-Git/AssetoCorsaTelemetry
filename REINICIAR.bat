@@ -1,38 +1,24 @@
 @echo off
-REM Reinicia o servidor de telemetria: para o que estiver a correr e
-REM arranca outro. E o que se usa depois de mexer no acshm.py ou no
-REM server.py, porque o servidor le o codigo uma vez so no arranque.
+REM Para o servidor de telemetria e arranca outro, em segundo plano.
+REM
+REM E' este que se usa depois de mexer no acshm.py ou no server.py: o
+REM servidor le o codigo uma vez so, no arranque. Nos ficheiros de
+REM static/ nao e' preciso - o browser vai busca-los de cada vez.
 REM
 REM   REINICIAR.bat          porta 8765
 REM   REINICIAR.bat 9000     outra porta
+REM
+REM Pode fechar esta janela: o servidor continua a correr. Para o parar,
+REM corra PARAR.bat.
 
 setlocal
 cd /d "%~dp0"
-set "PORTA=%~1"
-if not defined PORTA set "PORTA=8765"
+
+if "%~1"=="" (set "PORTA=8765") else (set "PORTA=%~1")
 
 powershell -NoProfile -ExecutionPolicy Bypass -File "parar.ps1" -Porta %PORTA%
 
-REM --- o python certo -------------------------------------------------
-set "PY="
-where python >nul 2>nul && set "PY=python"
-if not defined PY where py >nul 2>nul && set "PY=py -3"
-if not defined PY (
-  echo.
-  echo   Python nao encontrado. Instala o Python 3.
-  echo.
-  pause
-  exit /b 1
-)
+powershell -NoProfile -ExecutionPolicy Bypass -File "arrancar.ps1" -Porta %PORTA%
 
-echo   A arrancar de novo...
-echo.
-echo   O servidor corre nesta janela. Para o parar, fecha-a
-echo   (ou corre PARAR.bat noutra janela).
-echo.
-
-%PY% server.py --port %PORTA% --abrir
-
-echo.
-echo   Servidor parado.
-pause
+if errorlevel 1 pause
+endlocal

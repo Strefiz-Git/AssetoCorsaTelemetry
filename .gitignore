@@ -32,3 +32,5 @@ _msg.txt
 captura.json
 tests/chuva_dump.json
 ac_settings.json
+servidor.log
+servidor.log.err
