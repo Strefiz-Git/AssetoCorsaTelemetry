@@ -7,6 +7,27 @@ tempo. Estão todas aqui para não se repetirem.
 
 ---
 
+## Obrigatório: git automático
+
+**Lê a skill `git-workflow` antes de fazer a primeira alteração.**
+
+```
+.opencode/skill/git-workflow/SKILL.md
+```
+
+Resumo, sem desculpas:
+
+- **Commita sem perguntar.** Cada bloco de trabalho concluído é um commit.
+  Nunca perguntar se se deve commitar.
+- **Cria branch para trabalho grande** (nova função, refactor, documento
+  grande) — antes de começar a mexer, não no fim. Bug fix pequeno vai
+  directo ao `main`.
+- **Um commit, uma coisa.** A mensagem explica o **porquê**.
+- **Nunca** `push`, `--force`, `reset --hard`, `clean -fd` ou
+  `checkout .` sobre trabalho por guardar. Essas não se desfazem.
+
+---
+
 ## Regra nº 1 — nunca escrever na memória do jogo
 
 **Isto é o mais importante deste ficheiro.**
