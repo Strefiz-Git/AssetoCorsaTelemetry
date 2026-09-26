@@ -106,6 +106,7 @@
     <section class="set-group">
       <h3 data-i18n="set.drsZone">Zona de DRS</h3>
       <p class="set-note" data-i18n="set.drsZoneWhy"></p>
+      <p class="set-note drs-verdict" id="set-drs-verdict">—</p>
       <button id="set-drs-mark" class="wide-btn mark" data-i18n="set.drsMark">Marcar</button>
       <button id="set-drs-clear" class="wide-btn" data-i18n="set.drsClear">Apagar a zona de DRS</button>
     </section>
@@ -198,11 +199,13 @@
           </div>
           <div class="light" id="l-abs">
             <span class="l-lbl">ABS</span>
-            <span class="l-val" data-i18n="state.off">OFF</span>
+            <span class="l-val">—</span>
+            <div class="l-bar"><i id="abs-bar"></i></div>
           </div>
           <div class="light" id="l-tc">
             <span class="l-lbl">TC</span>
-            <span class="l-val" data-i18n="state.off">OFF</span>
+            <span class="l-val">—</span>
+            <div class="l-bar"><i id="tc-bar"></i></div>
           </div>
           <div class="light" id="l-pit">
             <span class="l-lbl" data-i18n="pit.short">PIT</span>

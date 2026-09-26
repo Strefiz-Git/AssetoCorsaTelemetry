@@ -28,6 +28,10 @@ const I18N = {
     'set.mapOff': 'Esconder', 'set.clearMap': 'Apagar o mapa desenhado',
     'set.drsZone': 'Zona de DRS', 'set.drsMark': 'Marcar a zona', 'set.drsMarking': 'A marcar... clica para parar', 'set.drsClear': 'Apagar a zona de DRS',
     'set.drsZoneWhy': 'O jogo nao diz onde acaba a zona: o drsAvailable fica a 1 quase sempre, por isso o mapa teria a pista toda a verde. Marca-se a zona a conduzir, com o tracado real.',
+    'set.drsVerdictZona': 'O drsAvailable marca a zona nesta pista - pintado automaticamente.',
+    'set.drsVerdictSempre': 'O drsAvailable ficou ligado quase sempre nesta pista, por isso NAO marca a zona. Pinta-se a mao.',
+    'set.drsVerdictNunca': 'O drsAvailable nunca ficou ligado nesta pista, por isso NAO marca a zona.',
+    'set.drsAMedir': 'A medir o drsAvailable numa volta inteira...',
     'set.fps': 'Envio de dados', 'set.about': 'Sobre',
     'set.aboutBody': 'Telemetria lida directamente da memória do Assetto Corsa. Sem SimHub.',
     'drs.short': 'DRS', 'gear.label': 'CAIXA', 'unit.kmh': 'km/h',
@@ -72,6 +76,10 @@ const I18N = {
     'set.mapOff': 'Esconder', 'set.clearMap': 'Apagar o mapa desenhado',
     'set.drsZone': 'Zona de DRS', 'set.drsMark': 'Marcar a zona', 'set.drsMarking': 'Marcando... clique para parar', 'set.drsClear': 'Apagar a zona de DRS',
     'set.drsZoneWhy': 'O jogo nao diz onde termina a zona: o drsAvailable fica em 1 quase sempre, por isso o mapa teria a pista toda verde. Marque a zona dirigindo, com o tracado real.',
+    'set.drsVerdictZona': 'O drsAvailable marca a zona nesta pista - pintado automaticamente.',
+    'set.drsVerdictSempre': 'O drsAvailable ficou ligado quase sempre nesta pista, por isso NAO marca a zona. Pinta-se na mao.',
+    'set.drsVerdictNunca': 'O drsAvailable nunca ficou ligado nesta pista, por isso NAO marca a zona.',
+    'set.drsAMedir': 'Medindo o drsAvailable numa volta inteira...',
     'set.fps': 'Envio de dados', 'set.about': 'Sobre',
     'set.aboutBody': 'Telemetria lida direto da memória do Assetto Corsa. Sem SimHub.',
     'drs.short': 'DRS', 'gear.label': 'MARCHA', 'unit.kmh': 'km/h',
@@ -114,6 +122,10 @@ const I18N = {
     'set.mapOff': 'Ocultar', 'set.clearMap': 'Borrar el mapa dibujado',
     'set.drsZone': 'Zona de DRS', 'set.drsMark': 'Marcar la zona', 'set.drsMarking': 'Marcando... pulsa para parar', 'set.drsClear': 'Borrar la zona de DRS',
     'set.drsZoneWhy': 'El juego no dice donde acaba la zona: el drsAvailable se queda en 1 casi siempre, por eso el mapa tendria el circuito todo en verde. Marcala conduciendo, con el trazado real.',
+    'set.drsVerdictZona': 'El drsAvailable marca la zona en esta pista - pintado automaticamente.',
+    'set.drsVerdictSempre': 'El drsAvailable se quedo encendido casi siempre en esta pista, asi que NO marca la zona. Se pinta a mano.',
+    'set.drsVerdictNunca': 'El drsAvailable nunca se encendio en esta pista, asi que NO marca la zona.',
+    'set.drsAMedir': 'Midiendo el drsAvailable en una vuelta entera...',
     'set.fps': 'Envío de datos', 'set.about': 'Acerca de',
     'set.aboutBody': 'Telemetría leída directamente de la memoria del Assetto Corsa. Sin SimHub.',
     'drs.short': 'DRS', 'gear.label': 'MARCHA', 'unit.kmh': 'km/h',
@@ -159,6 +171,10 @@ const I18N = {
     'set.mapOff': 'Hide', 'set.clearMap': 'Clear the drawn map',
     'set.drsZone': 'DRS zone', 'set.drsMark': 'Mark the zone', 'set.drsMarking': 'Marking... click to stop', 'set.drsClear': 'Clear the DRS zone',
     'set.drsZoneWhy': 'The game does not say where the zone ends: drsAvailable stays at 1 almost everywhere, so the map would be green all the way round. Mark it while driving, on the real line.',
+    'set.drsVerdictZona': 'drsAvailable does mark the zone on this track - painted automatically.',
+    'set.drsVerdictSempre': 'drsAvailable stayed on almost all the way round, so it does NOT mark the zone. Mark it by hand.',
+    'set.drsVerdictNunca': 'drsAvailable never came on on this track, so it does NOT mark the zone.',
+    'set.drsAMedir': 'Measuring drsAvailable over a full lap...',
     'set.fps': 'Data rate', 'set.about': 'About',
     'set.aboutBody': 'Telemetry read straight from Assetto Corsa memory. No SimHub.',
     'drs.short': 'DRS', 'gear.label': 'GEAR', 'unit.kmh': 'km/h',
@@ -233,6 +249,15 @@ const S = {
   trace: { t: [], th: [], br: [], cl: [], hb: [] },
   lastSample: 0, traceHz: 0,
   marking: false,          // a marcar a zona de DRS a mao
+  // Verificacao do drsAvailable como flag de zona. Fica a medir uma volta
+  // antes de dizer que serve: um campo que esta ligado quase sempre nao
+  // e' um campo de zona, e' decoracao.
+  drsAuto: false,          // aceite como flag de zona
+  drsVeredito: null,       // 'zona' | 'sempre ligado' | null (a medir)
+  drsConta: 0,             // pontos contados na volta a medir
+  drsAceso: 0,             // quantos estavam com drsAvailable a 1
+  drsPctMin: 0.02,         // abaixo disto, a pista toda a verde e' uma zona
+  drsPctMax: 0.60,         // acima disto, o campo esta sempre ligado
 };
 const TRACE_N = 420;              // ~7 s a 60 Hz
 const TRACE_MAXHZ = 60;
@@ -287,6 +312,41 @@ function onLapComplete(timeSec) {
   }
   S.lapPct = [];
   S.sectorTimes = [];
+  fecharVoltaDrs();
+}
+
+/* ------------------------------------------------------------- veredito DRS
+   Decide se o drsAvailable serve para pintar a zona, depois de uma volta
+   inteira. Criterio: a percentagem do tracado com o campo ligado tem de
+   ser uma minoria clara. Se for quase tudo, o campo esta sempre ligado e
+   nao marca zona nenhuma - e pintar com ele e' pior do que nao pintar. */
+function fecharVoltaDrs() {
+  if (S.drsVeredito) return;            // ja decidido, nao se mexe
+  if (S.drsConta < 400) return;         // volta ainda curta demais
+  const frac = S.drsAceso / S.drsConta;
+  S.drsFrac = frac;
+  if (frac >= S.drsPctMax) {
+    S.drsVeredito = 'sempre ligado';
+    S.drsAuto = false;
+  } else if (frac <= S.drsPctMin) {
+    S.drsVeredito = 'nunca ligado';
+    S.drsAuto = false;
+  } else {
+    S.drsVeredito = 'zona';
+    S.drsAuto = true;
+    // Repintar o que ja foi gravado, agora que se sabe que o campo serve.
+    // Cada ponto guarda tambem o drsAvailable original (indice 4), para
+    // isto ser possivel mais tarde sem voltar a conduzir.
+    let n = 0;
+    for (const p of S.path) {
+      if (p[4] && !p[2]) { p[2] = 1; n++; }
+    }
+    S.drsRepintados = n;
+  }
+  S.drsConta = 0;
+  S.drsAceso = 0;
+  guardarVereditoDrs();
+  syncDrsMarkUI();
 }
 
 /* ------------------------------------------------------------ mapa */
@@ -296,23 +356,31 @@ function onLapComplete(timeSec) {
    Mapear X contra Y dava um rabisco achatado sem ser a pista. */
 const MAP_KEY = 'acmap.v2';   // v2: mudou o plano (X-Z). O v1 esta errado.
 
-function pushMapPoint(x, y, drs, sector) {
+/* Cada ponto e' [x, z, pintado, sector, drsAvailableOriginal].
+   O quinto elemento e' o drsAvailable tal como veio do jogo, guardado para
+   poder pintar a zona mais tarde, quando uma volta inteira disser que o
+   campo serve. Mapas gravados antes disso tem so quatro: e' aceite, mas
+   esses pontos nao podem ser repintados. */
+function pushMapPoint(x, y, drs, sector, drsOriginal) {
   if (!isFinite(x) || !isFinite(y)) return;
   if (x === 0 && y === 0) return;
   const p = S.path[S.path.length - 1];
   if (p && Math.abs(p[0] - x) + Math.abs(p[1] - y) < 0.3) return;
-  S.path.push([x, y, drs ? 1 : 0, sector | 0]);
+  S.path.push([x, y, drs ? 1 : 0, sector | 0, drsOriginal ? 1 : 0]);
   if (S.path.length > 24000) S.path.splice(0, 6000);
   if (x < S.minX) S.minX = x; if (x > S.maxX) S.maxX = x;
   if (y < S.minY) S.minY = y; if (y > S.maxY) S.maxY = y;
+  if (!S.drsVeredito) { S.drsConta++; if (drsOriginal) S.drsAceso++; }
   saveMap();
 }
 function saveMap(force) {
   if (!force && Date.now() - S.lastSave < 5000) return;
   S.lastSave = Date.now();
   try {
-    const pts = S.path.map(p => [Math.round(p[0] * 10) / 10, Math.round(p[1] * 10) / 10, p[2], p[3]]);
-    localStorage.setItem(MAP_KEY, JSON.stringify({ t: S.trackName, p: pts }));
+    const pts = S.path.map(p => [Math.round(p[0] * 10) / 10, Math.round(p[1] * 10) / 10, p[2], p[3], p[4] || 0]);
+    localStorage.setItem(MAP_KEY, JSON.stringify({
+      t: S.trackName, p: pts, d: S.drsVeredito, da: S.drsAuto ? 1 : 0,
+    }));
   } catch (e) { /* quota */ }
 }
 function loadMap() {
@@ -322,15 +390,20 @@ function loadMap() {
     const o = JSON.parse(raw);
     if (!o || !Array.isArray(o.p) || o.p.length < 2) return;
     S.path = o.p; S.trackName = o.t || '';
+    S.drsVeredito = o.d || null;
+    S.drsAuto = !!o.da;
     for (const p of S.path) {
       if (p[0] < S.minX) S.minX = p[0]; if (p[0] > S.maxX) S.maxX = p[0];
       if (p[1] < S.minY) S.minY = p[1]; if (p[1] > S.maxY) S.maxY = p[1];
     }
   } catch (e) { /* ignora */ }
 }
+function guardarVereditoDrs() { saveMap(true); }
+
 function resetMap(clearStorage) {
   S.path = []; S.minX = 1e9; S.maxX = -1e9; S.minY = 1e9; S.maxY = -1e9;
   S.lapPct = []; S.refLap = null; S.bestMs = null; S.sectorTimes = [];
+  S.drsVeredito = null; S.drsAuto = false; S.drsConta = 0; S.drsAceso = 0;
   if (clearStorage) { try { localStorage.removeItem(MAP_KEY); } catch (e) { } }
 }
 
@@ -566,7 +639,12 @@ function renderTyres(hostId, d) {
     setTxt(hostId + '-w' + i, worn == null ? '--' : worn.toFixed(1) + '%');
     drawTyreBar(hostId + '-b' + i, mid);
     const pr = (d.tyrePressure && d.tyrePressure[i] != null) ? d.tyrePressure[i].toFixed(1) : '--';
-    setTxt(hostId + '-p' + i, pr);
+    // psi, e nao kPa. Medido num F1: 28.7 a 32.3. Se fossem kPa seriam
+    // 0.29 a 0.32 bar, menos que a pressao atmosferica (1 atm = 101.3
+    // kPa) - impossivel. Como psi da 1.98 a 2.23 bar, que e' o que um
+    // F1 usa. A unidade nao vem escrita em lado nenhum, por isso fica aqui
+    // escrito para nao se perder.
+    setTxt(hostId + '-p' + i, pr === '--' ? pr : pr + ' psi');
   }
 }
 
@@ -694,9 +772,29 @@ function setMarking(on) {
 }
 function syncDrsMarkUI() {
   const b = $('set-drs-mark');
-  if (!b) return;
-  b.classList.toggle('on', S.marking);
-  b.textContent = S.marking ? t('set.drsMarking') : t('set.drsMark');
+  if (b) {
+    b.classList.toggle('on', S.marking);
+    b.textContent = S.marking ? t('set.drsMarking') : t('set.drsMark');
+  }
+  // O veredito do drsAvailable tem de ser visivel. Se a interface decide
+  // sozinha se o campo serve para pintar a zona, o piloto tem de poder
+  // ver o que ela decidiu - e porque.
+  const v = $('set-drs-verdict');
+  if (v) {
+    let txt;
+    if (S.drsVeredito === 'zona') {
+      txt = t('set.drsVerdictZona') + ' ' + Math.round((S.drsFrac || 0) * 100) + '%';
+    } else if (S.drsVeredito === 'sempre ligado') {
+      txt = t('set.drsVerdictSempre');
+    } else if (S.drsVeredito === 'nunca ligado') {
+      txt = t('set.drsVerdictNunca');
+    } else {
+      const pc = S.drsConta ? Math.round(100 * S.drsAceso / S.drsConta) : 0;
+      txt = t('set.drsAMedir') + ' ' + pc + '%';
+    }
+    if (v.textContent !== txt) v.textContent = txt;
+    v.className = 'set-note drs-verdict' + (S.drsVeredito === 'zona' ? ' bom' : '');
+  }
 }
 
 /* ------------------------------------------------------------ widgets */
@@ -711,6 +809,24 @@ function setLight(id, txt, cls) {
   if (!e) return;
   e.querySelector('.l-val').textContent = txt;
   e.className = 'light' + (cls ? ' ' + cls : '');
+}
+
+/* ABS e TC: mostra o nivel de ajuste em percentagem, com barra. O valor
+   vem do AC como 0..1. Acima de meio caminho a barra fica a salientar,
+   porque e' ai que o assist comeca a mexer na travagem de verdade.
+   Recebe o ELEMENTO, nao o id - como o setDrs. Passar o id aqui dava
+   getElementById(elemento) = null e nao sevia nada, sem erro nenhum. */
+function pintarNivel(card, bar, nivel) {
+  if (!card) return;
+  const v = clamp(num(nivel), 0, 1);
+  const pc = Math.round(v * 100);
+  const val = card.querySelector('.l-val');
+  if (val) val.textContent = pc + '%';
+  card.className = 'light' + (v <= 0.001 ? '' : v >= 0.5 ? 'warn' : 'on');
+  if (bar) {
+    bar.style.width = pc + '%';
+    bar.classList.toggle('low', v < 0.25);
+  }
 }
 
 function renderSectors(d) {
@@ -818,8 +934,13 @@ function render(d) {
     hasE ? ((d.ersPct || 0) > 25 ? 'on' : 'warn') : '');
   const eb = $('ers-bar');
   if (eb) { eb.style.width = clamp(d.ersPct || 0, 0, 100) + '%'; eb.classList.toggle('low', (d.ersPct || 0) <= 20); }
-  setLight('l-abs', (d.abs >= 0.5) ? t('state.on') : t('state.off'), d.abs >= 0.5 ? 'warn' : '');
-  setLight('l-tc', (d.tc >= 0.5) ? t('state.on') : t('state.off'), d.tc >= 0.5 ? 'warn' : '');
+  // ABS e TC sao o NIVEL de ajuste, nao "esta a actuar". Medido: em 4502
+  // amostras com travagens duras e aceleracao a fundo, os dois ficaram
+  // constantes (0.13 e 0.08). Antes isto mostrava "OFF" sempre que o
+  // nivel era menor que 0.5, o que faz dizer ao piloto que nao tem
+  // nada de ABS quando tem 13%.
+  pintarNivel($('l-abs'), $('abs-bar'), d.abs);
+  pintarNivel($('l-tc'), $('tc-bar'), d.tc);
   setLight('l-pit', d.pitLimiter ? t('state.lim') : d.isInPit ? t('lb.pit') : '—',
     d.pitLimiter ? 'bad' : d.isInPit ? 'warn' : '');
 
@@ -832,8 +953,10 @@ function render(d) {
     const p = d.trackPct || 0;
     if (p < S.lastLapPct - 0.3) onLapComplete(toSec(d.lastTime));
     S.lastLapPct = p;
-    S.lapPct.push([p, curSec]);
-    if (S.lapPct.length > 4000) S.lapPct.shift();
+    // sem shift(): empilharPonto reduz a resolucao em vez de descartar o
+    // inicio da volta, que e' o que fazia a delta desaparecer no primeiro
+    // quarto da pista. Ver static/tempos.js.
+    S.lapPct = empilharPonto(S.lapPct, p, curSec, 12000);
     if (d.lastSectorTime && d.lastSectorTime !== '--:--.---') {
       const st = toSec(d.lastSectorTime);
       const si = (d.sector || 1) - 1;
@@ -875,11 +998,18 @@ function render(d) {
   setTxt('ers-used', d.ersUsedThisLapKJ ? Math.round(d.ersUsedThisLapKJ) + ' kJ' : '—');
 
   // mapa: o plano da pista e' X-Z (ver nota acima).
-  // A zona de DRS e' marcada a mao, NAO vem do drsAvailable: medido numa
-  // volta completa esse flag esteve a 1 em 98.9% do tracado, distribuido
-  // por igual nos cinco quintos da pista. Pintar com ele deixava a pista
-  // toda a verde, que e' pior do que nao pintar nada.
-  pushMapPoint(d.x, d.z, S.marking, d.sector);
+  // Zona de DRS: o drsAvailable E' um flag de zona nalguns carros, mas
+  // noutros fica a 1 quase sempre. Medido:
+  //   Ferrari SF25 em Interlagos  -> 1 em 18.5% da volta, em duas zonas
+  //                                  contiguas, e so a 262-312 km/h
+  //   Red Bull RB21 em Suzuka     -> 1 em 98.9% do tracado, por igual
+  //                                  nos cinco quintos (ou seja, nao e'
+  //                                  flag de zona nenhuma)
+  // Pintar sem confirmar dava a pista toda a verde num caso e a zona
+  // certa no outro. Por isso o drsAvailable so e' aceite se ao fim de
+  // uma volta parecer mesmo uma zona; ate la, pinta-se a mao.
+  pushMapPoint(d.x, d.z, S.marking ? 1 : (S.drsAuto ? (d.drsAvailable ? 1 : 0) : 0),
+    d.sector, d.drsAvailable);
   setTxt('trackpct', (clamp(d.trackPct || 0, 0, 1) * 100).toFixed(1) + '%');
   setTxt('sector', t('sector') + ' ' + ((d.sector || 0) + 1) + (d.sectorCount ? '/' + d.sectorCount : ''));
 

@@ -216,6 +216,8 @@ seriam ~25 KB por frame.
 `ersMaxMJ`. A interface nunca usou o campo, por isso o erro estava
 latente.
 
+## 2026-09-26 (3.ª parte) — com o jogo a correr
+
 ### Em curso → concluído
 
 - [x] `acshm.py`: `Opponents` pronto
@@ -233,13 +235,18 @@ Branch: `feat/interface-nova-e-modo-liderboard`
 |---|---|
 | 60 fps no modo telemetria | medido |
 | FPS de envio 10 e 30 e 60 | medido: 60→60, 10→10 |
-| Luz de DRS | `avail` pisca a 1 s, `open` sólida com brilho, `off` apagada — confirmado pelo estilo computado |
+| Luz de DRS | `avail` pisca a 1 s, `open` sólida com brilho, `off` apagada — confirmado pelo estilo computado, e o `drsEnabled` confirmado em 735 amostras |
 | Leaderboard | 19 carros, jogador assinalado |
 | Unidades | °C/°F e km/h/mph a converter nos valores e nos rótulos |
 | Idiomas | pt-PT, pt-BR, es, en |
-| Mapa | forma da pista correcta, zona de DRS pintada, sectores marcados |
+| Mapa | forma da pista correcta, sectores marcados |
+| Zona de DRS | pintada sozinha depois de o jogo a confirmar que o campo é zona (26% do traçado, duas zonas) |
+| Layout | 3 modos × 13 larguras, 39 combinações, zero problemas |
+| Pressões em psi | 28,7–32,3 num F1; kPa seria menos que a pressão atmosférica |
+| Embraiagem = engate | 21 mergulhos, 21 mudanças de caixa, 100% |
+| ABS/TC = nível | constantes em 4502 amostras, logo são ajuste e não actividade |
 
-### Com o AC desligado: a suite de testes a sério
+### Com o AC desligado: a suite de testes
 
 O `test_acshm.py` nunca tinha corrido — abortava sempre com "o AC está a
 correr". Com o jogo fechado, correu: **46/46 valores**. E abriram-se
@@ -312,7 +319,98 @@ campo novo.
 
 ---
 
-## A correção mais importante: o mapa estava no plano errado
+## Examinar os dados com o jogo a correr
+
+Com o AC ligado, capturei 4502 amostras do canal SSE (75 s, 60 Hz) e
+analisei-as campo a campo, com `tests/capturar.py` e `tests/analisar.py`.
+Quatro coisas saíram. Duas eram bugs meus.
+
+### 1. ABS e TC não são on/off — são o nível de ajuste (bug meu)
+
+Mostrava "ABS OFF" e "TC OFF" sempre que o valor era menor que 0,5. Mas
+em 4502 amostras com travagens duras e aceleração a fundo, `abs` ficou
+**sempre** em 0.13 e `tc` **sempre** em 0.08. Não variaram uma vez só.
+
+Portanto não é "está a actuar": é o nível que o piloto tem ajustado na
+garagem. Com 13% de ABS, dizer "OFF" é dizer ao piloto que não tem nada
+quando tem 13%. Agora mostra a percentagem, com barra.
+
+### 2. A referência da delta estava a ser truncada (bug meu, mais grave)
+
+A volta de referência era um array com limite de 4000 pontos, e ao
+passar do limite fazia-se `shift()` — deitava fora o ponto mais antigo.
+
+Uma volta de 116 s a 60 Hz dá 6960 pontos. Com o limite em 4000, a
+referência ficava a começar em **22,6% da pista**, a 49 s. O que dava:
+
+- `computeDelta(0.02, 2)` devolvia `null` — **sem delta no primeiro quarto
+  da pista**, sem erro nenhum;
+- e logo na fronteira, um **degrau de −4,9 s**.
+
+Corrigido com sub-amostragem em vez de descarte: quando a volta excede o
+limite, fica um ponto em cada dois (`empilharPonto`, no `tempos.js`, com
+13 testes novos). Custa metade da resolução e poupa o início da volta,
+que é a parte que dá a escala.
+
+Regra que sai daqui: **um buffer com limite tem de ser sub-amostrado,
+nunca truncado a partir do início.** Numa lista ordenada pela percentagem
+da pista, o início é o que interessa.
+
+### 3. O drsAvailable afinal marca a zona — eu tinha concluído o contrário
+
+Com um Ferrari SF25 em Interlagos, o `drsAvailable` esteve a 1 em
+**18,5% da volta**, em **duas zonas contíguas** (0–30% e 85–100%), e só
+a **262–312 km/h**, quase sempre em 8.ª ou 9.ª caixa. É uma zona de DRS
+como deve ser.
+
+Eu tinha medido antes num RB21 em Suzuka e concluído que o flag "não
+marca a zona nenhuma" por estar ligado em 98.9% do traçado. **Essa
+conclusão estava errada, ou era só daquele carro.**
+
+A interface agora não confia no flag: mede uma volta inteira e só o
+aceita se for uma minoria clara do traçado (2% a 60%). Aceitou com 26% e
+repintou 1574 pontos retroativamente — e os 2086 pontos pintados são
+exactamente os 2086 onde o flag original estava ligado. O veredito está
+visível nas definições, e a marcação manual fica disponível.
+
+### 4. Coisas que a medição resolveu
+
+- **A embraiagem.** Houve 21 mergulhos de `clutchRaw` maiores que 0.25 em
+  4502 amostras, e **os 21 coincidiram com uma mudança de caixa** (100%),
+  a 96–203 km/h. Se o campo fosse a posição do pedal não teria relação
+  com as mudanças. É o **engate**: 1 = encaixada. A inversão que já
+  estava na interface está certa, e agora tem prova.
+- **A pressão dos pneus é em psi.** 28,7 a 32,3 num F1. Se fossem kPa
+  seriam 0,29 a 0,32 bar — **menos que a pressão atmosférica** (1 atm =
+  101,3 kPa), impossível. Como psi dá 1,98 a 2,23 bar, que é o que um F1
+  usa. A unidade não vem escrita em lado nenhum, por isso passou a
+  aparecer no ecrã.
+- **A regra das três zonas do pneu estava errada.** A AGENTS.md dizia
+  "interior < meio < exterior". Medido: a roda **esquerda** tem sempre
+  I<M<O e a **direita** tem sempre I>M>O — 4502 de 4502 em todos os
+  quatro cantos, sem uma única amostra irregular. A regra só vale para
+  metade dos pneus, e não serve para diagnosticar offsets.
+- **Y é mesmo a altitude, noutra pista.** Em Interlagos: X 660 m,
+  **Y 43 m**, Z 1038 m. Terceira pista a confirmar.
+- **Nenhum valor fora do razoável** em 4502 amostras.
+
+### 5. Um ficheiro de captura que vale a pena
+
+`tests/capturar.py 75 captura.json` grava a série, e
+`tests/analisar.py captura.json` responde às perguntas. Sem eles, cada
+verificação é um pedido de `/api/state` que devolve um instante — e é
+exatamente num instante que se tiram as conclusões erradas.
+
+O que não percebi ainda, e está anotado em `ideia.md`: o combustível não
+mexe dentro da volta (30,0 L constantes em duas voltas), o `wheelSlip`
+chega a 177.5 sem se saber a unidade, e a delta chega a **−37 s** porque
+a volta de referência é a da largada parada.
+
+---
+
+## Com o AC desligado: a suite de testes a sério
+
+### A correção mais importante: o mapa estava no plano errado
 
 O mapa desenhava um rabisco achatado. A causa:
 

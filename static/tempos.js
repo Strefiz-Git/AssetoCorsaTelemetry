@@ -55,14 +55,43 @@ function melhorTempo(atual, novo) {
   return null;
 }
 
+/* Junta um ponto [percentagem, segundos] a uma volta em curso.
+ *
+ * Quando a volta fica maior que 'max', em vez de deitar fora os pontos
+ * mais antigos, REDUZ-SE A RESOLUCAO: fica um ponto em cada dois. Perder
+ * o inicio da volta e' muito pior do que perder metade da resolucao,
+ * porque a delta passa a devolver null em todo o comeco da pista e ainda
+ * da um degrau no ponto onde a referencia comeca.
+ *
+ * Isto aconteceu a serio: uma volta de 116 s a 60 Hz da 6960 pontos, o
+ * limite era 4000, e a referencia comecava em 22.6% da pista. Metade da
+ * volta sem delta, e um salto de -4.9 s na fronteira.
+ *
+ * Devolve o array, porque reduzir a resolucao cria um array novo.
+ */
+function empilharPonto(volta, pct, seg, max) {
+  volta.push([pct, seg]);
+  let n = volta.length;
+  while (n > max) {
+    // de dois em dois, comecando no primeiro: o inicio da volta fica
+    // sempre representado, que e' o ponto que interessa
+    let m = 0;
+    for (let i = 0; i < volta.length; i += 2) volta[m++] = volta[i];
+    volta.length = m;
+    n = m;
+  }
+  return volta;
+}
+
 /* Expoe para os testes quando corre no browser, e para o Node se um dia
    alguem quiser. No browser, load-bearing: o app.js usa estes nomes. */
 if (typeof window !== 'undefined') {
   window.toSec = toSec;
   window.deltaParaRef = deltaParaRef;
   window.melhorTempo = melhorTempo;
+  window.empilharPonto = empilharPonto;
   window.VOLTA_MINIMA_S = VOLTA_MINIMA_S;
 }
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { toSec, deltaParaRef, melhorTempo, VOLTA_MINIMA_S };
+  module.exports = { toSec, deltaParaRef, melhorTempo, empilharPonto, VOLTA_MINIMA_S };
 }

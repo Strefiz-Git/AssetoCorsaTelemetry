@@ -96,6 +96,8 @@ body{
   font-family:inherit;font-weight:700;font-size:13px;padding:10px;border-radius:6px;cursor:pointer;margin-top:4px;
 }
 .wide-btn:hover{color:var(--red);border-color:var(--red)}
+.drs-verdict{margin:0 0 8px;color:var(--gold);font-weight:700}
+.drs-verdict.bom{color:var(--green)}
 /* marcar a zona de DRS: enquanto activo nao pode parecer um botao normal */
 .wide-btn.mark{color:var(--green);border-color:#2a3a2b}
 .wide-btn.mark:hover{color:var(--green);border-color:var(--green)}

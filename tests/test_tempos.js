@@ -14,7 +14,7 @@
 const path = require('path');
 const T = require(path.join(__dirname, '..', 'static', 'tempos.js'));
 
-const { toSec, deltaParaRef, melhorTempo, VOLTA_MINIMA_S } = T;
+const { toSec, deltaParaRef, melhorTempo, empilharPonto, VOLTA_MINIMA_S } = T;
 
 let n = 0;
 const falhas = [];
@@ -109,6 +109,60 @@ nulo('volta de 19.9 s recusada', melhorTempo(90, 19.9));
 nulo('volta de 3 s recusada (sessao nova, sector solto)', melhorTempo(90, 3));
 nulo('volta nula nao mexe', melhorTempo(90, null));
 ok('o limite esta documentado no codigo', VOLTA_MINIMA_S, 20);
+
+/* --- 4) empilharPonto: a volta tem de ficar INTEIRA -------------------- */
+/* Este e' o bug que a captura ao vivo apanhou. Uma volta de 116 s a 60 Hz
+   da 6960 pontos. Com um limite de 4000 e a deitar fora os mais antigos,
+   a referencia ficava a comecar em 22.6% da pista: sem delta no primeiro
+   quarto, e um degrau de -4.9 s na fronteira. Aqui o limite e' largo de
+   PROPOSITO, para o caso geral ficar testado. */
+const MAX = 12000;
+
+/* 4a) uma volta normal cabe inteira, sem mexer */
+let v = [];
+for (let i = 0; i <= 3000; i++) v = empilharPonto(v, i / 3000, i * 0.03, MAX);
+ok('volta de 3001 pontos fica com 3001', v.length, 3001);
+ok('volta comeca em 0', v[0][0], 0);
+ok('volta acaba em 1', v[v.length - 1][0], 1);
+
+/* 4b) uma volta enorme e' reduzida, mas o inicio continua la */
+v = [];
+for (let i = 0; i <= 24000; i++) v = empilharPonto(v, i / 24000, i * 0.005, MAX);
+ok('nunca passa do limite', v.length <= MAX, true);
+ok('o inicio da volta sobrevive', v[0][0], 0);
+ok('o fim da volta sobrevive', v[v.length - 1][0], 1);
+ok('ainda ha pontos suficientes', v.length > MAX / 4, true);
+
+/* 4c) o que interessa mesmo: a delta responde em TODO o percurso.
+   Nao se pode verificar em TODOS os pontos: a deltaParaRef procura o
+   intervalo com um varrimento linear, portanto chamar-lhe uma vez por
+   ponto de uma referencia de 12 000 sao 144 milhoes de iteracoes e o
+   teste nao acaba. Aqui vai uma amostra de 200. */
+let cur = [];
+for (let i = 0; i <= 24000; i++) cur = empilharPonto(cur, i / 24000, i * 0.005, MAX);
+ok('a delta responde no inicio da pista', deltaParaRef(cur, 0.02, 2.4) !== null, true);
+ok('a delta responde a meio', deltaParaRef(cur, 0.5, 60) !== null, true);
+ok('a delta responde no fim', deltaParaRef(cur, 0.98, 117.6) !== null, true);
+ok('a propria volta da delta 0 numa amostra de 200 pontos', (() => {
+  let pior = 0, n = 0;
+  for (let k = 0; k < 200; k++) {
+    const p = cur[Math.floor(k * (cur.length - 1) / 199)];
+    const d = deltaParaRef(cur, p[0], p[1]);
+    if (d !== null) { n++; pior = Math.max(pior, Math.abs(d)); }
+  }
+  return n === 200 && Math.abs(pior) < 1e-6;
+})(), true);
+
+/* 4d) a reducao tem de ser por metades, nao por saltinhos */
+let contagens = [];
+v = [];
+for (let i = 0; i <= 5000; i++) {
+  v = empilharPonto(v, i / 5000, i * 0.03, 4000);
+  if (v.length !== contagens[contagens.length - 1]) contagens.push(v.length);
+}
+ok('ao passar de 4000, o tamanho cai para cerca de metade',
+   contagens[1] <= 2600, true);
+ok('e fica sempre dentro do limite', Math.max(...contagens) <= 4000, true);
 
 /* --- fecho ------------------------------------------------------------- */
 console.log();

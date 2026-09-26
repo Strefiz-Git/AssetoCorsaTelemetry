@@ -276,6 +276,22 @@ Fica por decidir. Enquanto isso, o traço aparece mas vazio.
 
 ## Perguntas em aberto
 
+- **A primeira volta como referência da delta.** Numa corrida com
+  largada parada, a volta 1 inclui a saída e fica 1:56 contra as 1:20 de
+  um F1. A delta chega a mostrar **−37 s** até essa volta ser batida.
+  É aritmeticamente correcto e completamente inútil. A regra usual é não
+  aceitar a primeira volta como referência. Falta decidir se isso se
+  aplica sempre (custa uma volta de delta em todas as sessões) ou só
+  quando a volta é muito mais lenta do que a seguinte.
+- **O combustível não mexe dentro da volta.** 30,0 L constantes em 4502
+  amostras ao longo de duas voltas. Pode ser a resolução do valor no AC
+  ou pode ser o AC só o atualizar na mudança de volta. Não sei.
+- **`wheelSlip` chega a 177,5** numa roda. Não se sabe se é percentagem
+  ou ângulo, e não é mostrado. Com 177% de derrapagem, ou a unidade não
+  é percentagem ou o valor é um ângulo. Fica por investigar.
+- **`carDamage` e `turbo` não são mostrados.** O primeiro parece
+  interessante (dano é coisa que um piloto quer ver). O segundo é
+  ambíguo. Nenhum dos dois foi mostrado porque não se sabe o que são.
 - **O travão de mão.** Não existe na shared memory do AC. Falta decidir
   entre derivar das rodas traseiras (heurístico, pode falhar em curvas
   de baixa velocidade) ou escrever uma app Python no Content Manager que
@@ -317,12 +333,23 @@ Fica por decidir. Enquanto isso, o traço aparece mas vazio.
 - **O plano da pista.** Era a maior dúvida e estava errada: o mapa
   desenhava X contra Y, e o **Y é a altitude**. O plano é **X-Z**.
   Ver [AGENTS.md](AGENTS.md).
-- **A zona de DRS no mapa é marcada à mão.** A ideia era pintar
-  automaticamente com o `drsAvailable`. Medido numa volta completa,
-  esse flag esteve a 1 em **98.9% do traçado**, por igual nos cinco
-  quintos da pista: não diz onde acaba a zona. Automático dava a pista
-  toda a verde, que parece informação e não é. Agora marca-se nas
-  definições, a conduzir.
+- **A zona de DRS no mapa é pintada sozinha, depois de o jogo provar que
+  o campo serve.** A ideia inicial era pintar com o `drsAvailable`.
+  Medido num RB21 em Suzuka, o flag esteve a 1 em 98.9% do traçado, por
+  igual nos cinco quintos: parecia não servir para nada, e passou a
+  marcar-se à mão.
+
+  Depois, num Ferrari SF25 em Interlagos, o mesmo flag esteve a 1 em
+  18.5% da volta, em duas zonas contíguas e só a 262–312 km/h. Isso é
+  uma zona de DRS como deve ser.
+
+  **A primeira medição estava errada, ou era só daquele carro.** Não
+  se decide sobre um flag com uma leitura de um carro só.
+
+  Agora a interface mede uma volta inteira e só aceita o flag se ele
+  for uma minoria clara do traçado. Se aceitar, pinta e repinta o que já
+  tinha gravado; se não, diz porquê e a marcação manual fica disponível.
+  O veredito está visível nas definições.
 
 ---
 

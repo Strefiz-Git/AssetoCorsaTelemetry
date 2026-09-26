@@ -145,26 +145,93 @@ Regra nº 11.
 
 ## Regra nº 11 — um flag que está quase sempre aceso não é um mapa
 
-Numa volta completa em Suzuka, `drsAvailable` esteve a **1 em 98.9% do
-traçado**, e a distribuição foi igual nos cinco quintos da pista
-(93/93 em cada um). Ou seja: **este flag não diz onde acaba a zona de
-DRS.** Desenhar o mapa com ele dá a pista inteira a verde, que é pior
-do que não pintar nada — parece informação e não é.
+**Primeira medição, num Red Bull RB21 em Suzuka:** `drsAvailable` esteve
+a **1 em 98.9% do traçado**, por igual nos cinco quintos da pista. Conclusão
+escrita na altura: "este flag não marca a zona".
 
-Confirmado também com 1501 amostras do canal SSE: `drsAvailable` nunca
-foi 0 e `drsEnabled` só ficou a 1 com o botão do DRS carregado.
+**Segunda medição, num Ferrari SF25 em Interlagos:** `drsAvailable` esteve
+a 1 em **18,5% da volta**, em **duas zonas contíguas** (0–30% e 85–100%),
+e só a **262–312 km/h**, quase sempre em 8.ª ou 9.ª caixa. Isto é
+exactamente a forma de uma zona de DRS real.
 
-O que **funciona**: `drsEnabled` é fiável para a luz (sólida quando
-aberta). E o `drsAvailable` continua a servir para distinguir um carro
-**sem** DRS (o flag nunca acende) de um carro **com** DRS.
+**Portanto a primeira conclusão estava errada, ou era específica daquele
+carro.** Um flag medido uma vez, num só carro, tratado como regra geral.
 
-Por isso a zona de DRS no mapa **marca-se à mão**, conduzindo, nas
-definições. Ferramenta que regista o que o utilizador sabe e a pista
-que o jogo desenhou.
+A interface **não confia no flag**: mede uma volta inteira e só o aceita
+se a percentagem do traçado ligado for uma minoria clara (2% a 60%).
+
+| o que mediu | veredito | o que acontece |
+|---|---|---|
+| 18,5%–26% | `zona` | pinta sozinho, e repinta o traçado já gravado |
+| > 60% | `sempre ligado` | não pinta, diz que não serve |
+| < 2% | `nunca ligado` | não pinta, diz que não serve |
+
+Cada ponto do mapa guarda o `drsAvailable` original no 5.º elemento, para
+o repintar ser possível sem voltar a conduzir. O veredito fica visível nas
+definições — se a interface decide sozinha, o piloto tem de ver o que ela
+decidiu e porquê.
+
+**A marcação manual continua lá** para os carros em que o flag não serve.
 
 Regra geral: **antes de desenhar um campo no mapa, confirmar que ele
-varia ao longo da pista.** Um campo constante não é um campo, é
-decoração.
+varia ao longo da pista — e medi-lo em mais do que um carro.** Um campo
+constante não é um campo, é decoração; mas também um campo que parece
+constante num só carro pode não ser.
+
+O `drsEnabled` é fiável para a luz: `drsAvailable=1` com
+`drsEnabled=0` deu 98 amostras (a zona acesa, o botão ainda não carregado)
+e `drsEnabled=1` deu 735. São os dois estados que a luz usa.
+
+---
+
+## Regra nº 13 — nunca deitar fora o início de uma volta
+
+O `app.js` guardava a volta de referência com um array e, ao passar de
+4000 pontos, fazia `shift()` — deitava fora o ponto **mais antigo**.
+
+Medido: uma volta de 116 s a 60 Hz dá 6960 pontos. Com o limite em 4000,
+a referência ficava a começar em **22,6% da pista** e a 49 s. Resultado:
+
+- `computeDelta(0.02, 2)` devolvia **`null`** — sem delta no primeiro
+  quarto da pista, sem dar erro nenhum;
+- e logo na fronteira, um **degrau de −4,9 s**.
+
+A correcção é reduzir a resolução em vez de descartar: quando a volta
+excede o limite, fica um ponto em cada dois. Custa metade da resolução e
+poupa o início da volta, que é a parte que interessa. Está em
+`empilharPonto`, no `tempos.js`, com testes.
+
+Armadilha do mesmo feitio: **qualquer buffer com limite tem de ser
+sub-amostrado, nunca truncado a partir do início.** Numa lista ordenada
+por percentagem da pista, o início é o que dá a escala.
+
+E um aviso sobre `deltaParaRef`: procura o intervalo com um varrimento
+linear, portanto é O(n) por chamada. A 60 Hz com 12 000 pontos são 720 mil
+iterações por segundo — irrelevante a correr. Mas **testar** a função
+uma vez por cada ponto de uma referência de 12 000 dá 144 milhões de
+iterações e o teste não acaba. Amostrar nos testes.
+
+---
+
+## Regra nº 14 — um auxiliar que recebe id e outro que recebe elemento
+
+O `app.js` tem os dois estilos: `setLight(id, …)` resolve o id com
+`getElementById`, e `pintarDelta(el, …)` recebe o elemento. Passar o
+elemento a um que espera o id dá:
+
+```javascript
+$(cardId)          // cardId e' um elemento
+// getElementById(<element>)  ->  null
+// if (!e) return;            ->  sai aqui, calado
+```
+
+**Não dá erro, não aparece nada no DOM, e o código parece correcto.**
+Foi assim que o `ABS` e o `TC` ficaram a mostrar `—` durante uma
+inspecção inteira, com zero erros na consola.
+
+Como detectar: se um campo aparece no payload mas o texto no ecrã não
+muda, ver o que a função faz com o que recebe, antes de suspectar do
+payload.
 
 ---
 
@@ -225,11 +292,30 @@ Confirmadas contra o AC real:
 - `kersCharge` (ERS) é fracção **0..1**.
 - `tyreTempI / M / O` são três zonas por pneu; a ordem é
   `[FL, FR, RL, RR]` em todos os arrays de 4.
+- **As três zonas do pneu NÃO seguem uma ordem única.** Medido em 4502
+  amostras de um F1 em Interlagos: a roda **esquerda** tem sempre
+  `I < M < O` e a roda **direita** tem sempre `I > M > O` — 4502 de 4502
+  em todos os quatro cantos, sem uma única amostra irregular. A regra
+  "interior < meio < exterior" só vale para FL e RL. Não a usar para
+  diagnosticar offsets.
+- **ABS e TC são o nível de ajuste, 0..1 — não são "está a actuar".**
+  Medido: em 4502 amostras com travagens duras e aceleração a fundo,
+  `abs` ficou em 0.13 e `tc` em 0.08 sem variarem uma única vez. A
+  interface mostra a percentagem ("ABS 13%"). Mostrar ON/OFF a partir de
+  um limiar de 0.5 dizia ao piloto que não tinha ABS quando tinha 13%.
+- **`wheelsPressure` está em psi.** Medido 28,7 a 32,3 num F1. Se
+  fossem kPa seriam 0,29 a 0,32 bar, **menos que a pressão atmosférica**
+  (1 atm = 101,3 kPa) — impossível. Como psi dá 1,98 a 2,23 bar, que é
+  o que um F1 usa. A unidade não vem escrita em lado nenhum.
 - **`clutch` é 1.0 = encaixada, 0.0 = solta.** A documentação diz
   "1 = totalmente premida", o que é enganador. Medido a conduzir:
   fica em 1.0 durante a condução normal e desce a ~0.63 a travar forte.
   A interface mostra o **inverso** (quanto está solta), que é o que
   interessa para pontas de embraiagem e kicking.
+- **Prova concludente:** numa captura de 4502 amostras houve 21 mergulhos
+  de `clutchRaw` maiores que 0.25, e **os 21 coincidiram com uma mudança
+  de caixa** (100%), a 96–203 km/h. Se fosse a posição do pedal, não
+  teria relação nenhuma com as mudanças.
 - `iCurrentTime`, `iBestTime`, `iLastTime` em **milissegundos**.
 - No **AC base** a página de gráficos só traz `penaltyTime` (segundos) e a
   bandeira `AC_PENALTY_FLAG`. O enum de tipo de penalidade (`DT`, `SG10`,
