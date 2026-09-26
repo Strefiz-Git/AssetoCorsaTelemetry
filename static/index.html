@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Telemetria AC</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<div id="offline" class="offline">
+  <div class="offline-box">
+    <div class="spinner"></div>
+    <h1>A aguardar o Assetto Corsa</h1>
+    <p id="offline-msg">A ler a telemetria directamente do jogo&hellip;</p>
+  </div>
+</div>
+
+<main id="app" class="app hidden">
+
+  <!-- ------------------------------------------------ cabeçalho -->
+  <header class="bar">
+    <div class="bar-l">
+      <span class="track" id="track">—</span>
+      <span class="sep"></span>
+      <span class="car" id="car">—</span>
+    </div>
+    <div class="bar-c">
+      <span class="flag" id="flag">LIMPA</span>
+      <span class="session" id="session">—</span>
+    </div>
+    <div class="bar-r">
+      <span class="pos" id="pos">—</span>
+      <span class="lap" id="lap">—</span>
+    </div>
+  </header>
+
+  <div class="grid">
+
+    <!-- -------------------------------------------- mapa -->
+    <section class="card map-card">
+      <h2>MAPA DA PISTA</h2>
+      <canvas id="map"></canvas>
+      <div class="map-info">
+        <span id="trackpct">—</span>
+        <span id="sector">S—</span>
+        <button id="map-clear" title="apagar o mapa desenhado">limpar</button>
+      </div>
+    </section>
+
+    <!-- -------------------------------------------- central -->
+    <section class="card main-card">
+      <div class="gear-strip">
+        <div class="gear" id="gear">N</div>
+        <div class="pedals">
+          <div class="pedal"><label>TRAVA</label><i id="brake-bar"></i></div>
+          <div class="pedal"><label>ACEL.</label><i id="throttle-bar"></i></div>
+        </div>
+      </div>
+
+      <div class="speed-block">
+        <div class="speed" id="speed">0</div>
+        <div class="speed-unit">km/h</div>
+      </div>
+
+      <div class="rpm-block">
+        <div class="rpm-track">
+          <div class="rpm-fill" id="rpm-fill"></div>
+          <div class="rpm-redline" id="rpm-redline"></div>
+        </div>
+        <div class="rpm-text"><span id="rpm">0</span> rpm</div>
+      </div>
+
+      <div class="chips">
+        <div class="chip" id="chip-drs"><label>DRS</label><b>—</b></div>
+        <div class="chip" id="chip-ers"><label>ERS</label><b>—</b></div>
+        <div class="chip" id="chip-pen"><label>PEN</label><b>—</b></div>
+        <div class="chip" id="chip-abs"><label>ABS</label><b>—</b></div>
+        <div class="chip" id="chip-tc"><label>TC</label><b>—</b></div>
+        <div class="chip" id="chip-pit"><label>PIT</label><b>—</b></div>
+      </div>
+    </section>
+
+    <!-- -------------------------------------------- tempos -->
+    <section class="card times-card">
+      <h2>VOLTAS</h2>
+      <div class="time-row big">
+        <label>ATUAL</label>
+        <div class="val" id="t-current">--:--.---</div>
+      </div>
+      <div class="time-row">
+        <label>MELHOR</label>
+        <div class="val gold" id="t-best">--:--.---</div>
+      </div>
+      <div class="time-row">
+        <label>ANTERIOR</label>
+        <div class="val" id="t-last">--:--.---</div>
+      </div>
+      <div class="time-row delta-row">
+        <label>DELTA</label>
+        <div class="val" id="t-delta">+0.000</div>
+      </div>
+      <div class="bar-track" title="progresso da volta">
+        <div class="bar-fill" id="lap-progress"></div>
+      </div>
+    </section>
+
+    <!-- -------------------------------------------- pneus -->
+    <section class="card tyres-card">
+      <h2>PNEUS</h2>
+      <div class="tyres">
+        <div class="tyre" data-i="0">
+          <div class="tyre-name">FL</div>
+          <div class="tyre-temp" id="tt-0">--</div>
+          <canvas class="tyre-bar" id="tb-0" width="120" height="8"></canvas>
+          <div class="tyre-sub"><span id="tw-0">--</span> worn</div>
+        </div>
+        <div class="tyre" data-i="1">
+          <div class="tyre-name">FR</div>
+          <div class="tyre-temp" id="tt-1">--</div>
+          <canvas class="tyre-bar" id="tb-1" width="120" height="8"></canvas>
+          <div class="tyre-sub"><span id="tw-1">--</span> worn</div>
+        </div>
+        <div class="tyre" data-i="2">
+          <div class="tyre-name">RL</div>
+          <div class="tyre-temp" id="tt-2">--</div>
+          <canvas class="tyre-bar" id="tb-2" width="120" height="8"></canvas>
+          <div class="tyre-sub"><span id="tw-2">--</span> worn</div>
+        </div>
+        <div class="tyre" data-i="3">
+          <div class="tyre-name">RR</div>
+          <div class="tyre-temp" id="tt-3">--</div>
+          <canvas class="tyre-bar" id="tb-3" width="120" height="8"></canvas>
+          <div class="tyre-sub"><span id="tw-3">--</span> worn</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- -------------------------------------------- travões -->
+    <section class="card brakes-card">
+      <h2>TRAVÕES</h2>
+      <div class="brakes">
+        <div class="brake"><div class="brake-v" id="bt-0">--</div><span>FL</span></div>
+        <div class="brake"><div class="brake-v" id="bt-1">--</div><span>FR</span></div>
+        <div class="brake"><div class="brake-v" id="bt-2">--</div><span>RL</span></div>
+        <div class="brake"><div class="brake-v" id="bt-3">--</div><span>RR</span></div>
+      </div>
+    </section>
+
+    <!-- -------------------------------------------- combustível -->
+    <section class="card fuel-card">
+      <h2>COMBUSTÍVEL</h2>
+      <div class="fuel-num"><span id="fuel-pct">0</span><small>%</small></div>
+      <div class="bar-track tall">
+        <div class="bar-fill fuel" id="fuel-bar"></div>
+      </div>
+      <div class="kv"><span>na reserva</span><b id="fuel-l">0.0 L</b></div>
+      <div class="kv"><span>capacidade</span><b id="fuel-max">0 L</b></div>
+      <div class="kv"><span>ar / pista</span><b id="temps">-- / --</b></div>
+      <div class="kv"><span>penalidade</span><b id="pen-time">—</b></div>
+    </section>
+
+  </div>
+
+  <footer class="foot">
+    <span id="fps">—</span>
+    <span class="sep"></span>
+    <span id="src">fonte: shared memory do Assetto Corsa (sem SimHub)</span>
+  </footer>
+</main>
+
+<script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,197 @@
+# Assetto Corsa Telemetry
+
+Dashboard de telemetria do **Assetto Corsa** em HTML, que lê a memória
+partilhada do jogo e mostra-a no browser a **60 fps**.
+
+Não usa o SimHub. Sem limite de 10 fps, sem licença, sem plugin.
+
+![paleta](https://img.shields.io/badge/paleta-F1-FFD700) ![licença](https://img.shields.io/badge/licença-MIT-blue)
+
+---
+
+## Porque é que isto existe
+
+O SimHub gratuito serve o dashboard no browser a **10 fps**. Isto lê
+exatamente a mesma telemetria, saltando o SimHub, e envia-a ao browser a
+60 fps via Server-Sent Events.
+
+## Como usar
+
+### Requisitos
+
+| | |
+|---|---|
+| Sistema | Windows (o AC é só Windows) |
+| Python | 3.8 ou superior — [python.org](https://python.org) |
+| Dependências | **nenhuma** — só a biblioteca standard |
+
+O `ctypes` e o `http.server` já vêm com o Python. Não há `pip install`
+a fazer.
+
+### Arrancar
+
+```
+git clone <este-repo>
+cd AssettoCorsaTelemetry
+INICIAR.bat
+```
+
+Ou à mão:
+
+```
+python server.py
+```
+
+Depois abre **http://localhost:8765**.
+
+### Opções
+
+```
+python server.py --port 9000     # mudar a porta
+python server.py --rate 400      # amostrar mais depressa (predefinição: 200)
+```
+
+### Aceder do telemóvel
+
+O IP da máquina aparece no arranque. Com o telemóvel na mesma rede:
+
+```
+http://192.168.x.x:8765
+```
+
+Se não funcionar à primeira, o Windows Firewall está a bloquear — na
+primeira execução o Python pergunta se aceita em redes privadas.
+
+---
+
+## O que mostra
+
+| | |
+|---|---|
+| **Velocidade · rpm · caixa** | com barra de rpm com zona vermelha |
+| **Pedais** | travão e acelerador em tempo real |
+| **Mapa da pista** | desenha-se sozinho a partir da posição real do carro |
+| **Tempos de volta** | actual, melhor, anterior e **delta** contra a melhor volta |
+| **Pneus** | temperatura interior / meio / exterior, desgaste, pressão |
+| **Travões** | temperatura dos quatro |
+| **Combustível** | %, litros, capacidade, temperatura do ar e da pista |
+| **DRS · ERS · ABS · TC** | estado e percentagens |
+| **Penalidade · bandeira · posição** | |
+
+Layout responsivo: em ecrã largo usa uma grelha 3×2; em telemóvel passa
+a uma coluna.
+
+---
+
+## Como funciona
+
+O Assetto Corsa publica três páginas de memória partilhada com nome:
+
+| Página | Conteúdo |
+|---|---|
+| `acpmf_physics` | física do carro, alta frequência (a cada frame) |
+| `acpmf_graphics` | sessão, tempos de volta, bandeira, penalidade, posição |
+| `acpmf_static` | dados fixos: carro, pista, rpm máximo, ERS, DRS |
+
+```
+Assetto Corsa
+      │  escreve continuamente
+      ▼
+acpmf_physics / acpmf_graphics / acpmf_static
+      │  lido por ctypes, só leitura
+      ▼
+server.py  ──── Server-Sent Events, 60 Hz ────▶  browser
+```
+
+O servidor lê a 200 Hz (para não perder frames do jogo) e empurra para o
+browser a 60 Hz. O desenho é feito num `<canvas>`.
+
+O mapa não precisa de "aprender": usa `carCoordinates`, que é a posição
+real do carro no mundo. Vai desenhando à medida que conduz.
+
+### O delta
+
+O AC não dá delta. O `app.js` guarda os pontos `[trackPct, tempo]` de
+cada volta; quando uma volta acaba, se foi a melhor fica de referência, e
+o delta passa a ser a diferença entre o tempo actual e o tempo da
+referência no mesmo ponto da pista, interpolado.
+
+---
+
+## Estrutura
+
+```
+AssettoCorsaTelemetry/
+├── INICIAR.bat              arranca o servidor e abre o browser
+├── server.py                servidor HTTP + SSE
+├── acshm.py                 leitura da memória partilhada e structs do AC
+├── static/
+│   ├── index.html           estrutura
+│   ├── style.css            cores e layout
+│   ├── app.js               desenho, mapa e delta
+│   └── fonts/               Titillium Web (OFL incluída)
+└── tests/
+    ├── test_layout.py       valida as structs campo a campo
+    ├── test_acshm.py        testa a leitura com memória fictícia
+    ├── verify_real.py       confere a leitura contra o jogo a correr
+    ├── probe_layout.py      sonda os valores reais
+    └── diff_offsets.py      compara offsets calculados vs. reais
+```
+
+---
+
+## Testes
+
+```
+python tests\test_layout.py    # não precisa do jogo
+python tests\test_acshm.py     # não pode correr com o jogo aberto
+python tests\verify_real.py    # precisa do jogo a correr
+```
+
+> **Atenção:** `test_acshm.py` cria páginas de memória partilhada para
+> injectar valores conhecidos. Usa nomes fictícios (`ac_test_*`) e tem uma
+> guarda que aborta se detectar o jogo em execução — porque se usasse os
+> nomes reais, as escritas do teste iam para dentro do AC a correr.
+> Ver [AGENTS.md](AGENTS.md) para a história completa.
+
+---
+
+## Tipos e escalas
+
+Confirmados contra o AC em execução, não só por leitura da documentação:
+
+| Campo | Escala |
+|---|---|
+| `kersCharge` (ERS) | fracção `0..1` |
+| `tyreWear` | **`0..100`, 100 = pneu novo** — não é fracção |
+| `kersMaxJ`, `kersCurrentKJ` | kJ |
+| `tyreTempI / M / O` | °C, três zonas por pneu |
+| `brakeTemp` | °C |
+| `wheelsPressure` | unidade do jogo (~26) |
+| `iCurrentTime`, `iBestTime` | milissegundos |
+| `carCoordinates` | xyz do mundo, em metros |
+| `normalizedCarPosition` | `0..1` ao longo da volta |
+| `packetId` | incrementa a cada frame — diz se o jogo está vivo |
+
+---
+
+## Notas
+
+- Se o SimHub estiver aberto, tudo funciona na mesma. As páginas ficam
+  mapeadas mesmo com o jogo fechado, por isso "a página existe" **não**
+  significa "o jogo está a correr" — quem diz isso é o `packetId`.
+- O mapa guarda-se no `localStorage`: recarregar a página não o apaga.
+  O botão **limpar** apaga.
+- Em pausa ou no menu o `packetId` para. O site mostra o último estado,
+  esbatido, com "EM PAUSA" ou "JOGO ENCERRADO" em vez de fingir que está
+  vivo.
+
+---
+
+## Licença
+
+MIT — ver [LICENSE](LICENSE).
+
+A fonte **Titillium Web** (fonte oficial da F1) está incluída em
+`static/fonts/` sob a licença SIL Open Font License — ver
+`static/fonts/OFL.txt`.

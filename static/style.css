@@ -1,0 +1,202 @@
+/* Paleta do dashboard F1 de referencia
+   preto #000 / painel #151C1D / bloco #171717
+   branco / cinza #555C5D
+   dourado #FFD700  laranja #F58020  verde #23CF16  vermelho #FF0000        */
+
+@font-face{font-family:Titillium;font-weight:300;src:url(/fonts/TitilliumWeb-Light.ttf) format("truetype");font-display:swap}
+@font-face{font-family:Titillium;font-weight:400;src:url(/fonts/TitilliumWeb-Regular.ttf) format("truetype");font-display:swap}
+@font-face{font-family:Titillium;font-weight:600;src:url(/fonts/TitilliumWeb-SemiBold.ttf) format("truetype");font-display:swap}
+@font-face{font-family:Titillium;font-weight:700;src:url(/fonts/TitilliumWeb-Bold.ttf) format("truetype");font-display:swap}
+@font-face{font-family:Titillium;font-weight:900;src:url(/fonts/TitilliumWeb-Black.ttf) format("truetype");font-display:swap}
+
+:root{
+  --bg:#000; --panel:#151C1D; --block:#171717;
+  --white:#fff; --grey:#555C5D;
+  --gold:#FFD700; --orange:#F58020; --green:#23CF16; --red:#FF0000;
+  --line:#22292a;
+  --gap:12px;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--bg); color:var(--white);
+  font-family:Titillium, "Titillium Web", "Segoe UI", sans-serif;
+  -webkit-font-smoothing:antialiased;
+  overflow:hidden;
+}
+.hidden{display:none!important}
+
+/* ------------------------------------------------------------ offline */
+.offline{position:fixed;inset:0;display:grid;place-items:center;background:var(--bg);z-index:50}
+.offline-box{text-align:center;padding:24px}
+.offline h1{font-weight:900;font-size:clamp(20px,3vw,34px);letter-spacing:.04em;margin-top:18px}
+.offline p{color:var(--grey);font-weight:600;margin-top:6px;font-size:14px}
+.spinner{width:42px;height:42px;margin:0 auto;border:3px solid var(--grey);border-top-color:var(--gold);border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ------------------------------------------------------------ estrutura */
+.app{height:100%;display:flex;flex-direction:column;padding:var(--gap);gap:var(--gap)}
+
+.bar{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  background:var(--panel);border-radius:8px;padding:8px 14px;flex:0 0 auto;
+  border-left:3px solid var(--gold);
+}
+.bar>div{display:flex;align-items:center;gap:10px;min-width:0}
+.bar-c{justify-content:center}
+.bar-r{justify-content:flex-end}
+.track{font-weight:900;font-size:17px;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.car{color:var(--grey);font-weight:600;font-size:13px;text-transform:uppercase}
+.sep{width:1px;height:16px;background:var(--grey);opacity:.5}
+.session{color:var(--grey);font-weight:700;font-size:12px;letter-spacing:.12em}
+.flag{font-weight:900;font-size:13px;letter-spacing:.1em;padding:3px 10px;border-radius:4px;background:var(--block);color:var(--grey)}
+.flag.f-yellow{background:var(--gold);color:#000}
+.flag.f-red{background:var(--red);color:#fff}
+.flag.f-blue{background:#2b6cff;color:#fff}
+.flag.f-checkered{background:#fff;color:#000}
+.pos{font-weight:900;font-size:22px;color:var(--gold);line-height:1}
+.pos small{font-size:11px;color:var(--grey);font-weight:700}
+.lap{font-weight:700;font-size:12px;color:var(--grey)}
+
+.grid{
+  flex:1 1 auto;min-height:0;
+  display:grid;gap:var(--gap);
+  grid-template-columns:1.15fr 1.5fr 1fr;
+  grid-template-rows:1.35fr 1fr;
+  grid-template-areas:
+    "map main times"
+    "tyres brakes fuel";
+}
+
+.card{
+  background:var(--panel);border-radius:8px;padding:12px 14px;
+  display:flex;flex-direction:column;min-height:0;min-width:0;position:relative;overflow:hidden;
+}
+.card h2{font-size:11px;font-weight:700;letter-spacing:.18em;color:var(--grey);margin-bottom:8px;flex:0 0 auto}
+
+.map-card{grid-area:map}
+.main-card{grid-area:main}
+.times-card{grid-area:times}
+.tyres-card{grid-area:tyres}
+.brakes-card{grid-area:brakes}
+.fuel-card{grid-area:fuel}
+
+/* ------------------------------------------------------------ mapa */
+#map{flex:1 1 auto;width:100%;min-height:0;display:block}
+.map-info{display:flex;align-items:center;gap:10px;font-size:11px;font-weight:700;color:var(--grey);padding-top:6px;flex:0 0 auto}
+.map-info #sector{margin-left:auto}
+#map-clear{
+  background:transparent;border:1px solid var(--grey);color:var(--grey);
+  font-family:inherit;font-size:9px;font-weight:700;letter-spacing:.1em;
+  padding:2px 7px;border-radius:3px;cursor:pointer;
+}
+#map-clear:hover{color:var(--white);border-color:var(--white)}
+
+/* ------------------------------------------------------------ central */
+.gear-strip{display:flex;align-items:center;gap:14px;flex:0 0 auto}
+.gear{
+  font-weight:900;font-size:clamp(46px,7vw,86px);line-height:.9;color:var(--gold);
+  min-width:78px;text-align:center;
+}
+.pedals{display:flex;flex-direction:column;gap:6px;flex:1 1 auto}
+.pedal{position:relative;height:16px;background:var(--block);border-radius:3px;overflow:hidden}
+.pedal i{position:absolute;top:0;right:0;bottom:0;width:0;display:block;border-radius:3px;transition:width .05s linear}
+#throttle-bar{background:var(--green)}
+#brake-bar{background:var(--red)}
+.pedal label{position:absolute;left:8px;top:0;bottom:0;display:flex;align-items:center;font-size:9px;font-weight:700;letter-spacing:.14em;color:var(--white);z-index:1}
+
+.speed-block{flex:1 1 auto;display:flex;align-items:baseline;justify-content:center;gap:8px;min-height:0}
+.speed{font-weight:900;font-size:clamp(64px,11vw,150px);line-height:.85;font-variant-numeric:tabular-nums}
+.speed-unit{font-size:15px;font-weight:700;color:var(--grey)}
+
+.rpm-block{flex:0 0 auto}
+/* o gradiente fica na pista, nao na barra: se estivesse na barra, ao
+   encolher para 40% o gradiente esticava e a barra parecia sempre no max. */
+.rpm-track{
+  position:relative;height:9px;border-radius:5px;overflow:hidden;
+  background:linear-gradient(90deg,var(--green) 0%,var(--green) 58%,var(--orange) 82%,var(--red) 100%);
+}
+.rpm-fill{
+  position:absolute;top:0;right:0;bottom:0;width:0;
+  background:var(--panel);
+  border-left:2px solid var(--white);
+  transition:width .05s linear;
+}
+.rpm-redline{position:absolute;top:-2px;bottom:-2px;width:2px;background:#fff;left:92%}
+.rpm-text{margin-top:5px;font-size:12px;font-weight:700;color:var(--grey);text-align:right;font-variant-numeric:tabular-nums}
+
+.chips{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:10px;flex:0 0 auto}
+.chip{background:var(--block);border-radius:5px;padding:5px 2px;text-align:center}
+.chip label{display:block;font-size:8px;letter-spacing:.1em;color:var(--grey);font-weight:700}
+.chip b{font-size:13px;font-weight:900;color:var(--grey)}
+.chip.on b{color:var(--green)}
+.chip.warn b{color:var(--orange)}
+.chip.bad b{color:var(--red)}
+
+/* ------------------------------------------------------------ tempos */
+.time-row{display:flex;align-items:baseline;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--line);flex:0 0 auto}
+.time-row label{font-size:10px;font-weight:700;letter-spacing:.14em;color:var(--grey)}
+.val{font-weight:900;font-size:22px;font-variant-numeric:tabular-nums}
+.val.gold{color:var(--gold)}
+.time-row.big .val{font-size:clamp(26px,3vw,40px)}
+.delta-row .val{font-size:26px;color:var(--green)}
+.delta-row .val.neg{color:var(--red)}
+.bar-track{height:6px;background:var(--block);border-radius:3px;overflow:hidden;margin-top:auto;flex:0 0 auto}
+.bar-track.tall{height:9px;margin:8px 0}
+.bar-fill{height:100%;width:0;background:var(--gold);transition:width .2s linear}
+.bar-fill.fuel{background:linear-gradient(90deg,var(--orange),var(--gold))}
+
+/* ------------------------------------------------------------ pneus */
+.tyres{flex:1 1 auto;display:grid;grid-template-columns:1fr 1fr;gap:8px;min-height:0}
+.tyre{background:var(--block);border-radius:6px;padding:8px;display:flex;flex-direction:column;justify-content:center;gap:3px}
+.tyre-name{font-size:10px;font-weight:700;letter-spacing:.14em;color:var(--grey)}
+.tyre-temp{font-weight:900;font-size:clamp(22px,2.6vw,34px);line-height:1;font-variant-numeric:tabular-nums}
+.tyre-bar{width:100%;height:8px;display:block}
+.tyre-sub{font-size:10px;font-weight:600;color:var(--grey)}
+.tyre-sub span{font-weight:700;color:var(--white)}
+
+/* ------------------------------------------------------------ travões */
+.brakes{flex:1 1 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:6px;align-items:center;min-height:0}
+.brake{text-align:center;background:var(--block);border-radius:6px;padding:8px 2px}
+.brake-v{font-weight:900;font-size:clamp(16px,2vw,26px);line-height:1;font-variant-numeric:tabular-nums}
+.brake span{font-size:9px;font-weight:700;letter-spacing:.12em;color:var(--grey)}
+
+/* ------------------------------------------------------------ combustivel */
+.fuel-num{font-weight:900;font-size:clamp(28px,3.4vw,46px);line-height:1;display:flex;align-items:baseline;gap:2px;flex:0 0 auto}
+.fuel-num small{font-size:.4em;color:var(--grey)}
+.kv{display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;border-bottom:1px solid var(--line);font-size:12px;flex:0 0 auto}
+.kv span{color:var(--grey);font-weight:600}
+.kv b{font-weight:700;font-variant-numeric:tabular-nums}
+.kv b.alert{color:var(--red)}
+
+/* ------------------------------------------------------------ rodape */
+.foot{flex:0 0 auto;display:flex;align-items:center;gap:10px;font-size:10px;color:var(--grey);font-weight:600;padding:0 2px}
+.foot .sep{height:12px}
+
+/* quando o jogo esta em pausa, escurece um pouco para nao parecer vivo */
+body.paused .app{opacity:.62;filter:saturate(.55)}
+.app{transition:opacity .35s ease, filter .35s ease}
+
+/* ------------------------------------------------------------ responsivo */
+@media (max-width:1100px){
+  .grid{
+    grid-template-columns:1fr 1fr;
+    grid-template-rows:auto;
+    grid-template-areas:
+      "map main"
+      "times tyres"
+      "brakes fuel";
+    overflow-y:auto;
+  }
+  body{overflow:auto}
+  .app{height:auto;min-height:100%}
+  .map-card{min-height:260px}
+  .main-card{min-height:280px}
+  .times-card,.tyres-card,.brakes-card,.fuel-card{min-height:170px}
+}
+@media (max-width:620px){
+  .grid{grid-template-columns:1fr;grid-template-areas:"main" "map" "times" "tyres" "brakes" "fuel"}
+  .chips{grid-template-columns:repeat(3,1fr)}
+  .track{font-size:14px}
+}
