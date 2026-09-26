@@ -227,17 +227,23 @@ class Opponents:
 
     NAME = "acpmf_simhub_v2"
 
-    def __init__(self):
+    def __init__(self, name=None):
         self._h = None
         self._addr = None
         self._view = None
         self.available = False
         self.pluginVersion = ""
+        # 'name' existe para os testes poderem usar uma pagina FICTICIA.
+        # Nunca criar "acpmf_simhub_v2" num teste: o SimHub mantem essa
+        # pagina mapeada mesmo com o jogo fechado, por isso o
+        # CreateFileMapping devolveria o objeto JA EXISTENTE e as escritas
+        # do teste iriam parar a memoria de uma sessao real.
+        self.name = name or self.NAME
         self.open()
 
     def open(self):
         self.close()
-        h = k32.OpenFileMappingW(FILE_MAP_READ, False, self.NAME)
+        h = k32.OpenFileMappingW(FILE_MAP_READ, False, self.name)
         if not h:
             return False
         addr = k32.MapViewOfFile(h, FILE_MAP_READ, 0, 0,

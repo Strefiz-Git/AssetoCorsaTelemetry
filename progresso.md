@@ -239,7 +239,80 @@ Branch: `feat/interface-nova-e-modo-liderboard`
 | Idiomas | pt-PT, pt-BR, es, en |
 | Mapa | forma da pista correcta, zona de DRS pintada, sectores marcados |
 
-### A correção mais importante: o mapa estava no plano errado
+### Com o AC desligado: a suite de testes a sério
+
+O `test_acshm.py` nunca tinha corrido — abortava sempre com "o AC está a
+correr". Com o jogo fechado, correu: **46/46 valores**. E abriram-se
+duas lacunas que só se vêem com tempo.
+
+### O struct dos adversários nunca foi testado
+
+O `acpmf_simhub_v2` (128 carros) tinha uma leitura a funcionar, mas zero
+testes. Para o testar com segurança faltava uma coisa: o `Opponents` tinha
+o nome da página fixo no código, e **essa página é mantida mapeada pelo
+SimHub mesmo com o jogo fechado** — criar uma com o nome real devolveria
+o objeto já existente e as escritas do teste iriam parar a uma sessão
+real. Passou a aceitar um `name`, como o `ACTelemetry` já fazia.
+
+Resultado: `acsVehicleInfo` tem 228 bytes, a página 30252, e o filtro de
+carros sem nome funciona (um carro que sai da sessão não fica na lista).
+
+### Um `.pyc` envenenado quase me fez «consertar» código que estava certo
+
+Escrevi um teste que parte o código de propósito, para confirmar que o
+teste o apanha. Na primeira mutação troquei `'y'` por `'z'` nas
+coordenadas — e o teste passou a acusar `y` a devolver o valor de `z`.
+
+Isto parecia o bug do plano do mapa ressuscitado. Não era. O `acshm.py`
+no disco estava correcto e o `git diff` estava limpo. O que acontecia:
+
+O Python valida o bytecode de `__pycache__` pelo par **(data de
+modificação, em segundos, + tamanho do ficheiro)**. Uma mutação
+`.y` → `.z` mantém o tamanho, e restaurar o ficheiro original logo a
+seguir cai no mesmo segundo. Portanto o Python reutilizou o `.pyc`
+compilado da versão **partida**, e passou a executar código que já não
+existia em lado nenhum.
+
+Só se descobriu porque o teste foi lido de perto: todos os acessos
+directos ao campo davam o valor certo, e só o `snapshot()` dava o
+errado. **Um `git status` limpo não prova que se está a executar o
+código do disco.**
+
+Corrigido: os testes correm com `PYTHONDONTWRITEBYTECODE=1` e a cache é
+apagada antes de cada corrida. Está escrito na Regra nº 12.
+
+### Os testes agora mordem
+
+`tests/test_mutation.py` parte o código de oito maneiras e confirma que
+o teste o apanha, todas as oito:
+
+| mutação | apanhada |
+|---|---|
+| campo novo a meio | sim |
+| campo novo no fim | sim |
+| m/s esquecidos na conversão | sim |
+| posição ao vivo trocada com a oficial | sim |
+| filtro de carros vazios desligado | sim |
+| `y` trocada por `z` | sim |
+| tempo em ms lido como segundos | sim |
+| box confundido com a lane do box | sim |
+
+Um teste que nunca falha não prova nada — foi assim que a estrutura 36
+bytes errada passou a 100% no início do projecto.
+
+Vale a pena dizer: **a primeira versão deste teste dava dois falsos
+positivos, ambos meus.** Esperava 224 bytes onde há 228 (contei mal os
+campos) e esperava 3 carros onde há 4 (esqueci-me de que tinha criado
+quatro). O struct estava certo nas duas vezes. Ficou a checar o tamanho
+por dois lados: a soma dos campos *e* uma constante congelada — porque
+a soma sozinha se recalcula a partir da própria lista e não apanha um
+campo novo.
+
+`python tests\run_all.py` corre tudo e diz o que passou.
+
+---
+
+## A correção mais importante: o mapa estava no plano errado
 
 O mapa desenhava um rabisco achatado. A causa:
 

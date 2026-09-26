@@ -168,6 +168,54 @@ decoração.
 
 ---
 
+## Regra nº 12 — um `.pyc` envenenado faz o teste mentir sem dar erro
+
+O Python valida o bytecode em `__pycache__` pelo par **(data de
+modificação em segundos, tamanho do ficheiro)**. Se uma ferramenta
+reescrever um `.py` no sítio e o novo ficheiro tiver **o mesmo tamanho e
+a mesma data, ao segundo**, o Python reutiliza o `.pyc` antigo — que foi
+compilado de uma versão do código que já não existe no disco.
+
+Aconteceu aqui, e foi do pior tipo: o teste **passava a dar o valor
+errado** em vez de falhar.
+
+```python
+# o que se escrevia no ficheiro, mutado
+"y": round(c.worldPosition.y, 2)   ->   "y": round(c.worldPosition.z, 2)
+#                              ^ mesmo tamanho, mesma linha
+```
+
+Ao restaurar o ficheiro original logo a seguir, dentro do mesmo segundo,
+o `.pyc` continuou válido. Resultado: `acshm.py` no disco estava
+correto, o `git diff` estava limpo, e o teste acusava `y` a devolver o
+valor de `z` — o mesmo bug do plano do mapa, ressuscitado do nada.
+
+Só apareceu porque o teste foi lido de perto: todos os acessos directos
+ao campo davam o valor certo, e só o `snapshot()` dava o errado. **Um
+`git status` limpo não prova que se está a executar o código do disco.**
+
+Como qualquer ferramenta que reescreva fontes sofre disto:
+
+```python
+# correr testes e mexer no codigo ao mesmo tempo:
+env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1")
+# e apagar a cache antes de cada corrida
+shutil.rmtree("__pycache__", ignore_errors=True)
+```
+
+`tests/test_mutation.py` faz as duas coisas, e existe precisamente para
+isto: parte o código de propósito e confirma que o teste o apanha.
+**Oito mutações, as oito detectadas.** Um teste que nunca falha não
+prova nada — foi assim que a estrutura 36 bytes errada passou a 100%.
+
+Correu-se com:
+
+```bash
+python tests\run_all.py
+```
+
+---
+
 ## Regra nº 5 — escalas que não são óbvias
 
 Confirmadas contra o AC real:
@@ -359,9 +407,29 @@ concorrentes da mesma página.
 
 ## Ao mexer no `acshm.py`
 
-1. Correr `python tests\test_layout.py` — valida a estrutura.
+1. Correr `python tests\run_all.py` — a suite toda, por ordem.
 2. Com o jogo aberto, correr `python tests\verify_real.py` e **olhar para
    os valores**. Temperaturas de pneu têm de ter interior < meio <
    exterior. Travões da frente mais quentes que os de trás num RWD. Se
    algum valor for absurdo, é o offset (Regra nº 4).
 3. Nunca acrescentar escritas nas páginas reais (Regra nº 1).
+
+Com o AC a correr, `run_all.py` diz que o saltou — é o comportamento
+certo, não uma falha. Os testes de memória escrevem em páginas
+`ac_test_*`, que são criadas e destruídas pelo próprio teste.
+
+### A suite
+
+| Ficheiro | O que prova |
+|---|---|
+| `run_all.py` | corre tudo e dá o resumo |
+| `test_layout.py` | os 3 structs, campo a campo (60 + 30 + 42) |
+| `test_acshm.py` | a leitura de telemetria, 46 valores com unidades |
+| `test_opponents.py` | o struct de 128 carros: ordem dos campos, m/s → km/h, tempos, filtro de carros vazios |
+| `test_mutation.py` | que os testes acima **falham** quando o código está partido |
+| `diag_drs.py` | agrupa o que encontra no canal SSE, para não concluir de duas amostras |
+| `verify_real.py` | valores reais, só com o jogo aberto |
+
+Depois de acrescentar um campo a um struct: correr `test_mutation.py`.
+Ele tem mutações para "campo novo a meio" e "campo novo no fim", que
+são as duas formas de um struct passar a ler a partir do sítio errado.
