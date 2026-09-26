@@ -70,7 +70,8 @@ const I18N = {
     'fuel.ersUsed': 'ERS na volta', 'fuel.none': 'nenhuma',
     'lb.title': 'CLASSIFICAÇÃO', 'lb.telTitle': 'TEU CARRO',
     'lb.pos': 'P', 'lb.name': 'PILOTO', 'lb.lap': 'VOLTA',
-    'lb.time': 'TEMPO', 'lb.best': 'MELHOR', 'lb.gap': 'DIF.',
+    'lb.time': 'TEMPO', 'lb.best': 'MELHOR', 'lb.gap': 'INT.',
+    'lb.intTitle': 'Tempo estimado até ao carro da frente, pelo ritmo da última volta dele. Não é exacto: o Content Manager guarda a volta completa de cada carro e sabe o tempo real.',
     'lb.penalty': 'Penalidade', 'lb.drs': 'DRS',
     'foot.src': 'memória do AC, sem SimHub',
     'status.live': 'AO VIVO', 'status.paused': 'EM PAUSA',
@@ -134,7 +135,8 @@ const I18N = {
     'fuel.ersUsed': 'ERS na volta', 'fuel.none': 'nenhuma',
     'lb.title': 'CLASSIFICAÇÃO', 'lb.telTitle': 'SEU CARRO',
     'lb.pos': 'P', 'lb.name': 'PILOTO', 'lb.lap': 'VOLTA',
-    'lb.time': 'TEMPO', 'lb.best': 'MELHOR', 'lb.gap': 'DIF.',
+    'lb.time': 'TEMPO', 'lb.best': 'MELHOR', 'lb.gap': 'INT.',
+    'lb.intTitle': 'Tempo estimado até ao carro da frente, pelo ritmo da última volta dele. Não é exacto: o Content Manager guarda a volta completa de cada carro e sabe o tempo real.',
     'lb.penalty': 'Penalty', 'lb.drs': 'DRS',
     'foot.src': 'memória do AC, sem SimHub',
     'status.live': 'AO VIVO', 'status.paused': 'EM PAUSA',
@@ -199,7 +201,8 @@ const I18N = {
     'fuel.ersUsed': 'ERS en la vuelta', 'fuel.none': 'ninguna',
     'lb.title': 'CLASIFICACIÓN', 'lb.telTitle': 'TU COCHE',
     'lb.pos': 'P', 'lb.name': 'PILOTO', 'lb.lap': 'VUELTA',
-    'lb.time': 'TIEMPO', 'lb.best': 'MEJOR', 'lb.gap': 'DIF.',
+    'lb.time': 'TIEMPO', 'lb.best': 'MEJOR', 'lb.gap': 'INT.',
+    'lb.intTitle': 'Tiempo estimado hasta el coche de delante, según el ritmo de su última vuelta. No es exacto: Content Manager guarda la vuelta completa de cada coche y sabe el tiempo real.',
     'lb.penalty': 'Penalización', 'lb.drs': 'DRS',
     'foot.src': 'memoria del AC, sin SimHub',
     'status.live': 'EN VIVO', 'status.paused': 'EN PAUSA',
@@ -267,7 +270,8 @@ const I18N = {
     'fuel.ersUsed': 'ERS this lap', 'fuel.none': 'none',
     'lb.title': 'STANDINGS', 'lb.telTitle': 'YOUR CAR',
     'lb.pos': 'P', 'lb.name': 'DRIVER', 'lb.lap': 'LAP',
-    'lb.time': 'TIME', 'lb.best': 'BEST', 'lb.gap': 'GAP',
+    'lb.time': 'TIME', 'lb.best': 'BEST', 'lb.gap': 'INT.',
+    'lb.intTitle': 'Estimated time to the car ahead, from the pace of its last lap. Not exact: Content Manager keeps a full lap trace for every car and knows the real time.',
     'lb.penalty': 'Penalty', 'lb.drs': 'DRS',
     'foot.src': 'AC memory, no SimHub',
     'status.live': 'LIVE', 'status.paused': 'PAUSED',
@@ -341,6 +345,8 @@ const S = {
   // estado da medicao da vida do pneu (ver tyres.js). Nao e' reiniciado
   // a mudanca de pista: so' quando o pneu e' que troca, ou a sessao.
   pneuStint: null,
+  // onde cada carro estava no inicio, para as setas de posicao
+  posicoes: novoRastreadorPosicoes(40),
   frames: 0, fpsAt: performance.now(), fps: 0,
   trace: { t: [], th: [], br: [], cl: [], hb: [] },
   lastSample: 0, traceHz: 0,
@@ -2103,7 +2109,12 @@ function renderOpponents(o) {
   }
   const rows1 = $('lb-rows'), rows2 = $('lb-rows2');
   const note1 = $('lb-note'), note2 = $('lb-note2');
-  const compact = !!rows2;
+  // A versao compacta (sem intervalo nem ultima volta) e' so para o modo
+  // misto, onde a leaderboard parte a largura com a telemetria. deciding
+  // pelo facto de o elemento #lb-rows2 existir no markup nao servia --
+  // ele existe sempre, mesmo escondido, e por isso a vista de
+  // leaderboard mostrava sempre 4 colunas em vez de 6.
+  const compact = (DEF.mode || 'telemetry') === 'both';
 
   if (!o.available || !o.cars || o.cars.length === 0) {
     const msg = '<b>' + t('opp.waiting') + '</b><br>' + t('opp.how');
@@ -2118,30 +2129,96 @@ function renderOpponents(o) {
   myCarId = o.focus;
   // o melhor tempo do jogador, para calcular diferencas
   let leaderBest = 0;
+  let sessaoMelhor = 0;   // a melhor volta de toda a corrida, para destacar
   for (const c of o.cars) {
     const s = toSec(c.best);
-    if (s != null && (leaderBest === 0 || s < leaderBest)) leaderBest = s;
+    if (s != null) {
+      if (leaderBest === 0 || s < leaderBest) leaderBest = s;
+      if (sessaoMelhor === 0 || s < sessaoMelhor) sessaoMelhor = s;
+    }
   }
   const me = o.cars.find((c) => c.id === myCarId) || null;
+  const tl = (lastD && lastD.trackLength) || 0;
+
+  /* O INTERVALO AO VIVO, a ideia veio do leaderboard do Content Manager.
+   *
+   * Antes a coluna "Dif." era a diferenca entre as melhores voltas: um
+   * numero que so muda quando alguem improve o melhor tempo, e que nao
+   * responde a pergunta que se faz a correr -- "quanto tempo falta para
+   * o apanhar".
+   *
+   * O CSP calcula-o a partir da posicao na pista e do ritmo. Aqui o ritmo
+   * do adversario e' o da sua ultima volta (ultima / comprimento da
+   * pista); o CSP tem a volta completa de cada carro e sabe o tempo
+   * exacto. Isto e' uma aproximacao e esta escrito como tal.
+   */
+  const ritmoDe = (c) => {
+    const t = toSec(c.last) != null ? toSec(c.last) : toSec(c.best);
+    return (t != null && t > 0 && tl > 0) ? t / tl : null;
+  };
+
+  /* Para cada carro, o intervalo e' calculado contra quem esta' a serio
+     a frente dele na pista -- que nem sempre e' o de cima na lista, se
+     alguem tiver largado mais atras e ja estiver a passar. */
+  const intervaloDe = (c) => {
+    if (c.id === myCarId) return { txt: '-', atrasado: false };
+    let melhor = null, melhorD = Infinity;
+    for (const o2 of o.cars) {
+      if (o2.id === c.id) continue;
+      // quem esta' a frente: mais voltas, ou mais percentagem na mesma volta
+      const dl = o2.lap - c.lap;
+      const dp = o2.pct - c.pct;
+      if (dl < 0) continue;
+      if (dl === 0 && dp <= 0) continue;
+      const d = dl + dp;
+      if (d > 0 && d < melhorD) { melhorD = d; melhor = o2; }
+    }
+    if (!melhor) return { txt: '-', atrasado: false };
+    const r = intervaloAoVivo({
+      trackLength: tl,
+      lapF: melhor.lap, pctF: melhor.pct,
+      lapT: c.lap, pctT: c.pct,
+      velT: c.speed, ritmoF: ritmoDe(melhor)
+    });
+    if (!r) return { txt: '-', atrasado: false };
+    if (r.voltas !== 0) return { txt: 'L ' + (r.voltas > 0 ? '+' : '') + r.voltas, atrasado: r.voltas < 0 };
+    const s = r.seg;
+    if (s < 0.05) return { txt: '0.0', atrasado: false };
+    return { txt: s.toFixed(1), atrasado: false };
+  };
+
+  /* As setas de posicao. O jogo da' a posicao a cada instante mas nao a
+     de largada, por isso registamos a primeira de cada carro -- mas so'
+     no frame em que a corrida arranca. Guardar em todos os frames
+     repunha a referencia 60 vezes por segundo e as setas nunca
+     apareciam. */
+  const corridaAtiva = !!(lastD && lastD.live && lastD.session === 'CORRIDA');
+  if (corridaArranca(S.posicoes, corridaAtiva)) S.posicoes.inicio = {};
+  const agora = performance.now() / 1000;
+  for (const c of o.cars) registarPosicoes(S.posicoes, c.id, c.livePos || c.pos, agora);
+
   const html = o.cars.map((c) => {
     const best = toSec(c.best);
-    let gap = '';
-    if (c.id !== myCarId && best != null && leaderBest > 0) {
-      const d = best - leaderBest;
-      gap = (d >= 0 ? '+' : '') + d.toFixed(3);
-    }
+    const int = intervaloDe(c);
+    const dPos = diferencaPosicao(S.posicoes, c.id, c.livePos || c.pos);
     const isMe = c.id === myCarId;
+    const seta = dPos > 0 ? '<i class="lb-up" title="+' + dPos + '">▲</i>'
+      : dPos < 0 ? '<i class="lb-down" title="' + dPos + '">▼</i>' : '';
+    // etiqueta de estado: e' o que o CSP escreve a direita da linha
+    const estado = !c.connected ? '<b class="lb-flag off">OFF</b>'
+      : c.inPitLane ? '<b class="lb-flag pit">PIT</b>' : '';
+    const melhorSessao = best != null && sessaoMelhor > 0 && best <= sessaoMelhor;
     const cols = compact
-      ? '<span class="lb-pos">' + (c.pos || '-') + '</span>' +
+      ? '<span class="lb-pos">' + (c.pos || '-') + seta + '</span>' +
         '<span class="lb-name">' + esc(c.name) + '<small>' + esc(c.car) + '</small></span>' +
-        '<span class="lb-lap">' + (c.lap + 1) + '</span>' +
-        '<span class="lb-best">' + (c.best || '--') + '</span>'
-      : '<span class="lb-pos">' + (c.pos || '-') + '</span>' +
+        '<span class="lb-lap">' + (c.lap + 1) + estado + '</span>' +
+        '<span class="lb-gap' + (int.atrasado ? ' pos' : '') + '">' + int.txt + '</span>'
+      : '<span class="lb-pos">' + (c.pos || '-') + seta + '</span>' +
         '<span class="lb-name">' + esc(c.name) + '<small>' + esc(c.car) + '</small></span>' +
-        '<span class="lb-lap">' + (c.lap + 1) + '</span>' +
+        '<span class="lb-lap">' + (c.lap + 1) + estado + '</span>' +
+        '<span class="lb-gap' + (int.atrasado ? ' pos' : '') + '" title="' + t('lb.intTitle') + '">' + int.txt + '</span>' +
         '<span class="lb-time">' + (c.last || '--') + '</span>' +
-        '<span class="lb-best">' + (c.best || '--') + '</span>' +
-        '<span class="lb-gap' + (gap ? (gap[0] === '-' ? ' neg' : ' pos') : '') + '">' + gap + '</span>';
+        '<span class="lb-best' + (melhorSessao ? ' top' : '') + '">' + (c.best || '--') + '</span>';
     return '<div class="lb-row' + (isMe ? ' me' : '') + (c.inPit ? ' pit' : '') + '">' + cols + '</div>';
   }).join('');
 

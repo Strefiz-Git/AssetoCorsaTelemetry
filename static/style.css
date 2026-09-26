@@ -461,7 +461,8 @@ body{
 .lb-head,.lb-row{
   display:grid;grid-template-columns:34px minmax(0,1fr) 50px 92px 92px 78px;gap:8px;align-items:center;
 }
-.grid-both .lb-head,.grid-both .lb-row{grid-template-columns:30px minmax(0,1fr) 44px 84px}
+/* modo misto: P, piloto, volta, INT, melhor */
+.grid-both .lb-head,.grid-both .lb-row{grid-template-columns:30px minmax(0,1fr) 44px 56px 84px}
 .lb-head{
   font-size:9px;font-weight:700;letter-spacing:.1em;color:var(--grey);
   padding:0 6px 6px;border-bottom:1px solid var(--line);flex:0 0 auto;
@@ -476,8 +477,29 @@ body{
 .lb-name{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .lb-name small{color:var(--grey);font-weight:600;font-size:10px;margin-left:5px}
 .lb-lap,.lb-time,.lb-best,.lb-gap{text-align:right;font-weight:700;font-size:12px}
-.lb-gap.pos{color:var(--red)}
+/* o intervalo e' tempo ate ao carro da frente: verde quando se esta' a
+   chegar, vermelho quando se esta' a afastar. O numero e' o que
+   responde a pergunta da corrida, ao contrario da diferenca entre
+   melhores voltas. */
 .lb-gap.neg{color:var(--green)}
+.lb-gap.pos{color:var(--red)}
+
+/* a melhor volta da corrida, como o roxo do CSP */
+.lb-best.top{color:#B57BFF}
+
+/* setas de posicao ganha/perdida, como o CSP */
+.lb-up,.lb-down{font-style:normal;font-size:9px;margin-left:3px;vertical-align:1px}
+.lb-up{color:var(--green)}
+.lb-down{color:var(--red)}
+
+/* etiqueta de estado a direita da volta: OFF, PIT */
+.lb-flag{
+  font-size:8px;font-weight:700;letter-spacing:.08em;margin-left:5px;
+  padding:1px 4px;border-radius:3px;
+}
+.lb-flag.off{background:#2A3031;color:#7A8283}
+.lb-flag.pit{background:rgba(245,128,32,.22);color:var(--orange)}
+
 .lb-row.pit .lb-name{color:var(--orange)}
 .lb-note{
   margin-top:9px;padding:10px 12px;background:var(--block);border-radius:6px;
@@ -570,4 +592,11 @@ body.paused .app{opacity:.6;filter:saturate(.5)}
   .drs-dot{width:20px;height:20px}
   .drs-txt{font-size:14px}
   .pedal-keys{grid-template-columns:1fr}
+  /* Seis colunas nao cabem num ecra estreito: medido, a linha precisava
+     de 405 px numa caixa de 340. Corta-se a ultima volta, que e' a menos
+     importante a correr -- o intervalo e o melhor continuam. E o que o CSP
+     faz no modo relativo, onde esconde a posicao em vez do intervalo. */
+  .lb-head .lb-time,.lb-row .lb-time{display:none}
+  .lb-head,.lb-row{grid-template-columns:30px minmax(0,1fr) 44px 56px 84px;gap:6px}
+  .grid-both .lb-head,.grid-both .lb-row{grid-template-columns:28px minmax(0,1fr) 40px 50px 76px;gap:5px}
 }

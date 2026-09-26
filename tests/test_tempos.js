@@ -14,7 +14,9 @@
 const path = require('path');
 const T = require(path.join(__dirname, '..', 'static', 'tempos.js'));
 
-const { toSec, deltaParaRef, melhorTempo, empilharPonto, VOLTA_MINIMA_S } = T;
+const { toSec, deltaParaRef, melhorTempo, empilharPonto, VOLTA_MINIMA_S,
+        intervaloAoVivo, novoRastreadorPosicoes, corridaArranca, registarPosicoes,
+        diferencaPosicao } = T;
 
 let n = 0;
 const falhas = [];
@@ -163,6 +165,73 @@ for (let i = 0; i <= 5000; i++) {
 ok('ao passar de 4000, o tamanho cai para cerca de metade',
    contagens[1] <= 2600, true);
 ok('e fica sempre dentro do limite', Math.max(...contagens) <= 4000, true);
+
+/* ================================================== intervalo ao vivo */
+console.log('\n--- intervalo ao vivo (leaderboard) ---');
+
+const TL = 5000; // metros, so' para o teste
+const ritmo30 = 30 / TL; // 30 s por volta => 0,006 s por metro
+
+function intervalo(o) { return intervaloAoVivo(Object.assign({ trackLength: TL }, o)); }
+function intTxt(r) {
+  if (r == null) return 'null';
+  if (r.voltas !== 0) return 'L ' + (r.voltas > 0 ? '+' : '') + r.voltas;
+  return (r.seg >= 0 ? '+' : '-') + r.seg.toFixed(1);
+}
+
+ok('dez por cento da pista, a 30 s por volta, da 3 segundos',
+   intTxt(intervalo({ lapF: 2, pctF: 0.50, lapT: 2, pctT: 0.40, ritmoF: ritmo30 })), '+3.0');
+ok('mesmo ponto da zero', intTxt(intervalo({ lapF: 2, pctF: 0.50, lapT: 2, pctT: 0.50, ritmoF: ritmo30 })), '+0.0');
+
+ok('uma volta de vantagem mostra L +1',
+   intTxt(intervalo({ lapF: 3, pctF: 0.10, lapT: 2, pctT: 0.10, ritmoF: ritmo30 })), 'L +1');
+ok('tres voltas de vantagem',
+   intTxt(intervalo({ lapF: 5, pctF: 0.10, lapT: 2, pctT: 0.10, ritmoF: ritmo30 })), 'L +3');
+ok('uma volta de atraso mostra L -1',
+   intTxt(intervalo({ lapF: 1, pctF: 0.10, lapT: 2, pctT: 0.10, ritmoF: ritmo30 })), 'L -1');
+
+ok('da frente atras mas ja cruzou a meta: de 90% a 10% sao 20% da pista',
+   intTxt(intervalo({ lapF: 2, pctF: 0.10, lapT: 2, pctT: 0.90, ritmoF: ritmo30 })), '+6.0');
+
+ok('sem volta conhecida usa a velocidade (500 m a 50 m/s)',
+   intTxt(intervalo({ lapF: 2, pctF: 0.50, lapT: 2, pctT: 0.40, velT: 50 })), '+10.0');
+ok('parado usa o piso de 18 m/s (500 m / 18)',
+   intTxt(intervalo({ lapF: 2, pctF: 0.50, lapT: 2, pctT: 0.40, velT: 0 })), '+27.8');
+ok('a 2 m/s tambem usa o piso: dividir por 2 daria 250 s',
+   intTxt(intervalo({ lapF: 2, pctF: 0.50, lapT: 2, pctT: 0.40, velT: 2 })), '+27.8');
+ok('velocidade negativa conta o valor absoluto',
+   intTxt(intervalo({ lapF: 2, pctF: 0.50, lapT: 2, pctT: 0.40, velT: -50 })), '+10.0');
+
+nulo('pista de comprimento zero', intervalo({ trackLength: 0, lapF: 1, pctF: 0.5, lapT: 1, pctT: 0.4 }));
+nulo('faltam dados da posicao', intervalo({ trackLength: TL, lapF: null, pctF: 0.5, lapT: 1, pctT: 0.4 }));
+nulo('NaN na posicao', intervalo({ trackLength: TL, lapF: 1, pctF: NaN, lapT: 1, pctT: 0.4 }));
+nulo('sem argumentos', intervaloAoVivo(null));
+
+/* -------------------------------------------------- setas de posicao */
+console.log('\n--- setas de posicao ---');
+
+// A largada e' um instante, nao um estado. Sem isto, guardar a posicao de
+// largada em todos os frames repunha a referencia 60 vezes por segundo e
+// as setas nunca apareciam -- que e' o que se passou na primeira versao.
+let rast = novoRastreadorPosicoes(40);
+ok('antes da largada nao ha\' subida', corridaArranca(rast, false), false);
+ok('a largada e\' detectada', corridaArranca(rast, true), true);
+ok('e so\' uma vez, nao a cada frame', corridaArranca(rast, true), false);
+
+registarPosicoes(rast, 7, 5, 100);
+ok('acabei de largar: sem seta', diferencaPosicao(rast, 7, 5), 0);
+ok('ganhei duas posicoes', diferencaPosicao(rast, 7, 3), 2);
+ok('perdi tres posicoes', diferencaPosicao(rast, 7, 8), -3);
+ok('carro que nunca vi: sem seta', diferencaPosicao(rast, 99, 3), 0);
+ok('posicao zero (a volta ainda nao conta)', diferencaPosicao(rast, 7, 0), 0);
+
+// uma segunda largada limpa as referencias: e' o que acontece quando se
+// reinicia a corrida
+corridaArranca(rast, false);
+ok('a corrida parou', corridaArranca(rast, true), true);
+rast.inicio = {};
+registarPosicoes(rast, 7, 2, 200);
+ok('apos reiniciar, a contagem recomeca', diferencaPosicao(rast, 7, 2), 0);
 
 /* --- fecho ------------------------------------------------------------- */
 console.log();
