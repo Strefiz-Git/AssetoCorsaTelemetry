@@ -394,6 +394,96 @@ Vale para os gráficos dos pedais, para o delta e para o mapa.
 
 ---
 
+## Regra nº 16 — duas vistas do mesmo mundo têm de usar a mesma convenção
+
+O mapa tem **dois** caminhos de desenho, e durante algum tempo
+discordavam um do outro, em silêncio:
+
+| | transformação | o que desenhava |
+|---|---|---|
+| imagem do jogo | `iy = (z + Z_OFFSET) * k` | Y do canvas **cresce** com Z |
+| traçado a conduzir | `py = (cz - z) * sc + h/2` | Y do canvas **decresce** com Z |
+
+Um é o espelho do outro. Nenhum dos dois dá erro: os dois desenham uma
+pista com aspecto perfeitamente plausível. Só de os pôr lado a lado se vê
+que um está ao contrário — e o sintoma que o piloto relata não é "o mapa
+parece estranho", é **"virei à direita e o mapa virou à esquerda"**.
+
+Um mapa espelhado ainda parece um mapa, e é por isso que passa despercebido
+até alguém virar à direita com a mão no volante.
+
+Regra: **quando há mais do que uma vista para o mesmo plano do mundo, a
+convenção de eixos é uma só, escrita num sítio só.** Se as duas vistas
+têm de concordar, elas têm de chamar à mesma função — duas constantes
+escritas em dois sítios diferentes vão divergir sem ninguém dar por isso.
+
+E para decidir o sinal, não raciocinar sobre sistemas de coordenadas:
+**medir.** Ver Regra nº 17.
+
+---
+
+## Regra nº 17 — o `map.ini` do Assetto Corsa, medido
+
+Tudo o que segue foi medido nas **76 pistas** com mapa desta instalação
+(`python tests\\mapa_todas_pistas.py`), não deduzido.
+
+### Os ficheiros não estão onde se procura
+
+```text
+content/tracks/<pista>/map.png          <- a imagem, NA RAIZ da pista
+content/tracks/<pista>/data/map.ini     <- a escala, em data/
+```
+
+**Os dois não estão na mesma pasta.** Procurar `data/map.png` — que é o
+que se faz por natural — faz o `/api/track-map` responder `not-found` para
+**todas** as pistas, sem erro nenhum, e o mapa real nunca aparece.
+
+### A imagem tem 1 pixel por metro. O `SCALE_FACTOR` não é a escala.
+
+Em 54 das 76 pistas, o `WIDTH`/`HEIGHT` do `map.ini` batem com as
+dimensões do PNG ao metro:
+
+| pista | `WIDTH` (m) | PNG (px) |
+|---|---|---|
+| imola | 1543,9 | 1543 |
+| montreal | 508,8 | 508 |
+| spa | 1004,8 | 1004 |
+| monza | 927,4 | 927 |
+
+Logo `SCALE_FACTOR` **não** é a escala da imagem: se fosse px/m, Baku
+(2167 m, escala 1,3) teria 2817 px. O `SCALE_FACTOR` é a escala de
+desenho do widget de mapa do próprio jogo.
+
+A fórmula `imgX = (x + X_OFFSET) / SCALE_FACTOR`, que parece óbvia, está
+**errada**: divide o traçado e ainda o desloca, e só não se nota nas
+pistas com `SCALE_FACTOR = 1` (Magny-Cours, Baku) — que foram
+precisamente as testadas primeiro. É o mesmo engano da Regra nº 11: um
+teste numa amostra que não discrimina dá a ilusão de uma confirmação.
+
+Como há 22 pistas em que a imagem é ~20 px maior que o rectângulo do
+mundo, a escala **vem sempre de medir a imagem**, nunca de presumir
+`1`:
+
+```python
+pxPorMetro = (png_width / WIDTH + png_height / HEIGHT) / 2
+confiavel  = abs(png_width/WIDTH - png_height/HEIGHT) / max(...) < 0.02
+```
+
+O `confiavel` é o que protege contra os dados de pista que estão
+simplesmente errados: `ek_irohazaka` tem `WIDTH` 2368 m numa imagem de
+1993 px e `HEIGHT` 890 m em 872 px, e `Brooklyn Park` tem 365,9 m em 355 px
+e 350,4 m em 200 px. Quando os dois eixos não concordam, o cliente volta
+ao mapa traçado, que é sempre correcto — um mapa torto é pior do que
+nenhum.
+
+### O `MARGIN` não está cozido na imagem
+
+`MARGIN=20` com a imagem exatamente `WIDTH` px de lado: logo a margem
+**não** está somada. Somar `MARGIN` ao deslocamento é a terceira hipótese
+a testar, e está errada.
+
+---
+
 ## Regra nº 6 — ctypes em Windows: armadilhas
 
 Todas as quatro happened durante a construção deste projecto:
