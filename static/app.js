@@ -299,6 +299,8 @@ const S = {
   // historico de posicao dos adversarios, para os desenhar interpolados.
   // Ver opponentsSuaves(): o canal vai a 10 Hz e o ecrã a 60.
   oppHist: {},
+  // o id do TEU carro na lista de adversarios (ver renderOpponents)
+  localCarId: null,
   frames: 0, fpsAt: performance.now(), fps: 0,
   trace: { t: [], th: [], br: [], cl: [], hb: [] },
   lastSample: 0, traceHz: 0,
@@ -677,11 +679,13 @@ function drawMapReal(c, w, h, rm) {
 
   // adversarios: posicao interpolada (ver opponentsSuaves). O canal vai a
   // 10 Hz e o ecra a 60, por isso desenhar o ultimo valor dava solavancos.
+  // O teu carro e' desenhado a amarelo, em cima disto -- e a lista de
+  // adversarios inclui-te, por isso tem de ser filtrado (S.localCarId).
   const pxPorM = sc * (rm.pxPerMetre || 1);
   const rOpp = clamp(3.2 * pxPorM, 4, 12);
   const suave = opponentsSuaves(performance.now() - OPP_ATRASO_MS);
   for (const car of suave) {
-    if (car.id === myCarId) continue;
+    if (car.id != null && car.id === S.localCarId) continue;
     const [ix, iy] = worldToMapImg(rm, car.x, car.z);
     const x = px(ix), y = py(iy);
     c.beginPath(); c.arc(x, y, rOpp, 0, Math.PI * 2);
@@ -795,7 +799,7 @@ function drawMapTraced(c, w, h) {
   // desenho e' o mesmo, e as duas vistas tem de mostrar o mesmo.
   const rOppT = clamp(3.2 * sc, 4, 12);
   for (const car of opponentsSuaves(performance.now() - OPP_ATRASO_MS)) {
-    if (car.id === myCarId) continue;
+    if (car.id != null && car.id === S.localCarId) continue;
     const x = q.px(car.x - S.minX), y = q.py(car.z - S.minY);
     c.beginPath(); c.arc(x, y, rOppT, 0, Math.PI * 2);
     c.fillStyle = car.inPit ? 'rgba(255,255,255,.35)' : '#8C9394';
@@ -1866,7 +1870,10 @@ function guardarOppHist(o) {
     vistos.add(k);
     let h = S.oppHist[k];
     if (!h) { h = S.oppHist[k] = []; }
-    h.push({ t: agora, x: c.x, z: c.z, pos: c.pos, name: c.name, inPit: c.inPit });
+    // o id tem de vir aqui. Sem ele, opponentsSuaves devolvia id=null, a
+    // comparacao com o teu carro nunca era verdadeira e aparecia uma bola
+    // cinzenta em cima da amarela -- que e' o que se viu no mapa.
+    h.push({ t: agora, id: c.id, x: c.x, z: c.z, pos: c.pos, name: c.name, inPit: c.inPit });
     while (h.length > OPP_MAX_AMOSTRAS) h.shift();
   }
   // limpa o que deixou de aparecer, mas so depois de um segundo sem
@@ -1910,7 +1917,18 @@ function opponentsSuaves(alvo) {
 function renderOpponents(o) {
   if (!o) return;
   S.opponents = o;
-  if (o.available && Array.isArray(o.cars)) guardarOppHist(o);
+  if (o.available && Array.isArray(o.cars)) {
+    guardarOppHist(o);
+    // O TEU carro e' o veiculo 0 da pagina de adversarios do AC. O
+    // 'focus' que o servidor manda e' o focusVehicle, que e' a CAMERA --
+    // numa corrida coincide com o 0 porque a camera esta' no teu carro, mas
+    // num replay e' outro carro altogether, e comparar os dois dava
+    // resultados que dependiam do que se estava a ver.
+    // Se a lista nao trouxer o id 0 (versao antiga do plugin), cai para o
+    // focus em vez de nao riscar nenhum.
+    S.localCarId = o.cars.some((c) => c.id === 0) ? 0
+      : (o.focus != null ? o.focus : null);
+  }
   const rows1 = $('lb-rows'), rows2 = $('lb-rows2');
   const note1 = $('lb-note'), note2 = $('lb-note2');
   const compact = !!rows2;
