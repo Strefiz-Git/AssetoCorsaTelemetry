@@ -39,10 +39,31 @@ INICIAR.bat
 Ou à mão:
 
 ```
-python server.py
+python server.py --abrir
 ```
 
-Depois abre **http://localhost:8765**.
+Depois abre **http://localhost:8765**. `--abrir` faz o próprio servidor
+abrir o browser assim que a porta aceita ligações.
+
+### Parar e reiniciar
+
+| Ficheiro | O que faz |
+|---|---|
+| `INICIAR.bat` | arranca o servidor e abre o browser |
+| `PARAR.bat` | **para o servidor** |
+| `REINICIAR.bat` | para e arranca de novo |
+
+O `REINICIAR.bat` é o que se usa **depois de mexer no `acshm.py` ou no
+`server.py`**: o servidor lê o código uma vez só, no arranque, e por isso
+uma alteração a esses ficheiros não aparece sem um reinício. Mudar
+apenas ficheiros em `static/` não precisa — o browser vai buscá-los de
+novo a cada recarregamento.
+
+O `PARAR.bat` mata pelo **número da porta**, não por "todos os
+processos python". Isto importa porque o Python do Content Manager, o do
+SimHub e o de outras ferramentas também se chama `python.exe`. Antes de
+matar, confirma pela linha de comando que o processo é mesmo o
+servidor; se for outra coisa na mesma porta, diz e não toca.
 
 ### Opções
 
@@ -132,6 +153,9 @@ referência no mesmo ponto da pista, interpolado.
 ```
 AssettoCorsaTelemetry/
 ├── INICIAR.bat              arranca o servidor e abre o browser
+├── PARAR.bat                para o servidor
+├── REINICIAR.bat            para e arranca de novo
+├── parar.ps1                a lógica do PARAR (o .bat chama esta)
 ├── server.py                servidor HTTP + SSE
 ├── acshm.py                 leitura da memória partilhada e structs do AC
 ├── static/
