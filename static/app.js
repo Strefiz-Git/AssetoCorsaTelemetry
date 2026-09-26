@@ -39,9 +39,12 @@ const I18N = {
     'ers.short': 'ERS', 'pit.short': 'PIT', 'state.off': 'OFF',
     'state.on': 'ON', 'state.lim': 'LIM',
     'map.title': 'MAPA DA PISTA', 'pedals.title': 'PEDAIS',
+    'wheel.title': 'VOLANTE', 'wheel.note': 'Angulo do volante, de -1 a 1. O alcance do valor esta'
+    + ' por confirmar a conduzir.',
     'map.drsKey': 'zona de DRS',
     'pedals.throttle': 'ACEL.', 'pedals.brake': 'TRAVA',
     'pedals.clutch': 'EMBRAIAGEM', 'pedals.handbrake': 'FREIO DE MÃO',
+    'pedals.pequeno': 'pouco espaco', 'pedals.agora': 'agora',
     'laps.title': 'VOLTAS', 'laps.current': 'ATUAL', 'laps.best': 'MELHOR',
     'laps.last': 'ANTERIOR', 'laps.delta': 'DELTA',
     'tyres.title': 'PNEUS E TRAVÕES', 'tyres.worn': 'gasto',
@@ -87,9 +90,12 @@ const I18N = {
     'unit.mph': 'mph', 'unit.rpm': 'rpm', 'ers.short': 'ERS', 'pit.short': 'BOX',
     'state.off': 'OFF', 'state.on': 'ON', 'state.lim': 'LIM',
     'map.title': 'MAPA DA PISTA', 'pedals.title': 'PEDAIS',
+    'wheel.title': 'VOLANTE', 'wheel.note': 'Angulo do volante, de -1 a 1. O alcance do valor esta'
+    + ' por confirmar dirigindo.',
     'map.drsKey': 'zona de DRS',
     'pedals.throttle': 'ACEL.', 'pedals.brake': 'FREIO',
     'pedals.clutch': 'EMBREAGEM', 'pedals.handbrake': 'FREIO DE MÃO',
+    'pedals.pequeno': 'pouco espaco', 'pedals.agora': 'agora',
     'laps.title': 'VOLTAS', 'laps.current': 'ATUAL', 'laps.best': 'MELHOR',
     'laps.last': 'ANTERIOR', 'laps.delta': 'DELTA',
     'tyres.title': 'PNEUS E FREIOS', 'tyres.worn': 'usado',
@@ -134,9 +140,12 @@ const I18N = {
     'unit.mph': 'mph', 'unit.rpm': 'rpm', 'ers.short': 'ERS', 'pit.short': 'PIT',
     'state.off': 'OFF', 'state.on': 'ON', 'state.lim': 'LIM',
     'map.title': 'MAPA DE LA PISTA', 'pedals.title': 'PEDALES',
+    'wheel.title': 'VOLANTE', 'wheel.note': 'Angulo del volante, de -1 a 1. El alcance del valor esta'
+    + ' por confirmar conduciendo.',
     'map.drsKey': 'zona de DRS',
     'pedals.throttle': 'ACEL.', 'pedals.brake': 'FRENO',
     'pedals.clutch': 'EMBRAGUE', 'pedals.handbrake': 'FRENO DE MANO',
+    'pedals.pequeno': 'poco espacio', 'pedals.agora': 'ahora',
     'laps.title': 'VUELTAS', 'laps.current': 'ACTUAL', 'laps.best': 'MEJOR',
     'laps.last': 'ANTERIOR', 'laps.delta': 'DELTA',
     'tyres.title': 'NEUMÁTICOS Y FRENOS', 'tyres.worn': 'gastado',
@@ -184,9 +193,12 @@ const I18N = {
     'unit.mph': 'mph', 'unit.rpm': 'rpm', 'ers.short': 'ERS', 'pit.short': 'PIT',
     'state.off': 'OFF', 'state.on': 'ON', 'state.lim': 'LIM',
     'map.title': 'TRACK MAP', 'pedals.title': 'PEDALS',
+    'wheel.title': 'STEERING', 'wheel.note': 'Steering angle, from -1 to 1. The range of the value is'
+    + ' not confirmed yet, measured while driving.',
     'map.drsKey': 'DRS zone',
     'pedals.throttle': 'THROTTLE', 'pedals.brake': 'BRAKE',
     'pedals.clutch': 'CLUTCH', 'pedals.handbrake': 'HANDBRAKE',
+    'pedals.pequeno': 'not enough room', 'pedals.agora': 'now',
     'laps.title': 'LAPS', 'laps.current': 'CURRENT', 'laps.best': 'BEST',
     'laps.last': 'LAST', 'laps.delta': 'DELTA',
     'tyres.title': 'TYRES AND BRAKES', 'tyres.worn': 'worn',
@@ -514,78 +526,284 @@ function pushTrace(d) {
   while (tr.t.length > TRACE_N) { tr.t.shift(); tr.th.shift(); tr.br.shift(); tr.cl.shift(); tr.hb.shift(); }
 }
 
-const TRACES = [
-  { key: 'br', color: '#FF0000' },
-  { key: 'th', color: '#23CF16' },
-  { key: 'cl', color: '#2B6CFF' },
-  { key: 'hb', color: '#FFD700' },
+/* ------------------------------------------------------------ pedais
+ *
+ * Cada sinal tem a SUA faixa. Antes os quatro sinais eram desenhados
+ * uns por cima dos outros no mesmo rectangulo, e o resultado era um
+ * lenco de linhas que nao se percebia.
+ *
+ * E o bug mais serio: 0% e 100% eram desenhados exactamente na borda do
+ * canvas (y = h e y = 0), pelo que metade da linha ficava cortada
+ * fora. Ou seja, os valores extremes - acelerador a fundo, travagem a
+ * fundo, embraiagem solta - que sao os que mais importam a conduzir,
+ * eram os que se viam menos. Medido antes da correccao: 320 colunas de
+ * 1 px de altura, e o vermelho e o azul a desenharem zero colunas,
+ * porque estavam fora do recorte.
+ *
+ * Agora cada faixa tem a zona de 0% a 100% dentro do canvas, com
+ * moldura, area preenchida por baixo da curva e o valor actual escrito.
+ */
+
+const JANELA_SEG = 6;          // quantos segundos se veem
+const FAIXA_TOPO = 13;        // altura da tira do nome e do valor
+const EIXO_ALTURA_MAX = 15;   // altura da regua do tempo, quando ha espaco
+const PEDIDO_MINIMO = 1.6;    // largura minima da linha
+
+const FAIXAS = [
+  { key: 'th', color: '#23CF16', fill: 'rgba(35,207,22,0.16)', rot: 'pedals.throttle' },
+  { key: 'br', color: '#FF0000', fill: 'rgba(255,0,0,0.14)', rot: 'pedals.brake' },
+  { key: 'cl', color: '#2B6CFF', fill: 'rgba(43,108,255,0.14)', rot: 'pedals.clutch' },
+  { key: 'hb', color: '#FFD700', fill: 'rgba(255,215,0,0.14)', rot: 'pedals.handbrake' },
 ];
 
-function drawPedals(canvasId) {
-  const cv = $(canvasId);
-  if (!cv) return;
+function preparandoCanvas(id) {
+  const cv = $(id);
+  if (!cv) return null;
   const dpr = window.devicePixelRatio || 1;
   const w = cv.clientWidth, h = cv.clientHeight;
-  if (!w || !h) return;
+  if (!w || !h) return null;
   if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) {
     cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
   }
   const c = cv.getContext('2d');
   c.setTransform(dpr, 0, 0, dpr, 0, 0);
   c.clearRect(0, 0, w, h);
+  return { cv: cv, c: c, w: w, h: h };
+}
 
-  // grelha
-  c.strokeStyle = '#1e2526'; c.lineWidth = 1;
-  for (let i = 1; i < 4; i++) {
-    const y = (h * i) / 4;
-    c.beginPath(); c.moveTo(0, y + .5); c.lineTo(w, y + .5); c.stroke();
-  }
-  c.strokeStyle = '#2a3233';
-  c.beginPath(); c.moveTo(0, h - .5); c.lineTo(w, h - .5); c.stroke();
+function drawPedals(canvasId) {
+  const g = preparandoCanvas(canvasId);
+  if (!g) return;
+  const c = g.c, w = g.w, h = g.h;
+  const areaHReal = h;
 
   const tr = S.trace;
   const n = tr.t.length;
-  if (n < 2) {
-    c.fillStyle = '#3c4344'; c.font = '600 11px Titillium, sans-serif';
-    c.textAlign = 'center'; c.fillText('—', w / 2, h / 2);
+
+  // O travão de mão só ganha faixa se alguma vez tiver havido dado.
+  // Senão fica uma faixa sempre vazia, que parece um erro.
+  let comDados = false;
+  for (const a of [tr.hb]) {
+    for (let i = 0; i < a.length; i++) if (a[i] != null) { comDados = true; break; }
+    if (comDados) break;
+  }
+  const faixas = comDados ? FAIXAS : FAIXAS.slice(0, 3);
+
+  // A regua do tempo e' a primeira coisa a sair quando o rectangulo
+  // fica baixo: e' a menos indispensavel das tres. Cada faixa precisa
+  // de ~34 px para a curva e o nome caberem; abaixo disso nao ha grafico
+  // que preste e e' melhor dizer isso.
+  const EIXO_ALTURA = areaHReal >= 170 ? EIXO_ALTURA_MAX : 0;
+  const areaH = h - EIXO_ALTURA;
+  const faixaH = areaH / faixas.length;
+  if (faixaH < 30) {
+    c.fillStyle = '#3c4344';
+    c.font = '700 10px Titillium, sans-serif';
+    c.textAlign = 'center';
+    c.fillText(t('pedals.pequeno'), w / 2, h / 2);
     return;
   }
 
-  const span = tr.t[n - 1] - tr.t[0];
-  if (span <= 0) return;
+  if (n < 2) {
+    c.fillStyle = '#3c4344';
+    c.font = '700 11px Titillium, sans-serif';
+    c.textAlign = 'center';
+    c.fillText('—', w / 2, areaH / 2);
+    return;
+  }
 
-  // Ha ~420 amostras para ~300 px: desenhar uma linha por amostra da
-  // verticais finas que se cruzam e o grafico fica ilegivel. Em vez disso
-  // desenha-se o envelope min/max por coluna de pixel, como um
-  // osciloscopio: nenhum pico se perde e o traço le-se de imediato.
-  // Uma passage por amostra, com um cursor que só avança: daria para
-  // varrer o array inteiro por pixel (300 x 420 x 4) e isso a 60 Hz
-  // custa caro.
-  const colOf = (i) => Math.min(w - 1, Math.floor(((tr.t[i] - tr.t[0]) / span) * w));
-  for (const T of TRACES) {
-    const arr = tr[T.key];
-    let temDados = false;
-    for (let i = n - 1; i >= 0; i--) if (arr[i] != null) { temDados = true; break; }
-    if (!temDados) continue;                       // sem dados (ex.: mao)
-    c.strokeStyle = T.color; c.lineWidth = 1.4;
-    c.lineCap = 'butt';
-    c.beginPath();
-    let i = 0, emCurso = false;
-    for (let px = 0; px < w; px++) {
-      let lo = Infinity, hi = -Infinity;
-      while (i < n && colOf(i) <= px) {
-        const v = arr[i];
-        if (v != null) { if (v < lo) lo = v; if (v > hi) hi = v; }
+  const agora = tr.t[n - 1];
+  const inicio = agora - JANELA_SEG * 1000;
+  const colOf = (i) => Math.floor(((tr.t[i] - inicio) / (JANELA_SEG * 1000)) * w);
+  const y = (faixaY, v) => faixaY + FAIXA_TOPO + (1 - clamp(v, 0, 100) / 100) * (faixaH - FAIXA_TOPO - 3);
+  const baseY = (faixaY) => faixaY + FAIXA_TOPO + (faixaH - FAIXA_TOPO - 3);
+
+  // ---- regua do tempo, em baixo -------------------------------------
+  if (EIXO_ALTURA > 0) {
+  c.strokeStyle = '#1e2526';
+  c.lineWidth = 1;
+  c.fillStyle = '#4a5152';
+  c.font = '700 8px Titillium, sans-serif';
+  c.textAlign = 'center';
+  for (let s = 0; s <= JANELA_SEG; s++) {
+    const x = Math.round((s / JANELA_SEG) * w) + 0.5;
+    c.beginPath(); c.moveTo(x, areaH); c.lineTo(x, areaH + 3); c.stroke();
+    if (s % 2 === 0) {
+      const txt = s === 0 ? t('pedals.agora') : '-' + s + 's';
+      c.fillText(txt, s === 0 ? w - 12 : Math.min(x + 10, w - 12), areaH + 11);
+    }
+  }
+  }
+
+  // Um for, e nao um forEach: o "continue" nao e' legal dentro de um
+  // callback, e a leitura fica mais natural assim.
+  for (let fi = 0; fi < faixas.length; fi++) {
+    const F = faixas[fi];
+    const fy = fi * faixaH;
+    const arr = tr[F.key];
+
+    c.fillStyle = 'rgba(0,0,0,0.22)';
+    c.fillRect(0, fy + 1, w, faixaH - 3);
+    c.strokeStyle = '#1a2021';
+    c.lineWidth = 1;
+    c.strokeRect(0.5, fy + 1.5, w - 1, faixaH - 4);
+
+    // nome a esquerda, valor actual a direita
+    c.textAlign = 'left';
+    c.fillStyle = '#5b6364';
+    c.font = '700 8px Titillium, sans-serif';
+    c.fillText(t(F.rot), 5, fy + 10);
+    let ultimo = null;
+    for (let k = n - 1; k >= 0; k--) if (arr[k] != null) { ultimo = arr[k]; break; }
+    c.textAlign = 'right';
+    c.fillStyle = ultimo == null ? '#3c4344' : F.color;
+    c.font = '900 10px Titillium, sans-serif';
+    c.fillText(ultimo == null ? '—' : Math.round(ultimo) + '%', w - 5, fy + 10);
+
+    // marcas de 0, 50 e 100%
+    c.strokeStyle = '#1e2526';
+    c.lineWidth = 1;
+    const meio = [0, 0.5, 1];
+    for (let m = 0; m < meio.length; m++) {
+      const yy = Math.round(y(fy, meio[m] * 100)) + 0.5;
+      c.beginPath(); c.moveTo(0, yy); c.lineTo(w, yy); c.stroke();
+    }
+
+    // ---- a curva --------------------------------------------------
+    // Uma passagem, com um cursor que so avanca. Para cada pixel fica o
+    // VALOR REAL mais recente nessa coluna - nunca uma media, que
+    // mostraria valores que nunca aconteceram.
+    //
+    // Uma coluna sem amostra NAO desenha. E' uma falha real nos dados
+    // (o jogo em pausa) e a linha tem de se partir ai, senão liga-se o
+    // antes com o depois e finge que o tempo passou.
+    const pontos = [];
+    let i = 0, pendente = null;
+    for (let x = 0; x < w; x++) {
+      let houve = false;
+      while (i < n && colOf(i) <= x) {
+        if (arr[i] != null) { pendente = arr[i]; houve = true; }
         i++;
       }
-      if (lo === Infinity) { emCurso = false; continue; }
-      const yLo = h - (lo / 100) * h, yHi = h - (hi / 100) * h;
-      if (!emCurso) { c.moveTo(px + 0.5, yHi); emCurso = true; }
-      c.lineTo(px + 0.5, yHi);
-      c.lineTo(px + 0.5, yLo);
+      if (!houve) { pendente = null; continue; }
+      pontos.push(x, y(fy, pendente));
     }
+    if (pontos.length < 4) continue;
+
+    // area preenchida por baixo, um troco de cada vez
+    const base = baseY(fy);
+    let a = 0;
+    while (a + 3 < pontos.length) {
+      let b = a;
+      while (b + 3 < pontos.length && pontos[b + 2] === pontos[b] + 1) b += 2;
+      c.beginPath();
+      c.moveTo(pontos[a], base);
+      for (let k = a; k <= b; k += 2) c.lineTo(pontos[k], pontos[k + 1]);
+      c.lineTo(pontos[b], base);
+      c.closePath();
+      c.fillStyle = F.fill;
+      c.fill();
+      a = b + 2;
+    }
+
+    // a linha, partida nos mesmos sitios
+    c.beginPath();
+    let anterior = null;
+    for (let k = 0; k + 1 < pontos.length; k += 2) {
+      if (anterior === null || pontos[k] !== anterior + 1) c.moveTo(pontos[k], pontos[k + 1]);
+      else c.lineTo(pontos[k], pontos[k + 1]);
+      anterior = pontos[k];
+    }
+    c.strokeStyle = F.color;
+    c.lineWidth = PEDIDO_MINIMO;
+    c.lineJoin = 'round';
+    c.lineCap = 'round';
     c.stroke();
   }
+}
+
+/* ------------------------------------------------------------ volante
+ * O campo e' o 'steerAngle' da pagina de fisica. O ALCANCE nao esta
+ * confirmado: o jogo esta fechado e o valor esta congelado a 0, e nao
+ * se pode assumir que vaia de -1 a 1 (pode ser em radianos). Por isso o
+ * factor esta numa constante isolada e o desenho satura - se um dia
+ * rodar sempre ao batente, e' esta constante que esta errada, e
+ * mede-se o alcance real a conduzir.
+ *
+ * Para medir: correr tests\capturar.py e ver o min e o max de 'steer'.
+ */
+const STEER_REF = 1.0;          // NAO CONFIRMADO - ver nota
+const STEER_GIRO = Math.PI * 1.5;   // 1.5 radianos de volta, para leitura rápida
+
+function drawVolante(canvasId, steer) {
+  const g = preparandoCanvas(canvasId);
+  if (!g) return;
+  const c = g.c, w = g.w, h = g.h;
+
+  const cx = w / 2, cy = h / 2;
+  const R = Math.min(w, h) / 2 - 3;
+  if (R < 8) return;
+
+  const v = clamp(num(steer) / STEER_REF, -1, 1);
+  const ang = v * STEER_GIRO;
+
+  c.save();
+  c.translate(cx, cy);
+  c.rotate(ang);
+
+  // aro: um circulo com um corte em cima, como um volante de F1
+  c.lineCap = 'butt';
+  c.strokeStyle = '#2a3132';
+  c.lineWidth = Math.max(4, R * 0.30);
+  c.beginPath();
+  c.arc(0, 0, R - c.lineWidth / 2, 0.55, Math.PI * 2 - 0.55);
+  c.stroke();
+
+  // brilho no aro, para dar volume
+  c.strokeStyle = '#3a4243';
+  c.lineWidth = Math.max(1.5, R * 0.10);
+  c.beginPath();
+  c.arc(0, 0, R - c.lineWidth / 2, 0.55, Math.PI * 2 - 0.55);
+  c.stroke();
+
+  // marca de cima: sem ela nao se ve para que lado rodou
+  c.strokeStyle = v < -0.02 ? '#23CF16' : v > 0.02 ? '#F58020' : '#FFD700';
+  c.lineWidth = Math.max(2, R * 0.13);
+  c.beginPath();
+  c.moveTo(0, -R + c.lineWidth * 0.6);
+  c.lineTo(0, -R + R * 0.42);
+  c.stroke();
+
+  // raios
+  c.strokeStyle = '#232a2b';
+  c.lineWidth = Math.max(2.5, R * 0.16);
+  for (const a of [Math.PI * 0.82, Math.PI * 1.18, Math.PI * 1.5]) {
+    c.beginPath();
+    c.moveTo(Math.cos(a) * R * 0.22, Math.sin(a) * R * 0.22);
+    c.lineTo(Math.cos(a) * R * 0.92, Math.sin(a) * R * 0.92);
+    c.stroke();
+  }
+
+  // cubo
+  c.fillStyle = '#171d1e';
+  c.beginPath();
+  c.arc(0, 0, R * 0.24, 0, Math.PI * 2);
+  c.fill();
+  c.strokeStyle = '#3a4243';
+  c.lineWidth = 1.5;
+  c.stroke();
+
+  c.restore();
+
+  // eixo vertical de referencia, para se ver o desvio
+  c.strokeStyle = 'rgba(255,215,0,0.22)';
+  c.lineWidth = 1;
+  c.setLineDash([2, 3]);
+  c.beginPath();
+  c.moveTo(cx + 0.5, cy - R);
+  c.lineTo(cx + 0.5, cy + R);
+  c.stroke();
+  c.setLineDash([]);
 }
 
 /* ------------------------------------------------------ barra dos pneus */
@@ -1056,6 +1274,10 @@ function render(d) {
   setTxt('v-clutch', Math.round(100 - (d.clutchRaw != null ? d.clutchRaw : 1) * 100));
   const hb = $('v-handbrake');
   if (hb) hb.textContent = d.handbrake != null ? Math.round(d.handbrake) : '—';
+  // o volante e' desenhado no loop, a partir deste valor
+  S.steer = num(d.steer);
+  setTxt('v-steer', S.steer.toFixed(2));
+  setTxt('v-steer2', S.steer.toFixed(2));
 
   // pneus e travões
   renderTyres('tyres', d);
@@ -1184,8 +1406,8 @@ function loop() {
     if (mode === 'telemetry') drawMap('map');
     else if (mode === 'both') drawMap('map2');
   }
-  if (mode === 'telemetry') drawPedals('pedals');
-  else if (mode === 'both') drawPedals('pedals2');
+  if (mode === 'telemetry') { drawPedals('pedals'); drawVolante('wheel', S.steer); }
+  else if (mode === 'both') { drawPedals('pedals2'); drawVolante('wheel2', S.steer); }
   requestAnimationFrame(loop);
 }
 

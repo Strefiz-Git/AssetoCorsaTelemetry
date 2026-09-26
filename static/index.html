@@ -239,7 +239,21 @@
 
       <section class="card c-pedals">
         <h2 data-i18n="pedals.title">PEDAIS</h2>
-        <canvas id="pedals"></canvas>
+        <!-- Em cima o grafico, num rectangulo com moldura. Por baixo o
+             volante. O grafico tem uma faixa por sinal, para os quatro
+             nao se sobreporem, e cada faixa tem 0% e 100% dentro do
+             desenho: antes ficavam exactamente na borda e metade da
+             linha ficava cortada. -->
+        <div class="pedal-graph">
+          <canvas id="pedals"></canvas>
+        </div>
+        <div class="wheel">
+          <canvas id="wheel"></canvas>
+          <div class="wheel-side">
+            <div class="kv"><span data-i18n="wheel.title">VOLANTE</span><b id="v-steer">0.00</b></div>
+            <div class="wheel-note" data-i18n="wheel.note"></div>
+          </div>
+        </div>
         <div class="pedal-keys">
           <span><i style="background:var(--green)"></i><span data-i18n="pedals.throttle">ACEL.</span><b id="v-throttle">0</b></span>
           <span><i style="background:var(--red)"></i><span data-i18n="pedals.brake">TRAVA</span><b id="v-brake">0</b></span>
@@ -379,7 +393,16 @@
 
       <section class="card c-pedals">
         <h2 data-i18n="pedals.title">PEDAIS</h2>
-        <canvas id="pedals2"></canvas>
+        <div class="pedal-graph">
+          <canvas id="pedals2"></canvas>
+        </div>
+        <div class="wheel">
+          <canvas id="wheel2"></canvas>
+          <div class="wheel-side">
+            <div class="kv"><span data-i18n="wheel.title">VOLANTE</span><b id="v-steer2">0.00</b></div>
+            <div class="wheel-note" data-i18n="wheel.note"></div>
+          </div>
+        </div>
       </section>
 
       <section class="card c-lb2">

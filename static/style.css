@@ -301,7 +301,29 @@ body{
 .l-bar i.low{background:var(--red)}
 
 /* ------------------------------------------------------------ pedais */
-#pedals,#pedals2{flex:1 1 auto;width:100%;min-height:0;display:block}
+/* O grafico e' um rectangulo com moldura, e o volante esta por baixo.
+   O grafico e' o que se olha; o volante e' o complemento. */
+.pedal-graph{
+  flex:1 1 auto;min-height:170px;margin-bottom:8px;
+  border:1px solid var(--line);border-radius:6px;
+  background:#0e1213;overflow:hidden;
+}
+/* O grafico nunca encolhe abaixo do util. Sem este min-height, na coluna
+   unica do telefone o rectangulo colapsava para 81 px e o desenho
+   trocava as curvas por "pouco espaco" - isto e', perder a telemetria
+   principal num ecran pequeno. */
+@media (max-width:860px){ .pedal-graph{min-height:200px} }
+#pedals,#pedals2{width:100%;height:100%;display:block}
+
+.wheel{
+  flex:0 0 auto;display:flex;align-items:center;gap:10px;
+  padding:6px 8px;background:var(--block);border-radius:6px;
+}
+#wheel{width:clamp(58px,7vw,86px);height:clamp(58px,7vw,86px);flex:0 0 auto;display:block}
+.wheel-side{flex:1 1 auto;min-width:0}
+.wheel-note{
+  font-size:10px;font-weight:600;color:var(--grey);line-height:1.35;margin-top:2px;
+}
 .pedal-keys{display:grid;grid-template-columns:1fr 1fr;gap:3px 12px;padding-top:7px;flex:0 0 auto}
 .pedal-keys span{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:700;color:var(--grey);min-width:0}
 .pedal-keys i{width:9px;height:9px;border-radius:2px;flex:0 0 auto}
@@ -434,6 +456,11 @@ body.paused .app{opacity:.6;filter:saturate(.5)}
   }
   .c-map{min-height:230px}.c-main{min-height:240px}
   .c-laps,.c-tyres,.c-pedals,.c-fuel{min-height:150px}
+  /* O grafico dos pedais precisa de altura: com 3 faixas mais a regua do
+     tempo, abaixo de ~150 px cada faixa fica com pouco mais de 30 px e
+     deixa de se ler. Medido: a 1100 px ficava com 69 px. */
+  .c-pedals{min-height:260px}
+  .grid-both .c-pedals{min-height:300px}
 }
 @media (max-width:860px){
   body{overflow:auto}
