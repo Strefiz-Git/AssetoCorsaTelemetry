@@ -172,10 +172,19 @@ def carro(i, nome, modelo, ms, best, lap, pos, live, x, y, z, pit=False, ligado=
     v.isCarInPit = 1 if pit else 0
     v.isConnected = ligado
 
-carro(0, "Strefiz",  "red_bull_rb21",    61.1, 108188, 12, 1,  1,  309.78,   2.97, -163.75)
-carro(1, "Perez",    "f1_redbull_2024",  77.3, 108188, 12, 2,  2,    9.03, -15.65,  421.90)
-carro(2, "Re",       "ks_ferrari_f138",  71.0, 113043, 11, 3,  8,  188.55,  -3.20,  347.32, pit=True)
-carro(3, "Albon",    "williams_fw47",    75.9, 114997, 12, 4,  4,  236.72,   0.28,  368.57)
+# (pos oficial, pos ao vivo). O ao vivo e' BASE ZERO -- medido com 11
+# carros, o campo ia de 0 a 10 e o oficial de 1 a 11.
+#
+# Estes valores sao de uma corrida de 4 carros a serio: o lider tem 0 ao
+# vivo, e o 'Re' e o 'Albon' trocaram de posicao em relacao ao oficial
+# (o Re esta' no box, o Albon passou-o). Uma lista com posicoes ao vivo
+# 1, 2, 8 e 4 -- que foi o que aqui estava -- nao existe: com 4 carros o
+# ao vivo vai de 0 a 3. E um teste com dados que nao se podem ver num
+# ecra' nao prova nada sobre um ecra'.
+carro(0, "Strefiz",  "red_bull_rb21",    61.1, 108188, 12, 1,  0,  309.78,   2.97, -163.75)
+carro(1, "Perez",    "f1_redbull_2024",  77.3, 108188, 12, 2,  1,    9.03, -15.65,  421.90)
+carro(2, "Re",       "ks_ferrari_f138",  71.0, 113043, 11, 4,  3,  188.55,  -3.20,  347.32, pit=True)
+carro(3, "Albon",    "williams_fw47",    75.9, 114997, 12, 3,  2,  236.72,   0.28,  368.57)
 # carro 4: sem nome. Tem de ser ignorado, porque na app Python e' o lugar
 # onde fica o registo quando um carro sai da sessao. numVehicles = 5 e' de
 # proposito: o leitor vai ate ao indice 4 e tem de o descartar a ele.
@@ -228,9 +237,28 @@ if len(s["cars"]) == 4:
     chk("ordem_pela_posicao_mostrada",
         [x["pos"] for x in s["cars"]],
         sorted(x["pos"] for x in s["cars"]))
+    # (oficial, mostrada, ao vivo tal como o jogo da), por carro, na
+    # ordem em que a lista os mostra -- que e' a ordem da mostrada.
+    #
+    # Aqui os numeros parecem alinhados porque a lista ja esta' ordenada
+    # pela posicao mostrada. A discordancia entre as duas posicoes
+    # prova-se no check de baixo, pelo NOME de quem esta' em que linha.
     chk("as_duas_posicoes_por_carro",
         [(x["posOficial"], x["pos"], x["livePos"]) for x in s["cars"]],
-        [(1, 1, 1), (2, 2, 2), (4, 4, 4), (3, 8, 8)])
+        [(1, 1, 0), (2, 2, 1), (3, 3, 2), (4, 4, 3)])
+
+    # A ORDEM. Pelo oficial, a ordem seria Strefiz, Perez, Re, Albon.
+    # Pelo ao vivo, e' Strefiz, Perez, Albon, Re -- o Albon passou o Re.
+    # A lista tem de mostrar a segunda.
+    #
+    # E este check que prova a ordenacao. Os numeros de cada linha
+    # continuariam certos mesmo ordenando pelo oficial; o que aparecia
+    # errado era so' a ordem, que e' a forma como este bug se
+    # manifestava: uma lista que parece saltada sem nenhum numero estar
+    # errado.
+    chk("ordem_segue_a_posicao_mostrada",
+        [x["name"] for x in s["cars"]],
+        ["Strefiz", "Perez", "Albon", "Re"])
 
     chk("0.nome", a["name"], "Strefiz")
     chk("0.carro", a["car"], "red_bull_rb21")
@@ -239,7 +267,7 @@ if len(s["cars"]) == 4:
     chk("0.volta", a["lap"], 12)
     chk("0.pos", a["pos"], 1)
     chk("0.pos_oficial", a["posOficial"], 1)
-    chk("0.pos_ao_vivo", a["livePos"], 1)
+    chk("0.pos_ao_vivo_base_zero", a["livePos"], 0)
     chk("0.pct", a["pct"], 0.0)
     chk("0.x", a["x"], 309.78)
     chk("0.y", a["y"], 2.97)
@@ -248,16 +276,16 @@ if len(s["cars"]) == 4:
     chk("0.ligado", a["connected"], True)
 
     chk("1.nome", b["name"], "Perez")
-    chk("1.pos_ao_vivo_diferente", b["livePos"], 2)
+    chk("1.pos_ao_vivo", b["livePos"], 1)
 
     # O 'Re' e' o caso que motivou a mudanca: 3.o oficial, 8.o ao vivo.
     # A lista mostra o ao vivo, e a oficial fica na dica. Este carro
     # estava no box e com uma volta a menos, que e' exactamente o caso
     # em que o oficial atrasa.
     chk("2.nome", c["name"], "Re")
-    chk("2.pos_mostrada_e_a_ao_vivo", c["pos"], 8)
-    chk("2.pos_oficial_guardada", c["posOficial"], 3)
-    chk("2.pos_ao_vivo", c["livePos"], 8)
+    chk("2.pos_mostrada", c["pos"], 4)
+    chk("2.pos_oficial_guardada", c["posOficial"], 4)
+    chk("2.pos_ao_vivo", c["livePos"], 3)
     chk("2.box", c["inPit"], True)
     chk("2.melhor", c["best"], "01:53.043")        # 113043 ms
 
@@ -286,8 +314,7 @@ if len(s["cars"]) == 4:
     # carros mostram o mesmo numero.
     mostradas = [x["pos"] for x in s["cars"]]
     chk("nenhuma_posicao_repetida", len(set(mostradas)), len(mostradas))
-    chk("todas_as_posicoes_presentes",
-        sorted(mostradas), [1, 2, 3, 4])
+    chk("posicoes_1_a_n", sorted(mostradas), [1, 2, 3, 4])
 
 if erros:
     print("!!! %d FALHA(S) !!!" % len(erros))
