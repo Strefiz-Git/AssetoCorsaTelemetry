@@ -573,7 +573,7 @@ class ACTelemetry:
     REAL_NAMES = ("acpmf_physics", "acpmf_graphics", "acpmf_static")
     STRUCTS = (SPageFilePhysics, SPageFileGraphic, SPageFileStatic)
 
-    def __init__(self, names=None):
+    def __init__(self, names=None, app_name=None):
         self._views = {}       # nome -> (handle, endereco, struct)
         self.connected = False
         self.live = False      # o AC esta actively a escrever?
@@ -582,6 +582,12 @@ class ACTelemetry:
         self._last_packet = None
         self._static_packet = None
         self._still_since = 0.0
+        # A PAGINA DA APP, so' para o clima. Sao tres paginas do AC e uma
+        # nossa, e o clima vivia so' na nossa -- que e' publicada em
+        # `/api/opponents` e nunca chegava ao `/api/state`, que e' o que o
+        # painel consome. O campo do tempo mostrava "nao sei", e a razao
+        # nao era a app nao conseguir ler: era um campo que nao viajava.
+        self._app = Opponents(name=app_name)
         self._open()
 
     # -- ciclo de vida do mapeamento ------------------------------------
@@ -617,6 +623,29 @@ class ACTelemetry:
                 pass
         self._views.clear()
         self.connected = False
+
+    def _clima(self):
+        """O bloco do clima da pagina da app, ou tudo a -1 se nao houver.
+
+        A -1 e' a resposta tanto para "a app nao existe" como para "a app
+        existe e nao consegue ler o tempo". Sao situacoes diferentes, e o
+        painel nao precisa de as distinguir: nos dois casos nao se sabe, e
+        "nao se sabe" nunca se escreve "seco". Publicar -1 e' o que a app
+        publica, e o que o painel sabe pintar a neutro.
+        """
+        if not self._app.open():
+            return {"climaAvailable": False, "rainAmount": -1.0,
+                    "rainFxActive": 0, "windSpeedApi": -1.0,
+                    "windDirApi": -1.0, "weatherTimeMult": -1.0,
+                    "cspVersionCode": -1, "weatherDebug": ""}
+        v = self._app._view
+        return {"climaAvailable": True, "rainAmount": float(v.rainAmount),
+                "rainFxActive": int(v.rainFxActive),
+                "windSpeedApi": float(v.windSpeedApi),
+                "windDirApi": float(v.windDirApi),
+                "weatherTimeMult": float(v.weatherTimeMult),
+                "cspVersionCode": int(v.cspVersionCode),
+                "weatherDebug": _b(v.weatherDebug)}
 
     def _ensure(self):
         """Se o AC fechou, volta a tentar abrir; se abriu, reabre."""
@@ -662,6 +691,13 @@ class ACTelemetry:
         st = self._views[self._names[2]][2]
 
         live = self._check_live(ph)
+        # O CLIMA vem da pagina da APP, e nao desta. Sao coisas
+        # diferentes: o `windSpeed` mais abaixo e' o que o AC publica na
+        # pagina de graficos, e o `windSpeedApi` e' o que a NOSSA app leu
+        # da API do Custom Shaders Patch. Publicam-se os dois de
+        # proposito: se baterem, prova-se que a API do Python le o mesmo
+        # mundo que a memoria partilhada.
+        clima = self._clima()
         # Escalas confirmadas contra o AC real (RB21 em Spa):
         #   kersCharge  -> fraccao 0..1
         #   tyreWear    -> ja e' 0..100 (100 = pneu novo), NAO e' fraccao
@@ -804,8 +840,21 @@ class ACTelemetry:
         # E o `windDirection` sao RADIANOS, nao graus. Nao ha'
         # ninguem a mostrar a direccao, e e' isso que mantem o erro
         # quieto: um campo que ninguem le nao se repara.
-        "windSpeed": round(gr.windSpeed, 2),        # m/s
+            "windSpeed": round(gr.windSpeed, 2),        # m/s
             "windDirection": round(gr.windDirection, 1),
+
+            # O bloco do clima, da pagina da app. `-1` quer dizer "a app
+            # nao consegue ler o tempo", que e' diferente de zero: zero
+            # no `rainAmount` diria "nao chove", e nao chove nao e' o
+            # mesmo que nao se saber. Regra nº 19, e o ver chuva.md.
+            "climaAvailable": clima["climaAvailable"],
+            "rainAmount": clima["rainAmount"],
+            "rainFxActive": clima["rainFxActive"],
+            "windSpeedApi": clima["windSpeedApi"],
+            "windDirApi": clima["windDirApi"],
+            "weatherTimeMult": clima["weatherTimeMult"],
+            "cspVersionCode": clima["cspVersionCode"],
+            "weatherDebug": clima["weatherDebug"],
             "trackLength": round(st.trackSPlineLength, 1),   # metros
         }
 
