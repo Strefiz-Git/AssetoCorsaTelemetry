@@ -71,7 +71,7 @@ const I18N = {
     'fuel.title': 'COMBUSTÍVEL',
     'wx.air': 'AR', 'wx.road': 'PISTA', 'wx.wind': 'VENTO', 'wx.density': 'DENSIDADE', 'wx.grip': 'ADERENCIA', 'unit.c': '°C',
     "wx.rain": "CHUVA",
-    "wx.dry": "seco",
+    "wx.seco": "SECO", "wx.chiada": "CHIADA", "wx.chiadaForte": "CHIADA FORTE", "wx.chuvaFraca": "CHUVA FRACA", "wx.chuva": "CHUVA", "wx.chuvaForte": "CHUVA FORTE", "wx.neve": "NEVE", "wx.trovoada": "TROVOADA", "wx.trovoadaForte": "TROVOADA FORTE", "wx.furacao": "FURACÃO", "wx.topoDoCartao": "o topo do que o jogo tem",
     "wx.rainTitle": "Intensidade da chuva, pela API do jogo. Vem de ac.ext_rainParams() e so' existe com o Custom Shaders Patch.",
     "wx.rainUnknown": "A app nao consegue ler o clima. A intensidade da chuva vem do Custom Shaders Patch, que precisa de expor ac.ext_rainParams() ao Python. Sem isso o numero seria 0, e 0 significa 'nao chove', que nao e' a verdade.",
     'fuel.inTank': 'Na reserva', 'fuel.lapsLeft': 'Voltas',
@@ -162,7 +162,7 @@ const I18N = {
     'fuel.title': 'COMBUSTÍVEL',
     'wx.air': 'AR', 'wx.road': 'PISTA', 'wx.wind': 'VENTO', 'wx.density': 'DENSIDADE', 'wx.grip': 'ADERENCIA', 'unit.c': '°C',
     "wx.rain": "CHUVA",
-    "wx.dry": "seco",
+    "wx.seco": "SECO", "wx.chiada": "CHIADA", "wx.chiadaForte": "CHIADA FORTE", "wx.chuvaFraca": "CHUVA FRACA", "wx.chuva": "CHUVA", "wx.chuvaForte": "CHUVA FORTE", "wx.neve": "NEVE", "wx.trovoada": "TROVOADA", "wx.trovoadaForte": "TROVOADA FORTE", "wx.furacao": "FURACÃO", "wx.topoDoCartao": "o topo do que o jogo tem",
     "wx.rainTitle": "Intensidade da chuva, pela API do jogo. Vem de ac.ext_rainParams() e so' existe com o Custom Shaders Patch.",
     "wx.rainUnknown": "A app nao consegue ler o clima. A intensidade da chuva vem do Custom Shaders Patch, que precisa de expor ac.ext_rainParams() ao Python. Sem isso o numero seria 0, e 0 significa 'nao chove', que nao e' a verdade.",
     'fuel.inTank': 'No tanque', 'fuel.lapsLeft': 'Voltas',
@@ -246,7 +246,7 @@ const I18N = {
     'fuel.title': 'COMBUSTIBLE',
     'wx.air': 'AIRE', 'wx.road': 'PISTA', 'wx.wind': 'VIENTO', 'wx.density': 'DENSIDAD', 'wx.grip': 'ADHERENCIA', 'unit.c': '°C',
     "wx.rain": "LLUVIA",
-    "wx.dry": "seco",
+    "wx.seco": "SECO", "wx.chiada": "LLOVIZNA", "wx.chiadaForte": "LLOVIZNA FUERTE", "wx.chuvaFraca": "LLUVIA LIGERA", "wx.chuva": "LLUVIA", "wx.chuvaForte": "LLUVIA FUERTE", "wx.neve": "NIEVE", "wx.trovoada": "TORMENTA", "wx.trovoadaForte": "TORMENTA FUERTE", "wx.furacao": "HURACÁN", "wx.topoDoCartao": "el tope de lo que tiene el juego",
     "wx.rainTitle": "Intensidad de la lluvia, por la API del juego. Viene de ac.ext_rainParams() y solo existe con el Custom Shaders Patch.",
     "wx.rainUnknown": "La app no puede leer el clima. La intensidad de la lluvia viene del Custom Shaders Patch, que tiene que exponer ac.ext_rainParams() a Python. Sin eso el numero seria 0, y 0 significa 'no llueve', que no es verdad.",
     'fuel.inTank': 'En el depósito', 'fuel.lapsLeft': 'Vueltas',
@@ -333,7 +333,7 @@ const I18N = {
     'fuel.title': 'FUEL',
     'wx.air': 'AIR', 'wx.road': 'TRACK', 'wx.wind': 'WIND', 'wx.density': 'DENSITY', 'wx.grip': 'GRIP', 'unit.c': '°C',
     "wx.rain": "RAIN",
-    "wx.dry": "dry",
+    "wx.seco": "CLEAR", "wx.chiada": "DRIZZLE", "wx.chiadaForte": "HEAVY DRIZZLE", "wx.chuvaFraca": "LIGHT RAIN", "wx.chuva": "RAIN", "wx.chuvaForte": "HEAVY RAIN", "wx.neve": "SNOW", "wx.trovoada": "THUNDERSTORM", "wx.trovoadaForte": "HEAVY THUNDERSTORM", "wx.furacao": "HURRICANE", "wx.topoDoCartao": "the top of what the game has",
     "wx.rainTitle": "Rain intensity, from the game API. It comes from ac.ext_rainParams() and only exists with the Custom Shaders Patch.",
     "wx.rainUnknown": "The app cannot read the weather. Rain intensity comes from the Custom Shaders Patch, which has to expose ac.ext_rainParams() to Python. Without it the number would be 0, and 0 means 'no rain', which is not true.",
     'fuel.inTank': 'In tank', 'fuel.lapsLeft': 'Laps',
@@ -2152,14 +2152,30 @@ function pintarClima(d) {
  *    0     a palavra "seco", a cinzento
  *   0..1   a percentagem, com a cor a mudar com a intensidade
  */
+/* O TEMPO vai para o `tempo.js`, que e' puro e testa-se no node.
+ *
+ * A tabela das cenas -- os limiares, a escala e as bandas -- estava aqui
+ * dentro, escrita a mao. Saiu para o modulo por duas razoes:
+ *
+ *  - e' a ESCOLA DO JOGO, e a escala esta' em
+ *    `ac_info/apps/lua/PurePlanner/settings/settings_defaults.lua`, com 39
+ *    cenas e as quantidades do proprio AC. Uma copia feita a mao e' uma
+ *    copia que diverge (Regra nº 16).
+ *  - dentro desta IIFE nao se testa. E' por isso que os cortes errados
+ *    so' apareceram ao olhar para o ecra, tarde demais. No node
+ *    alimentam-se as 39 quantidades e ve-se logo qual cai onde.
+ */
 function pintarChuva(id, d) {
   const el = $(id);
   if (!el) return;
   const u = $(id + '-u');
   const v = d.rainAmount;
 
+  // "nao sei" NAO e' "seco". O -1 e' a app a dizer que nao consegue ler o
+  // tempo, e escrever "seco" seria mentir: a regra nº 19, e a razao de
+  // aqui nao haver nada de especial. E' o que se fez desde o principio.
   if (v == null || v < 0) {
-    el.textContent = '\u2014';
+    el.textContent = '—';
     el.style.color = 'var(--grey)';
     el.title = t('wx.rainUnknown');
     if (u) { u.textContent = ''; u.style.display = 'none'; }
@@ -2167,16 +2183,17 @@ function pintarChuva(id, d) {
   }
   if (u) u.style.display = '';
 
-  const pct = Math.round(Math.max(0, Math.min(1, v)) * 100);
-  el.textContent = pct === 0 ? t('wx.dry') : String(pct);
-  el.title = t('wx.rainTitle') + ' ' + pct + '%';
-  if (u) u.textContent = pct === 0 ? '' : '%';
+  const cena = Tempo.cenaDe(v);
+  const pct = Tempo.percentDe(v);
+  el.textContent = t('wx.' + cena);
+  el.title = t('wx.rainTitle') + ' ' + pct + '%'
+    + (v >= Tempo.CHUVA_MAXIMA ? '  (' + t('wx.topoDoCartao') + ')' : '');
+  if (u) u.textContent = v === 0 ? '' : pct + '%';
 
-  // A cor segue a intensidade. Nao e' decoracao: em chuva forte o
-  // valor muda depressa, e e' o numero que se quer ver a correr.
-  let cor = '';
-  if (v >= 0.5) cor = 'var(--blue)';
-  else if (v >= 0.15) cor = 'var(--badge-blue)';
+  // A cor segue a intensidade. Nao e' decoracao: em chuva forte o valor
+  // muda depressa, e e' o que se quer ver a correr.
+  const cor = v >= 0.6 ? 'var(--blue)'
+    : v >= 0.125 ? 'var(--badge-blue)' : '';
   el.style.color = cor;
   if (u) u.style.color = cor;
 }

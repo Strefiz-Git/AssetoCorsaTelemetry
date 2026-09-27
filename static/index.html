@@ -536,6 +536,10 @@
 <script src="/tempos.js"></script>
 <script src="/tyres.js"></script>
 <script src="/combustivel.js"></script>
+  <!-- tempo.js ANTES do app.js: o app.js chama Tempo.cenaDe()
+       ao pintar, e se o modulo ainda nao carregou a cena
+       desaparece em silencio. -->
+  <script src="/tempo.js"></script>
 <script src="/app.js"></script>
 </body>
 </html>
