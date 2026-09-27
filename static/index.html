@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-PT">
 <head>
 <meta charset="utf-8">
@@ -15,7 +15,7 @@
   <div class="boot-box">
     <div class="spinner"></div>
     <h1 data-i18n="boot.waiting">A aguardar o Assetto Corsa</h1>
-    <p id="boot-msg" data-i18n="boot.reading">A ler a telemetria directamente do jogo…</p>
+    <p id="boot-msg" data-i18n="boot.reading">A ler a telemetria directamente do jogoâ€¦</p>
   </div>
 </div>
 
@@ -27,7 +27,7 @@
      aria-labelledby="menu-title">
   <div class="menu-box">
     <h1 id="menu-title" data-i18n="menu.title">O que queres ver?</h1>
-    <p class="menu-sub" data-i18n="menu.sub">Podes mudar a qualquer momento nas definições.</p>
+    <p class="menu-sub" data-i18n="menu.sub">Podes mudar a qualquer momento nas definiÃ§Ãµes.</p>
 
     <div class="menu-cards">
       <button class="menu-card" data-mode="telemetry">
@@ -35,7 +35,7 @@
           <svg viewBox="0 0 40 28"><path d="M2 14a12 12 0 0 1 24 0 12 12 0 0 1-24 0" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M20 14l7-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
         </span>
         <b data-i18n="menu.telemetry">Telemetria</b>
-        <small data-i18n="menu.telemetryDesc">Velocidade, rpm, pedais, pneus, combustível</small>
+        <small data-i18n="menu.telemetryDesc">Velocidade, rpm, pedais, pneus, combustÃ­vel</small>
       </button>
 
       <button class="menu-card" data-mode="leaderboard">
@@ -43,7 +43,7 @@
           <svg viewBox="0 0 40 28"><path d="M5 6h30M5 14h22M5 22h26" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>
         </span>
         <b data-i18n="menu.leaderboard">Leaderboard</b>
-        <small data-i18n="menu.leaderboardDesc">Classificação de todos os carros</small>
+        <small data-i18n="menu.leaderboardDesc">ClassificaÃ§Ã£o de todos os carros</small>
       </button>
 
       <button class="menu-card" data-mode="both">
@@ -57,12 +57,12 @@
   </div>
 </div>
 
-<!-- ================================================== definições -->
+<!-- ================================================== definiÃ§Ãµes -->
 <div id="settings" class="drawer hidden" role="dialog" aria-modal="true"
      aria-labelledby="set-title">
   <div class="drawer-head">
-    <h2 id="set-title" data-i18n="set.title">Definições</h2>
-    <button id="set-close" class="icon-btn" data-i18n-aria="set.close" aria-label="Fechar">✕</button>
+    <h2 id="set-title" data-i18n="set.title">DefiniÃ§Ãµes</h2>
+    <button id="set-close" class="icon-btn" data-i18n-aria="set.close" aria-label="Fechar">âœ•</button>
   </div>
 
   <div class="set-body">
@@ -78,8 +78,8 @@
     <section class="set-group">
       <h3 data-i18n="set.units">Unidades</h3>
       <div class="seg" id="set-temp">
-        <button data-v="C">°C</button>
-        <button data-v="F">°F</button>
+        <button data-v="C">Â°C</button>
+        <button data-v="F">Â°F</button>
       </div>
       <div class="seg" id="set-speed">
         <button data-v="kmh">km/h</button>
@@ -90,9 +90,9 @@
     <section class="set-group">
       <h3 data-i18n="set.lang">Idioma</h3>
       <div class="seg col" id="set-lang">
-        <button data-v="pt-PT">Português (Portugal)</button>
-        <button data-v="pt-BR">Português (Brasil)</button>
-        <button data-v="es">Español</button>
+        <button data-v="pt-PT">PortuguÃªs (Portugal)</button>
+        <button data-v="pt-BR">PortuguÃªs (Brasil)</button>
+        <button data-v="es">EspaÃ±ol</button>
         <button data-v="en">English</button>
       </div>
     </section>
@@ -118,7 +118,7 @@
                placeholder="D:\SteamLibrary\steamapps\common\assettocorsa" />
         <button id="set-ac-path-save" class="wide-btn" data-i18n="set.acPathSave">Guardar</button>
       </div>
-      <p class="set-note ac-path-status" id="set-ac-path-status">—</p>
+      <p class="set-note ac-path-status" id="set-ac-path-status">â€”</p>
       <div class="seg" id="set-map-flip">
         <button data-v="flipx" data-i18n="set.mapFlipX">Inverter X</button>
         <button data-v="flipz" data-i18n="set.mapFlipZ">Inverter Z</button>
@@ -128,43 +128,43 @@
     <section class="set-group">
       <h3 data-i18n="set.drsZone">Zona de DRS</h3>
       <p class="set-note" data-i18n="set.drsZoneWhy"></p>
-      <p class="set-note drs-verdict" id="set-drs-verdict">—</p>
+      <p class="set-note drs-verdict" id="set-drs-verdict">â€”</p>
       <button id="set-drs-mark" class="wide-btn mark" data-i18n="set.drsMark">Marcar</button>
       <button id="set-drs-clear" class="wide-btn" data-i18n="set.drsClear">Apagar a zona de DRS</button>
     </section>
 
     <section class="set-group">
       <h3 data-i18n="set.about">Sobre</h3>
-      <p class="set-note" data-i18n="set.aboutBody">Telemetria lida directamente da memória do Assetto Corsa, e a nossa própria app Python para os adversários.</p>
+      <p class="set-note" data-i18n="set.aboutBody">Telemetria lida directamente da memÃ³ria do Assetto Corsa, e a nossa prÃ³pria app Python para os adversÃ¡rios.</p>
     </section>
   </div>
 </div>
 
-<!-- ================================================== aplicação -->
+<!-- ================================================== aplicaÃ§Ã£o -->
 <main id="app" class="app hidden">
 
-  <!-- ------------------------------------------------ cabeçalho -->
+  <!-- ------------------------------------------------ cabeÃ§alho -->
   <header class="head">
     <button id="btn-menu" class="icon-btn" data-i18n-aria="set.menu" aria-label="Menu">
       <svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
     </button>
 
     <div class="head-id">
-      <span class="h-track" id="track">—</span>
-      <span class="h-car" id="car">—</span>
+      <span class="h-track" id="track">â€”</span>
+      <span class="h-car" id="car">â€”</span>
     </div>
 
     <div class="head-session">
-      <span id="session">—</span>
+      <span id="session">â€”</span>
       <span class="dot-sep"></span>
-      <span id="compound">—</span>
+      <span id="compound">â€”</span>
     </div>
 
     <div class="head-right">
-      <span class="h-flag" id="flag">—</span>
-      <span class="h-pos" id="pos">—</span>
-      <span class="h-lap" id="lap">—</span>
-      <button id="btn-set" class="icon-btn" data-i18n-aria="set.open" aria-label="Definições">
+      <span class="h-flag" id="flag">â€”</span>
+      <span class="h-pos" id="pos">â€”</span>
+      <span class="h-lap" id="lap">â€”</span>
+      <button id="btn-set" class="icon-btn" data-i18n-aria="set.open" aria-label="DefiniÃ§Ãµes">
         <svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
     </div>
@@ -179,8 +179,8 @@
         <canvas id="map"></canvas>
         <div class="map-legend">
           <span id="map-drs-key" class="map-key hidden"><i></i><span data-i18n="map.drsKey">zona de DRS</span></span>
-          <span id="trackpct">—</span>
-          <span id="sector">—</span>
+          <span id="trackpct">â€”</span>
+          <span id="sector">â€”</span>
         </div>
       </section>
 
@@ -219,22 +219,22 @@
         <div class="lights">
           <div class="light" id="l-ers">
             <span class="l-lbl" data-i18n="ers.short">ERS</span>
-            <span class="l-val">—</span>
+            <span class="l-val">â€”</span>
             <div class="l-bar"><i id="ers-bar"></i></div>
           </div>
           <div class="light" id="l-abs">
             <span class="l-lbl">ABS</span>
-            <span class="l-val">—</span>
+            <span class="l-val">â€”</span>
             <div class="l-bar"><i id="abs-bar"></i></div>
           </div>
           <div class="light" id="l-tc">
             <span class="l-lbl">TC</span>
-            <span class="l-val">—</span>
+            <span class="l-val">â€”</span>
             <div class="l-bar"><i id="tc-bar"></i></div>
           </div>
           <div class="light" id="l-pit">
             <span class="l-lbl" data-i18n="pit.short">PIT</span>
-            <span class="l-val">—</span>
+            <span class="l-val">â€”</span>
           </div>
         </div>
 
@@ -245,28 +245,28 @@
         <div class="weather">
           <div class="wx">
             <span class="wx-lbl" data-i18n="wx.air">AR</span>
-            <span class="wx-val"><span id="wx-air">—</span><i data-i18n="unit.c">°C</i></span>
+            <span class="wx-val"><span id="wx-air">â€”</span><i data-i18n="unit.c">Â°C</i></span>
           </div>
           <div class="wx">
             <span class="wx-lbl" data-i18n="wx.road">PISTA</span>
-            <span class="wx-val"><span id="wx-road">—</span><i data-i18n="unit.c">°C</i></span>
+            <span class="wx-val"><span id="wx-road">â€”</span><i data-i18n="unit.c">Â°C</i></span>
           </div>
           <div class="wx">
             <span class="wx-lbl" data-i18n="wx.wind">VENTO</span>
-            <span class="wx-val"><span id="wx-wind">—</span><i data-i18n="unit.kmh">km/h</i></span>
+            <span class="wx-val"><span id="wx-wind">â€”</span><i data-i18n="unit.kmh">km/h</i></span>
           </div>
           <div class="wx">
             <span class="wx-lbl" data-i18n="wx.density">DENSIDADE</span>
-            <span class="wx-val"><span id="wx-density">—</span><i>kg/m³</i></span>
+            <span class="wx-val"><span id="wx-density">â€”</span><i>kg/mÂ³</i></span>
           </div>
           <!-- A CHUVA, ao lado da aderencia. Vem da API Python que a
                app publica, e nao da memoria partilhada -- que nao a tem.
                Quando a funcao nao existe, o valor e' -1 e aqui fica um
-               travessao com a dica a dizer porquê. Nunca um zero: zero
+               travessao com a dica a dizer porquÃª. Nunca um zero: zero
                e' "nao chove", e -1 e' "nao se sabe". Ver chuva.md. -->
           <div class="wx" id="wx-rain-box">
             <span class="wx-lbl" data-i18n="wx.rain">CHUVA</span>
-            <span class="wx-val"><span id="wx-rain">—</span><i id="wx-rain-u">%</i></span>
+            <span class="wx-val"><span id="wx-rain">â€”</span><i id="wx-rain-u">%</i></span>
           </div>
         </div>
       </section>
@@ -292,7 +292,7 @@
           <span><i style="background:var(--green)"></i><span data-i18n="pedals.throttle">ACEL.</span><b id="v-throttle">0</b></span>
           <span><i style="background:var(--red)"></i><span data-i18n="pedals.brake">TRAVA</span><b id="v-brake">0</b></span>
           <span><i style="background:var(--blue)"></i><span data-i18n="pedals.clutch">EMBRAIAGEM</span><b id="v-clutch">0</b></span>
-          <span id="hb-key"><i style="background:var(--gold)"></i><span data-i18n="pedals.handbrake">FREIO DE MÃO</span><b id="v-handbrake">—</b></span>
+          <span id="hb-key"><i style="background:var(--gold)"></i><span data-i18n="pedals.handbrake">FREIO DE MÃƒO</span><b id="v-handbrake">â€”</b></span>
         </div>
       </section>
 
@@ -313,7 +313,7 @@
 
       <section class="card c-tyres">
         <div class="card-head">
-          <h2 data-i18n="tyres.title">PNEUS E TRAVÕES</h2>
+          <h2 data-i18n="tyres.title">PNEUS E TRAVÃ•ES</h2>
           <span class="compound" id="compound-code" hidden></span>
         </div>
 
@@ -325,19 +325,19 @@
              "a medir" em vez de um numero inventado. -->
         <div class="stint" id="tyre-life-box">
           <div class="stint-lbl" data-i18n="tyres.life">Vida do pneu</div>
-          <div class="stint-val" id="tyre-life">—</div>
+          <div class="stint-val" id="tyre-life">â€”</div>
           <div class="stint-note" id="tyre-life-note"></div>
         </div>
 
-        <p class="compound-name" id="compound-name">—</p>
+        <p class="compound-name" id="compound-name">â€”</p>
         <div class="tyres" id="tyres"></div>
         <div class="brake-row">
-          <span data-i18n="brakes.title">TRAVÕES</span>
+          <span data-i18n="brakes.title">TRAVÃ•ES</span>
           <span class="brake-vals" id="brake-temp"></span>
         </div>
         <div class="kv grip-row">
           <span data-i18n="brakes.bias">B. TRAVA</span>
-          <b id="brake-bias">—</b>
+          <b id="brake-bias">â€”</b>
         </div>
         <!-- Danos. So aparece quando ha' dano: um painel de danos vazio
              e' ruido, e o HUD do jogo tambem so o mostra quando algo
@@ -353,20 +353,20 @@
           <span class="damage-bars" id="damage-bars"></span>
         </div>
         <div class="kv grip-row">
-          <span data-i18n="wx.grip">ADERÊNCIA</span>
-          <b id="wx-grip">—</b>
+          <span data-i18n="wx.grip">ADERÃŠNCIA</span>
+          <b id="wx-grip">â€”</b>
         </div>
       </section>
 
       <section class="card c-fuel">
-        <h2 data-i18n="fuel.title">COMBUSTÍVEL</h2>
+        <h2 data-i18n="fuel.title">COMBUSTÃVEL</h2>
         <div class="fuel-big"><span id="fuel-pct">0</span><small>%</small></div>
         <div class="bar-track tall"><div class="bar-fill fuel" id="fuel-bar"></div></div>
         <div class="kv"><span data-i18n="fuel.inTank">Na reserva</span><b id="fuel-l">0.0 L</b></div>
-        <div class="kv"><span data-i18n="fuel.lapsLeft">Voltas</span><b id="fuel-laps">—</b></div>
-        <div class="kv"><span data-i18n="fuel.ambient">Ar / pista</span><b id="temps">—</b></div>
-        <div class="kv"><span data-i18n="fuel.penalty">Penalidade</span><b id="pen-time">—</b></div>
-        <div class="kv"><span data-i18n="fuel.ersUsed">ERS na volta</span><b id="ers-used">—</b></div>
+        <div class="kv"><span data-i18n="fuel.lapsLeft">Voltas</span><b id="fuel-laps">â€”</b></div>
+        <div class="kv"><span data-i18n="fuel.ambient">Ar / pista</span><b id="temps">â€”</b></div>
+        <div class="kv"><span data-i18n="fuel.penalty">Penalidade</span><b id="pen-time">â€”</b></div>
+        <div class="kv"><span data-i18n="fuel.ersUsed">ERS na volta</span><b id="ers-used">â€”</b></div>
       </section>
 
     </div>
@@ -376,7 +376,7 @@
   <div class="view view-lb hidden" data-view="leaderboard">
     <div class="grid-lb">
       <section class="card c-lb">
-        <h2 data-i18n="lb.title">CLASSIFICAÇÃO</h2>
+        <h2 data-i18n="lb.title">CLASSIFICAÃ‡ÃƒO</h2>
         <div class="lb-head">
           <span class="lb-pos" data-i18n="lb.pos">P</span>
           <span class="lb-name" data-i18n="lb.name">PILOTO</span>
@@ -398,10 +398,10 @@
         <div class="bar-track"><div class="bar-fill" id="m-rpm"></div></div>
         <div class="kv"><span data-i18n="laps.current">ATUAL</span><b id="m-current">--:--.---</b></div>
         <div class="kv"><span data-i18n="laps.delta">DELTA</span><b id="m-delta">+0.000</b></div>
-        <div class="kv"><span data-i18n="lb.drs">DRS</span><b id="m-drs">—</b></div>
-        <div class="kv"><span data-i18n="brakes.title">TRAVÕES</span><b id="m-brake">—</b></div>
-        <div class="kv"><span data-i18n="fuel.lapsLeft">Voltas</span><b id="m-fuel">—</b></div>
-        <div class="kv"><span data-i18n="lb.penalty">Penalidade</span><b id="m-pen">—</b></div>
+        <div class="kv"><span data-i18n="lb.drs">DRS</span><b id="m-drs">â€”</b></div>
+        <div class="kv"><span data-i18n="brakes.title">TRAVÃ•ES</span><b id="m-brake">â€”</b></div>
+        <div class="kv"><span data-i18n="fuel.lapsLeft">Voltas</span><b id="m-fuel">â€”</b></div>
+        <div class="kv"><span data-i18n="lb.penalty">Penalidade</span><b id="m-pen">â€”</b></div>
         <div class="tyres tyres-mini" id="tyres3"></div>
       </section>
     </div>
@@ -420,7 +420,7 @@
              caminho inverso: um `if` que protege a falta faz a falta
              parecer uma escolha. A legenda e' uma flex row sem wrap, e
              o primeiro cartao ja tem tres itens, portanto fica igual. -->
-        <div class="map-legend"><span id="map-drs-key2" class="map-key hidden"><i></i><span data-i18n="map.drsKey">zona de DRS</span></span><span id="b-trackpct">—</span><span id="b-sector">—</span></div>
+        <div class="map-legend"><span id="map-drs-key2" class="map-key hidden"><i></i><span data-i18n="map.drsKey">zona de DRS</span></span><span id="b-trackpct">â€”</span><span id="b-sector">â€”</span></div>
       </section>
 
       <section class="card c-main">
@@ -443,25 +443,36 @@
           <span class="drs-txt" data-i18n="drs.short">DRS</span>
         </div>
         <div class="lights">
-          <div class="light" id="b-l-ers"><span class="l-lbl" data-i18n="ers.short">ERS</span><span class="l-val">—</span><div class="l-bar"><i id="b-ers-bar"></i></div></div>
-          <div class="light" id="b-l-pit"><span class="l-lbl" data-i18n="pit.short">PIT</span><span class="l-val">—</span></div>
+          <div class="light" id="b-l-ers"><span class="l-lbl" data-i18n="ers.short">ERS</span><span class="l-val">â€”</span><div class="l-bar"><i id="b-ers-bar"></i></div></div>
+          <div class="light" id="b-l-pit"><span class="l-lbl" data-i18n="pit.short">PIT</span><span class="l-val">â€”</span></div>
         </div>
         <div class="weather">
           <div class="wx">
             <span class="wx-lbl" data-i18n="wx.air">AR</span>
-            <span class="wx-val"><span id="b-wx-air">—</span><i data-i18n="unit.c">°C</i></span>
+            <span class="wx-val"><span id="b-wx-air">â€”</span><i data-i18n="unit.c">Â°C</i></span>
           </div>
           <div class="wx">
             <span class="wx-lbl" data-i18n="wx.road">PISTA</span>
-            <span class="wx-val"><span id="b-wx-road">—</span><i data-i18n="unit.c">°C</i></span>
+            <span class="wx-val"><span id="b-wx-road">â€”</span><i data-i18n="unit.c">Â°C</i></span>
           </div>
           <div class="wx">
             <span class="wx-lbl" data-i18n="wx.wind">VENTO</span>
-            <span class="wx-val"><span id="b-wx-wind">—</span><i data-i18n="unit.kmh">km/h</i></span>
+            <span class="wx-val"><span id="b-wx-wind">â€”</span><i data-i18n="unit.kmh">km/h</i></span>
           </div>
           <div class="wx">
-            <span class="wx-lbl" data-i18n="wx.grip">ADERÊNCIA</span>
-            <span class="wx-val"><span id="b-wx-grip">—</span></span>
+            <span class="wx-lbl" data-i18n="wx.grip">ADERÃŠNCIA</span>
+            <span class="wx-val"><span id="b-wx-grip">â€”</span></span>
+          </div>
+          <!-- A chuva tambem no misto. O app.js ja a desenha nas duas
+               vistas -- o loop vai com pfx '' e 'b-' -- e nao havia aqui
+               onde a por, pelo que a linha simplesmente nao existia. E' a
+               mesma classe do map-drs-key2: o codigo procura um id, nao
+               o encontra, e a funcao sai em silencio, sem erro. O vento
+               e a aderencia ja' aqui estavam, que sao as outras duas
+               coisas de clima. -->
+          <div class="wx">
+            <span class="wx-lbl" data-i18n="wx.rain">CHUVA</span>
+            <span class="wx-val"><span id="b-wx-rain">â€”</span><i id="b-wx-rain-u">%</i></span>
           </div>
         </div>
       </section>
@@ -481,7 +492,7 @@
       </section>
 
       <section class="card c-lb2">
-        <h2 data-i18n="lb.title">CLASSIFICAÇÃO</h2>
+        <h2 data-i18n="lb.title">CLASSIFICAÃ‡ÃƒO</h2>
         <div class="lb-head">
           <span class="lb-pos">P</span>
           <span class="lb-name" data-i18n="lb.name">PILOTO</span>
@@ -495,13 +506,13 @@
 
       <section class="card c-tyres">
         <div class="card-head">
-          <h2 data-i18n="tyres.title">PNEUS E TRAVÕES</h2>
+          <h2 data-i18n="tyres.title">PNEUS E TRAVÃ•ES</h2>
           <span class="compound" id="compound-code2" hidden></span>
         </div>
-        <p class="compound-name" id="compound-name2">—</p>
+        <p class="compound-name" id="compound-name2">â€”</p>
         <div class="tyres" id="tyres2"></div>
         <div class="brake-row">
-          <span data-i18n="brakes.title">TRAVÕES</span>
+          <span data-i18n="brakes.title">TRAVÃ•ES</span>
           <span class="brake-vals" id="brake-temp2"></span>
         </div>
       </section>
@@ -509,11 +520,11 @@
   </div>
 
   <footer class="foot">
-    <span id="fps">—</span>
+    <span id="fps">â€”</span>
     <span class="dot-sep"></span>
-    <span id="status">—</span>
+    <span id="status">â€”</span>
     <span class="grow"></span>
-    <span class="src" data-i18n="foot.src">memória do AC, sem SimHub</span>
+    <span class="src" data-i18n="foot.src">memÃ³ria do AC, sem SimHub</span>
   </footer>
 </main>
 
