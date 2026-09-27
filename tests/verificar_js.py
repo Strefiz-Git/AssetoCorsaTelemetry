@@ -75,7 +75,8 @@ print('  %d ficheiros .js a verificar com node --check' % len(rel))
 ruins = []
 for r in rel:
     p = subprocess.run([node, '--check', os.path.join(RAIZ, r)],
-                       capture_output=True, text=True)
+                       capture_output=True, text=True,
+        encoding='utf-8', errors='replace')
     if p.returncode != 0:
         # a primeira linha do erro do node tem a linha e o ponto
         linhas = [l for l in p.stderr.splitlines() if l.strip()]

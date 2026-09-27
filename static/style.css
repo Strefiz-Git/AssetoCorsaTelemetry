@@ -819,3 +819,21 @@ body.paused .app{opacity:.6;filter:saturate(.5)}
   0%,100%{box-shadow:inset 0 0 0 4px #000}
   50%    {box-shadow:inset 0 0 0 4px var(--fuel-cor)}
 }
+
+/* Texto so para leitores de ecra. O rotulo do campo do tempo no
+   cabecalho e' "Tempo", e sem isto ele aparecia no ecra -- duas palavras
+   a mais num cabecalho que ja' esta' apertado -- ou, pior, via um
+   `aria-label` no valor, que faz o leitor de ecra dizer "Tempo" e
+   calar o "SECO".
+
+   O padrao e' o classico: fechar o elemento ao primeiro pixel, e nao o
+   tornar `display:none`, porque `display:none` TIRA o elemento da
+   arvore de acessibilidade e o texto deixava de ser lido. */
+.vh{position:absolute;width:1px;height:1px;margin:-1px;padding:0;
+    overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}
+
+/* A cena do tempo no cabecalho. A COR vem do `pintarChuva`, em linha,
+   no elemento #h-wx -- por isso aqui so' a forma. `font-weight:900` e'
+   o mesmo do `h-flag`: e' um estado, nao um valor, e le-se de relance
+   enquanto se olha para a pista. */
+.h-wx{font-weight:900;font-size:12px;letter-spacing:.1em;white-space:nowrap}

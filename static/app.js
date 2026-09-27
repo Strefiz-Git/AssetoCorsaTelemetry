@@ -71,7 +71,7 @@ const I18N = {
     'fuel.title': 'COMBUSTÍVEL',
     'wx.air': 'AR', 'wx.road': 'PISTA', 'wx.wind': 'VENTO', 'wx.density': 'DENSIDADE', 'wx.grip': 'ADERENCIA', 'unit.c': '°C',
     "wx.rain": "CHUVA",
-    "wx.seco": "SECO", "wx.chiada": "CHIADA", "wx.chiadaForte": "CHIADA FORTE", "wx.chuvaFraca": "CHUVA FRACA", "wx.chuva": "CHUVA", "wx.chuvaForte": "CHUVA FORTE", "wx.neve": "NEVE", "wx.trovoada": "TROVOADA", "wx.trovoadaForte": "TROVOADA FORTE", "wx.furacao": "FURACÃO", "wx.ventoso": "VENTOSO", "wx.aguaceiro": "AGUACEIRO", "wx.tornado": "TORNADO", "wx.topoDoCartao": "o topo do que o jogo tem",
+    "wx.seco": "SECO", "wx.chiada": "CHIADA", "wx.chiadaForte": "CHIADA FORTE", "wx.chuvaFraca": "CHUVA FRACA", "wx.chuva": "CHUVA", "wx.chuvaForte": "CHUVA FORTE", "wx.neve": "NEVE", "wx.trovoada": "TROVOADA", "wx.trovoadaForte": "TROVOADA FORTE", "wx.furacao": "FURACÃO", "wx.rotuloTempo": "Tempo", "wx.ventoso": "VENTOSO", "wx.aguaceiro": "AGUACEIRO", "wx.tornado": "TORNADO", "wx.topoDoCartao": "o topo do que o jogo tem",
     "wx.rainTitle": "Intensidade da chuva, pela API do jogo. Vem de ac.ext_rainParams() e so' existe com o Custom Shaders Patch.",
     "wx.rainUnknown": "A app nao consegue ler o clima. A intensidade da chuva vem do Custom Shaders Patch, que precisa de expor ac.ext_rainParams() ao Python. Sem isso o numero seria 0, e 0 significa 'nao chove', que nao e' a verdade.",
     'fuel.inTank': 'Na reserva', 'fuel.lapsLeft': 'Voltas',
@@ -162,7 +162,7 @@ const I18N = {
     'fuel.title': 'COMBUSTÍVEL',
     'wx.air': 'AR', 'wx.road': 'PISTA', 'wx.wind': 'VENTO', 'wx.density': 'DENSIDADE', 'wx.grip': 'ADERENCIA', 'unit.c': '°C',
     "wx.rain": "CHUVA",
-    "wx.seco": "SECO", "wx.chiada": "CHIADA", "wx.chiadaForte": "CHIADA FORTE", "wx.chuvaFraca": "CHUVA FRACA", "wx.chuva": "CHUVA", "wx.chuvaForte": "CHUVA FORTE", "wx.neve": "NEVE", "wx.trovoada": "TROVOADA", "wx.trovoadaForte": "TROVOADA FORTE", "wx.furacao": "FURACÃO", "wx.ventoso": "VENTOSO", "wx.aguaceiro": "AGUACEIRO", "wx.tornado": "TORNADO", "wx.topoDoCartao": "o topo do que o jogo tem",
+    "wx.seco": "SECO", "wx.chiada": "CHIADA", "wx.chiadaForte": "CHIADA FORTE", "wx.chuvaFraca": "CHUVA FRACA", "wx.chuva": "CHUVA", "wx.chuvaForte": "CHUVA FORTE", "wx.neve": "NEVE", "wx.trovoada": "TROVOADA", "wx.trovoadaForte": "TROVOADA FORTE", "wx.furacao": "FURACÃO", "wx.rotuloTempo": "Tempo", "wx.ventoso": "VENTOSO", "wx.aguaceiro": "AGUACEIRO", "wx.tornado": "TORNADO", "wx.topoDoCartao": "o topo do que o jogo tem",
     "wx.rainTitle": "Intensidade da chuva, pela API do jogo. Vem de ac.ext_rainParams() e so' existe com o Custom Shaders Patch.",
     "wx.rainUnknown": "A app nao consegue ler o clima. A intensidade da chuva vem do Custom Shaders Patch, que precisa de expor ac.ext_rainParams() ao Python. Sem isso o numero seria 0, e 0 significa 'nao chove', que nao e' a verdade.",
     'fuel.inTank': 'No tanque', 'fuel.lapsLeft': 'Voltas',
@@ -246,7 +246,7 @@ const I18N = {
     'fuel.title': 'COMBUSTIBLE',
     'wx.air': 'AIRE', 'wx.road': 'PISTA', 'wx.wind': 'VIENTO', 'wx.density': 'DENSIDAD', 'wx.grip': 'ADHERENCIA', 'unit.c': '°C',
     "wx.rain": "LLUVIA",
-    "wx.seco": "SECO", "wx.chiada": "LLOVIZNA", "wx.chiadaForte": "LLOVIZNA FUERTE", "wx.chuvaFraca": "LLUVIA LIGERA", "wx.chuva": "LLUVIA", "wx.chuvaForte": "LLUVIA FUERTE", "wx.neve": "NIEVE", "wx.trovoada": "TORMENTA", "wx.trovoadaForte": "TORMENTA FUERTE", "wx.furacao": "HURACÁN", "wx.ventoso": "VENTOSO", "wx.aguaceiro": "AGUACERO", "wx.tornado": "TORNADO", "wx.topoDoCartao": "el tope de lo que tiene el juego",
+    "wx.seco": "SECO", "wx.chiada": "LLOVIZNA", "wx.chiadaForte": "LLOVIZNA FUERTE", "wx.chuvaFraca": "LLUVIA LIGERA", "wx.chuva": "LLUVIA", "wx.chuvaForte": "LLUVIA FUERTE", "wx.neve": "NIEVE", "wx.trovoada": "TORMENTA", "wx.trovoadaForte": "TORMENTA FUERTE", "wx.furacao": "HURACÁN", "wx.rotuloTempo": "Tiempo", "wx.ventoso": "VENTOSO", "wx.aguaceiro": "AGUACERO", "wx.tornado": "TORNADO", "wx.topoDoCartao": "el tope de lo que tiene el juego",
     "wx.rainTitle": "Intensidad de la lluvia, por la API del juego. Viene de ac.ext_rainParams() y solo existe con el Custom Shaders Patch.",
     "wx.rainUnknown": "La app no puede leer el clima. La intensidad de la lluvia viene del Custom Shaders Patch, que tiene que exponer ac.ext_rainParams() a Python. Sin eso el numero seria 0, y 0 significa 'no llueve', que no es verdad.",
     'fuel.inTank': 'En el depósito', 'fuel.lapsLeft': 'Vueltas',
@@ -333,7 +333,7 @@ const I18N = {
     'fuel.title': 'FUEL',
     'wx.air': 'AIR', 'wx.road': 'TRACK', 'wx.wind': 'WIND', 'wx.density': 'DENSITY', 'wx.grip': 'GRIP', 'unit.c': '°C',
     "wx.rain": "RAIN",
-    "wx.seco": "CLEAR", "wx.chiada": "DRIZZLE", "wx.chiadaForte": "HEAVY DRIZZLE", "wx.chuvaFraca": "LIGHT RAIN", "wx.chuva": "RAIN", "wx.chuvaForte": "HEAVY RAIN", "wx.neve": "SNOW", "wx.trovoada": "THUNDERSTORM", "wx.trovoadaForte": "HEAVY THUNDERSTORM", "wx.furacao": "HURRICANE", "wx.ventoso": "WINDY", "wx.aguaceiro": "SQUALL", "wx.tornado": "TORNADO", "wx.topoDoCartao": "the top of what the game has",
+    "wx.seco": "CLEAR", "wx.chiada": "DRIZZLE", "wx.chiadaForte": "HEAVY DRIZZLE", "wx.chuvaFraca": "LIGHT RAIN", "wx.chuva": "RAIN", "wx.chuvaForte": "HEAVY RAIN", "wx.neve": "SNOW", "wx.trovoada": "THUNDERSTORM", "wx.trovoadaForte": "HEAVY THUNDERSTORM", "wx.furacao": "HURRICANE", "wx.rotuloTempo": "Weather", "wx.ventoso": "WINDY", "wx.aguaceiro": "SQUALL", "wx.tornado": "TORNADO", "wx.topoDoCartao": "the top of what the game has",
     "wx.rainTitle": "Rain intensity, from the game API. It comes from ac.ext_rainParams() and only exists with the Custom Shaders Patch.",
     "wx.rainUnknown": "The app cannot read the weather. Rain intensity comes from the Custom Shaders Patch, which has to expose ac.ext_rainParams() to Python. Without it the number would be 0, and 0 means 'no rain', which is not true.",
     'fuel.inTank': 'In tank', 'fuel.lapsLeft': 'Laps',
@@ -2108,6 +2108,12 @@ function syncDrsMarkUI() {
 
 function pintarClima(d) {
   // escrever nos dois modos, para o clima nao desaparecer ao mudar de vista
+  // A cena do tempo TAMBEM no cabecalho. A carta vive dentro da
+  // vista mista, e so' se ve depois de trocar de vista -- o
+  // contrario do que se quer de um campo que descreve as condicoes.
+  // Chama-se `pintarChuva` e nao se escreve a cena a mao, para o
+  // cabecalho e a carta nunca poderem discordar. Regra nº 16
+  pintarChuva('h-wx', d);
   for (const pfx of ['', 'b-']) {
     setTxt(pfx + 'wx-air', d.airTemp != null ? fmtTemp(d.airTemp) : '—');
     setTxt(pfx + 'wx-road', d.roadTemp != null ? fmtTemp(d.roadTemp) : '—');
