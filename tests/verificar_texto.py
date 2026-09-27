@@ -11,7 +11,20 @@ sys.stdout.reconfigure(encoding="utf-8")
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 EXTENSOES = (".py", ".js", ".md", ".css", ".html", ".bat", ".txt", ".json")
-SECTIONS = ("\\.git", "__pycache__", "\\fonts")
+# `ac_info` esta no .gitignore: e' material de terceiros que o
+# utilizador deixa ao lado para eu ler, e nao faz parte do projecto.
+#
+# Sem esta exclusao, o verificador acusava 295 linhas de CJK -- todas
+# de `pure_planner_Chinese.txt`, que e' o ficheiro de AJUDA EM CHINES do
+# Pure Planner. Nao era um erro nosso nem um erro do Pure Planner: era
+# um ficheiro em chinês, numa pasta de terceiro, que o teste varria
+# porque varre a arvore toda.
+#
+# E a razao de nao ser uma lista de excepcoes por ficheiro: o que
+# exclui e' a PASTA, e a razao e' que ela esta' fora do projecto. Um
+# ficheiro de terceiro que aparecesse dentro de `static/` ou `tests/`
+# continuava a ser acusado -- que e' o que se quer.
+SECTIONS = ("\\.git", "__pycache__", "\\fonts", "\\ac_info")
 
 n = 0
 for pasta, _, ficheiros in os.walk(RAIZ):
