@@ -191,6 +191,116 @@ pneus do misto (são duas linhas), ou avisar que a vista é resumida.
 
 ---
 
+## 6. A leaderboard: um fio que engolia demasiado bem
+
+O pior defeito que encontrei em todo o projecto, e o único que estava a
+impedir uma feature inteira de funcionar.
+
+### O que se via
+
+Com o jogo a correr, numa corrida a sério:
+
+```
+numVehicles      = 11
+carro[0] id=0 nome=b'' modelo=b'' lap=0 pos=0 vel=0.0
+carro[1] id=0 nome=b'' modelo=b'' lap=0 pos=0 vel=0.0
+carro[2] id=0 nome=b'' modelo=b'' lap=0 pos=0 vel=0.0
+   ... 3 leituras separadas por 1 s, sempre igual
+```
+
+O cabeçalho dizia 11 carros. Os 128 slots, a zero. **O fio escrevia e
+o número chegava** — o que é a pior combinação possível, porque parece
+que está a funcionar.
+
+### Duas excepções, nenhuma delas visível
+
+**A primeira:** `_tempPorPneu` fazia `for roda in acsys.WHEELS`. O
+`acsys.py` do jogo define
+
+```python
+class WHEELS:FL,FR,RL,RR=range(4)
+```
+
+que é uma **classe**, e uma classe não se percorre:
+`TypeError: 'type' object is not iterable`.
+
+O `TypeError` nascia dentro da **lista compreensiva**, ou seja **fora**
+do `_seguro`, que não a apanhava. E `_tempPorPneu` é um **argumento**
+de `escreverCarro`, portanto é avaliado *antes* da chamada: o
+`numVehicles` já tinha sido escrito (vem antes no loop) e o carro 0
+nunca chegava a ser escrito.
+
+**Cabeçalho certo, lista vazia.** É a assinatura exacta do defeito.
+
+**A segunda:** o `_seguro` devolvia `0.0` por omissão, e a struct tem
+campos `c_int32`. O `ctypes` recusa um `float` num inteiro — *em
+atribuição*, que é **depois** de o `_seguro` já ter devolvido:
+
+```python
+info.bestLapMS = _seguro(lambda: ..., -1)   # tem -1 explícito, está bem
+info.lapCount   = _seguro(lambda: ...)       # usa o omissão → 0.0 → TypeError
+```
+
+Ou seja: o `_seguro` impedia a excepção de matar o fio, e a excepção
+reaparecia um instante depois, na mesma linha, dentro do
+`actualizar()`. **A protecção e a falha no mesmo sítio.**
+
+### O que é realmente objectionável
+
+Não é nenhuma das duas. É que **nada era dito**.
+
+A app engole excepções de propósito, e está certo — uma leitura que
+levanta excepção não pode matar o fio. Mas o `_seguro` devolvia `'-1'`
+quando a leitura falhava, e `'-1'` é o valor que o AC usa para dizer
+*"não há carro neste slot"*. Portanto **qualquer** excepção punha a app
+a concluir que a pista estava vazia, para sempre, sem dar erro.
+
+E o dashboard, não sabendo de nada, mostrava:
+
+> **A aguardar os dados dos adversários.**
+> A app Python do SimHub escreve a página de memória com os carros.
+> Confirma que está activa no Content Manager…
+
+Com a app **ligada e a escrever**. A instrução era errada, e era a
+única que havia. Quem a obeyesse não resolvia nada, e não havia forma
+de saber que o problema era outro.
+
+### O que ficou
+
+| | antes | depois |
+|---|---|---|
+| Fim da lista | `getCarName() == '-1'` | `getCarsCount()`, que é o que o jogo deu |
+| Falha de leitura | indistinguível de "não há carro" | o carro é escrito sem nome, e a falha é contada |
+| Texto da falha | inexistente | `lastError`, publicado no cabeçalho |
+| No ecrã | "liga a app no Content Manager" | o erro, e a nota de que **não** é a app estar desligada |
+| Teste | nenhum | `test_loop_app.py`, com `mutacao_loop.py` a provar que morde |
+
+`tests/test_loop_app.py` corre o loop contra um `ac` falso e confirma
+que os carros continuam a ser escritos quando uma leitura rebenta. É o
+teste que teria dito "isto está partido", e não havia nada que provasse
+que a lista vazia tinha uma causa.
+
+**A lição:** um mecanismo que evita que um erro se veja é um mecanismo
+que impede que o erro se corrija. O `_seguro` era a decisão certa com a
+implementação errada — o que faltava era publicar o que foi engolido, e
+separar *falhou* de *não há*.
+
+### E uma lição sobre o meu próprio teste
+
+`mutacao_loop.py` apanha 2 das 3 mutações à primeira, e a terceira
+escapou por uma razão que vale mais que o teste:
+
+> A mutação do `0.0` **não** era apanhada porque o `BestLap` passa um
+> `-1` explícito e nunca usa o valor por omissão. O campo que depende
+> do omissão é o `lapCount` — e é lá que o bug morava.
+
+E, quando corrigi o teste, ele passou a mostrar **60 erros** no caso
+"tudo funciona". 60 = 20 por carro = exactamente todas as chamadas
+`getCarState`. Passavam por detalhe, e diziam "está tudo mal" sem dizer
+*o quê*. O teste agora exige **zero** erros nesse caso.
+
+---
+
 ## Estado depois desta volta
 
 | | |
