@@ -36,6 +36,7 @@ SUITE = [
     ("o loop da app nao engole falhas", "py", "test_loop_app.py"),
     ("o loop da app morde mesmo", "py", "mutacao_loop.py"),
     ("texto sem caracteres estranhos", "py", "verificar_texto.py"),
+    ("mensagens de commit limpas", "py", "verificar_commits.py"),
 ]
 
 # codigo 2 = "o jogo esta a correr, nao se pode testar". Nao e' falha: e
