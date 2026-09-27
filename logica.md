@@ -310,5 +310,5 @@ E, quando corrigi o teste, ele passou a mostrar **60 erros** no caso
 | contraste | 113 folhas, pior 4,50:1, 0 abaixo |
 | acessibilidade | 0 falhas |
 | chaves de tradução mortas | 0 |
-| traduções completas nas 4 línguas | 124 / 124 / 124 / 124 |
+| traduções completas nas 4 línguas | 128 / 128 / 128 / 128 |
 | `render()` com `NaN` | 0,5 ms (era: não voltava) |
