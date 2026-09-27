@@ -1607,9 +1607,20 @@ function renderCombustivel(d) {
   }
   if (!cartao) return;
 
-  // Sem medida nao ha' nada que avisar. Um "0 L = critico" seria um
-  // alarme falso no início de cada sessão.
-  const nivel = (r.valido && r.aviso) ? r.nivel : 'normal';
+  // O AVISO NAO ESTA PRESO AO `valido`.
+  //
+  // `valido` quer dizer "sei quantas voltas restam", e so' passa a ser
+  // verdadeiro depois de uma volta fechada. O aviso e' outra coisa: a
+  // percentagem vem do jogo e existe desde a primeira leitura. Com
+  // `r.valido && r.aviso` o alerta nao aparecia na PRIMEIRA volta --
+  // que e' quando mais se precisa dele, e foi o que se queixou: 7,4% de
+  // combustivel a abrir a corrida, sem nada piscado.
+  //
+  // O que protege contra o alarme falso nao e' a falta de voltas
+  // medidas: com 7% de combustivel o combustivel esta' mesmo a 7%. O
+  // que protege e' o caso em que nao ha' NENHUM dado, e esse vem
+  //verificado no proprio calculo, que devolve nivel 'desconhecido'.
+  const nivel = r.aviso ? r.nivel : 'normal';
   cartao.classList.toggle('fuel-aviso', nivel === 'aviso');
   cartao.classList.toggle('fuel-critico', nivel === 'critico');
   if (nivel === 'normal') {

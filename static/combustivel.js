@@ -74,7 +74,70 @@
    * razao para calar o outro. */
   var AVISO_PCT = 15;
 
-  function vazio(estado, msg) {
+  /* O NIVEL DE AVISO, calculado com o que estiver disponivel.
+   *
+   * Deliberadamente SEPARADO de `valido`, e essa separacao e' a
+   * correccao de um erro meu.
+   *
+   * `valido` quer dizer "sei quantas voltas restam", e so' passa a ser
+   * verdadeiro depois de uma volta fechada. Isso e' o que faz a linha
+   * Voltas mostrar 'a medir' -- e e' o honesto.
+   *
+   * O aviso e' outra coisa, e nao tem nada a ver com `valido`. A
+   * percentagem vem do jogo e existe desde a primeira leitura. Comecar
+   * uma corrida com 7% de combustivel e' exactamente o momento em que o
+   * alerta e' para quem conduz, e era esse o momento em que nao
+   * aparecia: o frontend fazia `r.valido && r.aviso`, e na primeira
+   * volta `valido` e' falso por definicao.
+   *
+   * A razao de ter acrescentado o limiar em percentagem era nao
+   * depender de nenhuma medicao. Prende-lo a uma medicao e' desfazer a
+   * razao -- e foi o que fiz.
+   *
+   * Sem nenhum dos dois dados, o nivel e' 'desconhecido' e a interface
+   * pinta de neutro. Nunca de vermelho: um alerta sem base nenhuma e'
+   * como se trains o piloto a ignorar o alerta. */
+  function nivelDe(porVoltas, porPct) {
+    if (porVoltas === 'critico' || porPct === 'critico') return 'critico';
+    if (porVoltas === 'aviso' || porPct === 'aviso') return 'aviso';
+    return 'normal';
+  }
+
+  /* O nivel a partir do estado e da percentagem, sem cuidar de saber se
+     as voltas estao medidas. E' isto que o frontend deve usar para
+     PISCAR. */
+  function _aviso(estado, pctRestante) {
+    var n = (estado && estado.voltas && estado.voltas.length) || 0;
+    var media = n > 0 ? _media(estado.voltas) : null;
+
+    var porVoltas = 'normal';
+    if (media != null && media > 0) {
+      var restantes = estado.litros / media;
+      porVoltas = restantes < AVISO_VOLTAS
+        ? (restantes < CRITICO_VOLTAS ? 'critico' : 'aviso') : 'normal';
+    }
+
+    var porPct = (pctRestante == null) ? 'normal'
+      : (pctRestante <= 5 ? 'critico'
+          : (pctRestante <= AVISO_PCT ? 'aviso' : 'normal'));
+
+    // 'desconhecido' so' quando NAO HINGUEM dos dois: nem percentagem
+    // nenhuma, nem uma volta medida. Com um dos dois, ja' se sabe
+    // alguma coisa, e o nivel normal e' uma resposta -- a que se o
+    // combustivel esta' bem.
+    var nada = (porVoltas === 'normal' && porPct === 'normal'
+      && media == null && pctRestante == null);
+
+    return {
+      nivel: nada ? 'desconhecido' : nivelDe(porVoltas, porPct),
+      aviso: nada ? false : nivelDe(porVoltas, porPct) !== 'normal',
+      porVoltas: porVoltas,
+      porPct: porPct
+    };
+  }
+
+  function vazio(estado, msg, pctRestante) {
+    var a = _aviso(estado, pctRestante);
     return {
       valido: false,
       litrosPorVolta: null,
@@ -84,8 +147,10 @@
       // de 0, e o contador de voltas mediava mostrava um array.
       voltasMedidas: (estado && estado.voltas && estado.voltas.length) || 0,
       estado: estado || null,
-      nivel: 'desconhecido',
-      aviso: false,
+      nivel: a.nivel,
+      aviso: a.aviso,
+      porVoltas: a.porVoltas,
+      porPct: a.porPct,
       msg: msg || null
     };
   }
@@ -104,7 +169,7 @@
      o motor ligado e sem conduzir, e isso nao e' consumo de corrida. */
   function estimarCombustivel(estado, dados, pctRestante) {
     if (!dados || !num(dados.litros) || !dados.connected) {
-      return vazio(estado, null);
+      return vazio(estado, null, pctRestante);
     }
     var litros = dados.litros;
     var volta = dados.voltas;
@@ -120,7 +185,7 @@
         voltas: [],
         media: null
       };
-      return Object.assign(vazio(novo, null), {
+      return Object.assign(vazio(novo, null, pctRestante), {
         msg: volta === 0 ? 'a medir' : null
       });
     }
@@ -164,22 +229,16 @@
     var media = _media(estado.voltas);
     var n = estado.voltas.length;
 
+    // Sem voltas medidas: 'a medir' para o TEXTO da linha Voltas, mas o
+    // AVISO continua a ser calculado. Sao coisas diferentes -- e era
+    // aqui que o aviso se perdia, porque esta devolvia um 'vazio' sem
+    // olhar para a percentagem.
     if (media == null) {
-      return vazio(estado, 'a medir');
+      return vazio(estado, 'a medir', pctRestante);
     }
 
     var restantes = litros / media;
-
-    /* O nivel e' o MAIS ALARMANTE dos dois limiares, nao o primeiro que
-     * dispara. Um alerta a piscar a vermelho enquanto o outro so' pede
-     * laranja seria mostrar o estado errado. */
-    var porVoltas = restantes < AVISO_VOLTAS
-      ? (restantes < CRITICO_VOLTAS ? 'critico' : 'aviso') : 'normal';
-    var pct = (pctRestante != null) ? pctRestante : null;
-    var porPct = pct == null ? 'normal'
-      : (pct <= 5 ? 'critico' : (pct <= AVISO_PCT ? 'aviso' : 'normal'));
-    var nivel = (porVoltas === 'critico' || porPct === 'critico') ? 'critico'
-      : ((porVoltas === 'aviso' || porPct === 'aviso') ? 'aviso' : 'normal');
+    var a = _aviso(estado, pctRestante);
 
     // Uma media de uma volta e' melhor do que nada, mas e' uma amostra
     // de uma. Diz-se isso em vez de fingir que ja' se mediu o ritmo.
@@ -190,10 +249,10 @@
         voltasRestantes: restantes,
         voltasMedidas: n,
         estado: estado,
-        nivel: nivel,
-        aviso: nivel !== 'normal',
-        porVoltas: porVoltas,
-        porPct: porPct,
+        nivel: a.nivel,
+        aviso: a.aviso,
+        porVoltas: a.porVoltas,
+        porPct: a.porPct,
         msg: null,
         // a media so' e' de uma volta -- o consumidor mostra-o
         soUmaVolta: true
@@ -206,10 +265,10 @@
       voltasRestantes: restantes,
       voltasMedidas: n,
       estado: estado,
-      nivel: nivel,
-      aviso: nivel !== 'normal',
-      porVoltas: porVoltas,
-      porPct: porPct,
+      nivel: a.nivel,
+      aviso: a.aviso,
+      porVoltas: a.porVoltas,
+      porPct: a.porPct,
       msg: null,
       soUmaVolta: false
     };
@@ -217,6 +276,7 @@
 
   var api = {
     estimarCombustivel: estimarCombustivel,
+    nivelDe: nivelDe,
     AVISO_VOLTAS: AVISO_VOLTAS,
     CRITICO_VOLTAS: CRITICO_VOLTAS,
     AVISO_PCT: AVISO_PCT,
