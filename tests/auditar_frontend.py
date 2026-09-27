@@ -323,6 +323,59 @@ else:
 
 # ---------------------------------------------------------------------------
 print("")
+print("=== 6. MOJIBAKE: uma ida e volta pelo PowerShell ===")
+# Aconteceu nesta sessao, e a um ficheiro com a meta charset="utf-8" e
+# texto correcto. O PowerShell 5.1 le com a codificacao do sistema, nao
+# UTF-8: cada byte vira dois caracteres Latin-1, e sao gravados em UTF-8
+# outra vez.
+#
+#     o 'í' (0xC3 0xAD)  ->  U+00C3 U+00AD
+#
+# O ficheiro CONTINUA A DECODIFICAR como UTF-8. Por isso nenhuma
+# verificacao de sintaxe o apanha, nenhum browser mostra um erro, e a
+# pagina fica com 'combustA-vel' no sitio de 'combustível' sem dizer
+# nada. O que o apanha e' ler o texto.
+#
+# O QUE DISTINGUE. Nao e' a letra: e' o caractere a SEGUIR. 'Ã' e' uma
+# letra portuguesa legitima -- o ficheiro tem 'MÃO' no travão de mão --
+# e uma guarda que procure 'Ã' acusa um ficheiro perfeitamente limpo.
+# Ja aconteceu, e o resultado foi quase restaurar uma versao boa por
+# causa disso.
+#
+#     Ã seguida de letra, espaco, ou nada  ->  a letra Ã
+#     Ã seguida de pontuacao ou controlo    ->  mojibake
+MOJIBAKE = re.compile("[ÃÂâ][\u0080-¿­]")
+Ficheiros = ["static/index.html", "static/app.js", "static/style.css",
+             "acshm.py", "AGENTS.md", "README.md"]
+for caminho in Ficheiros:
+    p2 = os.path.join(RAIZ, caminho)
+    if not os.path.exists(p2):
+        continue
+    txt = io.open(p2, encoding="utf-8").read()
+    m = MOJIBAKE.search(txt)
+    if m:
+        i = m.start()
+        ko("MOJIBAKE em %s, perto de: %r"
+           % (caminho, txt[max(0, i - 25):i + 12]))
+    else:
+        ok("%s sem mojibake" % caminho)
+
+# e os acentos que tem de estar: uma lista de palavras ENVELHECE, e ja
+#peaker de uma: 'travão' foi posto aqui sem estar no ficheiro, e a
+# verificacao acusou um ficheiro limpo. As de baixo foram confirmadas
+# uma a uma antes de ficarem.
+sentinela = io.open(os.path.join(ST, "index.html"),
+                    encoding="utf-8").read()
+perdidas = [w for w in ("combustível", "Classificação", "MÃO",
+                        "definições", "Voltas")
+            if w not in sentinela]
+if perdidas:
+    ko("palas acentuadas que o index.html devia ter e nao tem: %s"
+       % perdidas)
+else:
+    ok("os acentos do index.html estao todos no sitio")
+
+print("")
 print("=" * 60)
 if problemas:
     print("!!! %d PROBLEMA(S) !!!" % len(problemas))
