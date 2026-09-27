@@ -404,7 +404,14 @@
       <section class="card c-map">
         <h2 data-i18n="map.title">MAPA DA PISTA</h2>
         <canvas id="map2"></canvas>
-        <div class="map-legend"><span id="b-trackpct">—</span><span id="b-sector">—</span></div>
+        <!-- A legenda da zona de DRS tambem no mapa do modo misto. O
+             app.js ja procurava este id (map-drs-key2) e guardava o
+             resultado com um `if` -- por isso a ausencia nao dava erro
+             nenhum e a legenda nunca aparecia. A Regra no 14 pelo
+             caminho inverso: um `if` que protege a falta faz a falta
+             parecer uma escolha. A legenda e' uma flex row sem wrap, e
+             o primeiro cartao ja tem tres itens, portanto fica igual. -->
+        <div class="map-legend"><span id="map-drs-key2" class="map-key hidden"><i></i><span data-i18n="map.drsKey">zona de DRS</span></span><span id="b-trackpct">—</span><span id="b-sector">—</span></div>
       </section>
 
       <section class="card c-main">
