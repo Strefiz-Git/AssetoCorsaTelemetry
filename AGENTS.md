@@ -949,29 +949,66 @@ certo, não uma falha. Os testes de memória escrevem em páginas
 
 ### A suite
 
+Corre com `python tests\run_all.py`. Sai com codigo diferente de zero se
+algo falhar, e com codigo 2 (que nao e' falha) se o AC
+estiver a correr e os testes de memoria forem saltados. Sao 23 grupos.
+
 | Ficheiro | O que prova |
 |---|---|
-| `run_all.py` | corre tudo e dá o resumo |
 | `test_layout.py` | os 3 structs, campo a campo (60 + 30 + 42) |
 | `test_acshm.py` | a leitura de telemetria, 46 valores com unidades |
-| `test_opponents.py` | o struct de 128 carros: ordem dos campos, m/s → km/h, tempos, filtro de carros vazios |
-| `test_tempos.js` | 35 casos de tempos e delta, sem browser |
-| `test_tempos.html` | os mesmos casos, para abrir no browser |
-| `test_mutation.py` | que os testes acima **falham** quando o código está partido |
-| `diag_drs.py` | agrupa o que encontra no canal SSE, para não concluir de duas amostras |
-| `capturar.py` | grava a série de N segundos num JSON |
-| `analisar.py` | responde às perguntas sobre essa série |
-| `verificar_combustivel.py` | confirma que o depósito desce e que a percentagem bate com os litros |
-| `verify_real.py` | valores reais, só com o jogo aberto |
+| `mutacao_grip.py` | que a regra da aderencia morde, partindo o codigo |
+| `test_opponents.py` | o struct de 128 carros: ordem dos campos, m/s para km/h, tempos, filtro de carros vazios |
+| `compilar.py` | que os 40 `.py` compilam -- apanha erro de sintaxe |
+| `verificar_js.py` | que os 11 `.js` fazem parse no node |
+| `test_contrato.py` | que a app e o leitor falam a mesma linguagem |
+| `test_handler.py` | que um cliente que cancela nao enche a consola |
+| `test_payload.py` | que o `/api/state` tem o que o painel precisa, clima incluido -- o meio da ligacao |
+| `test_tempos.js` | 35 casos de tempos e delta, sem browser (node) |
+| `test_tyres.js` | a vida do pneu e a escala dos valores (node) |
+| `test_combustivel.js` | voltas de combustivel e a percentagem (node) |
+| `auditar_frontend.py` | o frontend inteiro: ids, traduccoes, contraste, chaves CSS, movimento reduzido |
+| `mutacao_acessibilidade.py` | que a regra 2.3.3 morde, partindo o CSS |
+| `verificar_finitos.py` | que nenhum valor chega a NaN ou infinito |
+| `test_mutation.py` | que os testes de cima falham quando o codigo esta partido |
+| `mutacao_contrato.py` | que o contrato entre a app e o leitor e' mesmo verificado |
+| `test_loop_app.py` | que o loop da app nao engole uma excepcao |
+| `mutacao_loop.py` | que esse teste morde, partindo o loop |
+| `test_tempo.js` | 104 casos de clima, com os limiares das 37 cenas do Pure Planner e o eixo do vento (node) |
+| `test_medir_tyrewear.py` | que a medicao do desgaste por volta faz sentido |
+| `verificar_texto.py` | que nao entrou texto torto nem caracteres estranhos |
+| `verificar_commits.py` | que as mensagens de commit nao tem BOM nem caracteres estranhos |
 
-`test_tempos.js` corre com **node**, sem browser. Se o node não estiver
-instalado, o `run_all.py` salta-o e diz isso. Não é dependência do
-projecto: é só o que torna a matemática das voltas testável fora de um
-browser.
+### Fora da suite, e porque
 
-Depois de acrescentar um campo a um struct: correr `test_mutation.py`.
-Ele tem mutações para "campo novo a meio" e "campo novo no fim", que
-são as duas formas de um struct passar a ler a partir do sítio errado.
+Estes correm a mao porque **precisam de uma condicao que a suite
+nao cria**: o jogo aberto, o browser, ou uma serie ja gravada. Nao e
+esquecimento -- e' que um teste que precisa do jogo para
+correr tambem nao prova nada quando o jogo nao esta a abrir.
+
+| Ficheiro | Porque e' a mao |
+|---|---|
+| `analisar.py` | responde as perguntas sobre essa serie |
+| `caixa.py` | a cinemática da caixa e as reacções |
+| `capturar.py` | grava a serie de N segundos num JSON |
+| `check_acessibilidade.js` | as 5 regras de acessibilidade, no browser. A regra 2.3.3 tambem esta na `auditar_frontend.py`, em forma estatica, e e' essa que a suite usa |
+| `check_layout.js` | medidas no browser, para colar na consola |
+| `chuva.py` | compara a memoria antes e depois de mudar o tempo, campo a campo |
+| `clima.py` | lista os campos do `acshm` e procura mais candidatos a clima |
+| `diag_drs.py` | agrupa o que encontra no canal SSE, para nao concluir de duas amostras |
+| `diff_offsets.py` | compara duas leituras para achar um offset deslocado |
+| `forma_mapa.py` | desenha as duas formas de transformar o mapa, para comparar |
+| `mapa.py` | grava um trajecto conduzido e desenha o mapa |
+| `mapa_todas_pistas.py` | mede o `map.ini` das 76 pistas |
+| `medir_tyrewear.py` | mede a queda do desgaste por volta, a conduzir |
+| `probe_layout.py` | despeja os valores e procura grupos de 4 -- a assinatura de uma temperatura |
+| `run_all.py` | NAO E' UM TESTE -- e' o que corre todos os outros, por ordem |
+| `tabela_testes.py` | NAO E' UM TESTE -- e' o que escreve esta tabela |
+| `tamanho_real.py` | mede o tamanho real das paginas. O resultado fica registado de proposito |
+| `test_tempos.html` | os mesmos casos de tempos, para abrir no browser |
+| `verificar_combustivel.py` | precisa do jogo a correr e do deposito a descer |
+| `verify_real.py` | os valores reais, so' com o jogo aberto |
+| `vida_pneu.py` | a vida do pneu a partir de uma serie ja gravada |
 
 ## Ao mexer na matemática das voltas
 

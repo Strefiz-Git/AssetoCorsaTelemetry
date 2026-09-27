@@ -33,7 +33,12 @@ assettocorsa/apps/python/actelemetry_strefiz/
 
 Copia a pasta `python_app` para `assettocorsa/apps/python/actelemetry_strefiz/`
 e liga-a em **Content Manager → Settings → Python Apps**. Confirma que
-arrancou pelo log do AC: `AssettoCorsaTelemetry 1.0.0 a escrever`.
+arrancou pelo log do AC: `AssettoCorsaTelemetry 1.1.0 a escrever`.
+
+A pasta `stdlib64/` tem de vir com a app. Corre
+`python instalar_app.py`, que copia o `_ctypes.pyd` certo a partir de
+outra app do Content Manager — sem ele a app arranca, avisa no log, e a
+struct fica com os tamanhos errados.
 
 Sem a app, o dashboard não dá erro — simplesmente não há adversários, e
 `/api/opponents` responde `available: false`. É o comportamento certo.
