@@ -61,6 +61,19 @@
   var AVISO_VOLTAS = 1.5;
   var CRITICO_VOLTAS = 1.0;
 
+  /* E o mesmo alerta, medido de outra maneira.
+   *
+   * As voltas dependem de um ritmo que so' existe depois de uma volta
+   * fechada. A percentagem nao depende de nada: e' o valor que o jogo
+   * da directamente. Ha' casos em que so' a percentagem ajuda -- um
+   * limite muito longo, onde "voltas" e' um numero grande e "percentagem"
+   * e' um numero pequeno, e vice-versa num limite muito curto.
+   *
+   * Sao DOIS limiares independentes, e o alerta dispara com qualquer um
+   * deles. Um 'ou' e' mais honesto do que um 'e': nenhum dos dois tem
+   * razao para calar o outro. */
+  var AVISO_PCT = 15;
+
   function vazio(estado, msg) {
     return {
       valido: false,
@@ -89,7 +102,7 @@
      connected false = o jogo nao esta' a correr, ou o carro esta' no
      box sem telemetria. Nao se mede nada disso: o deposito enche-se com
      o motor ligado e sem conduzir, e isso nao e' consumo de corrida. */
-  function estimarCombustivel(estado, dados) {
+  function estimarCombustivel(estado, dados, pctRestante) {
     if (!dados || !num(dados.litros) || !dados.connected) {
       return vazio(estado, null);
     }
@@ -114,7 +127,7 @@
 
     // --- a mesma volta que da ultima vez: nada a fazer ---------------
     if (volta === estado.volta) {
-      return _resultado(estado, litros, null);
+      return _resultado(estado, litros, null, pctRestante);
     }
 
     // --- fechou uma ou mais voltas -----------------------------------
@@ -137,7 +150,7 @@
 
     estado.litros = litros;
     estado.volta = volta;
-    return _resultado(estado, litros, null);
+    return _resultado(estado, litros, null, pctRestante);
   }
 
   function _media(voltas) {
@@ -147,7 +160,7 @@
     return s / voltas.length;
   }
 
-  function _resultado(estado, litros, _ignorado) {
+  function _resultado(estado, litros, _ignorado, pctRestante) {
     var media = _media(estado.voltas);
     var n = estado.voltas.length;
 
@@ -156,6 +169,17 @@
     }
 
     var restantes = litros / media;
+
+    /* O nivel e' o MAIS ALARMANTE dos dois limiares, nao o primeiro que
+     * dispara. Um alerta a piscar a vermelho enquanto o outro so' pede
+     * laranja seria mostrar o estado errado. */
+    var porVoltas = restantes < AVISO_VOLTAS
+      ? (restantes < CRITICO_VOLTAS ? 'critico' : 'aviso') : 'normal';
+    var pct = (pctRestante != null) ? pctRestante : null;
+    var porPct = pct == null ? 'normal'
+      : (pct <= 5 ? 'critico' : (pct <= AVISO_PCT ? 'aviso' : 'normal'));
+    var nivel = (porVoltas === 'critico' || porPct === 'critico') ? 'critico'
+      : ((porVoltas === 'aviso' || porPct === 'aviso') ? 'aviso' : 'normal');
 
     // Uma media de uma volta e' melhor do que nada, mas e' uma amostra
     // de uma. Diz-se isso em vez de fingir que ja' se mediu o ritmo.
@@ -166,8 +190,10 @@
         voltasRestantes: restantes,
         voltasMedidas: n,
         estado: estado,
-        nivel: restantes < AVISO_VOLTAS ? (restantes < CRITICO_VOLTAS ? 'critico' : 'aviso') : 'normal',
-        aviso: restantes < AVISO_VOLTAS,
+        nivel: nivel,
+        aviso: nivel !== 'normal',
+        porVoltas: porVoltas,
+        porPct: porPct,
         msg: null,
         // a media so' e' de uma volta -- o consumidor mostra-o
         soUmaVolta: true
@@ -180,8 +206,10 @@
       voltasRestantes: restantes,
       voltasMedidas: n,
       estado: estado,
-      nivel: restantes < AVISO_VOLTAS ? (restantes < CRITICO_VOLTAS ? 'critico' : 'aviso') : 'normal',
-      aviso: restantes < AVISO_VOLTAS,
+      nivel: nivel,
+      aviso: nivel !== 'normal',
+      porVoltas: porVoltas,
+      porPct: porPct,
       msg: null,
       soUmaVolta: false
     };
@@ -191,6 +219,7 @@
     estimarCombustivel: estimarCombustivel,
     AVISO_VOLTAS: AVISO_VOLTAS,
     CRITICO_VOLTAS: CRITICO_VOLTAS,
+    AVISO_PCT: AVISO_PCT,
     MIN_VOLTAS_MEDIA: MIN_VOLTAS_MEDIA,
     MAX_VOLTAS_MEDIDAS: MAX_VOLTAS_MEDIDAS
   };

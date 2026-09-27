@@ -211,6 +211,77 @@ console.log("=== 10. nada de zeros nem de numeros inventados ===");
 }
 
 console.log("");
+console.log("=== 11. o limiar de PERCENTAGEM, e a prioridade entre os dois ===");
+// A percentagem e' o valor que o jogo da directamente. As voltas so'
+// existem depois de uma volta fechada -- e ha' casos em que so' a
+// percentagem acerta: num limite muito longo, "voltas" e' um numero
+// grande e "percentagem" e' um numero pequeno.
+{
+  // media de 20 L por volta, 3 voltas medidas, 100 L de capacidade:
+  // o que resta em L determina a percentagem que o jogo daria.
+  const com = (litrosRestantes, pct) => {
+    const m = comMedia(20, litrosRestantes, 3);
+    return C.estimarCombustivel(m.estado, m.dados, pct);
+  };
+
+  // 80 L com media de 20 L por volta sao 4 voltas: o limiar das voltas
+  // fica neutro e so' a percentagem se mexe. Sem isto, os dois limiares
+  // falam ao mesmo tempo e o teste nao diz qual deles foi.
+  eq(com(80, 80).nivel, "normal", "80%: normal");
+  eq(com(80, 16).nivel, "normal", "16%: normal, acima do limiar");
+  eq(com(80, 15).nivel, "aviso", "15% exactos: aviso (e' <= 15, como pedido)");
+  eq(com(80, 15).porPct, "aviso", "e foi o limiar da percentagem");
+  eq(com(80, 15).porVoltas, "normal", "as voltas nao mandaram nada");
+  eq(com(80, 6).nivel, "aviso", "6%: aviso");
+  eq(com(80, 5).nivel, "critico", "5% ou menos: critico");
+
+  // E o caso em que os DADOS discordam: 16 L com media de 20 sao 0,8
+  // voltas. Num deposito de 100 L isso daria 16%, que esta' acima do
+  // limiar -- mas 0,8 voltas e' critico. Mandam as voltas, porque e' o
+  // que decide se se chega ao fim da volta.
+  eq(com(16, 16).nivel, "critico",
+     "16% mas so' 0,8 voltas: mandam as voltas");
+  eq(com(16, 16).porVoltas, "critico", "e foram as voltas");
+  eq(com(16, 16).porPct, "normal", "a percentagem estava neutra");
+}
+
+console.log("");
+console.log("=== 12. os dois limiares ao mesmo tempo: o mais alarmente ganha ===");
+// O nivel e' o MAIS ALARMANTE dos dois, nao o primeiro que dispara. Um
+// alerta a piscar a vermelho enquanto o outro limiar so' pede laranja
+// seria mostrar o estado errado.
+{
+  // 20% (normal) mas so' 0,4 voltas -> o das voltas e' critico
+  const critico = (() => {
+    const m = comMedia(20, 8, 3);
+    return C.estimarCombustivel(m.estado, m.dados, 20);
+  })();
+  eq(critico.nivel, "critico", "0,4 voltas com 20%: critico");
+  eq(critico.porVoltas, "critico", "mandou o limiar das voltas");
+  eq(critico.porPct, "normal", "a percentagem nao mandou");
+
+  // 10% (aviso) mas 6 voltas -> a percentagem e' que manda
+  const porPct = (() => {
+    const m = comMedia(20, 120, 3);
+    return C.estimarCombustivel(m.estado, m.dados, 10);
+  })();
+  eq(porPct.nivel, "aviso", "10% com 6 voltas: aviso");
+  eq(porPct.porPct, "aviso", "mandou o limiar da percentagem");
+  eq(porPct.porVoltas, "normal", "as voltas nao mandaram");
+}
+
+console.log("");
+console.log("=== 13. sem percentagem, o aviso das voltas continua a funcionar ===");
+// Se o jogo nao der a percentagem, o aviso das voltas tem de continuar
+// a funcionar. O nao e' "falta de dados" e' "isto nao se aplica".
+{
+  const m = comMedia(20, 28, 3);
+  const r = C.estimarCombustivel(m.estado, m.dados, null);
+  eq(r.nivel, "aviso", "sem percentagem, 1,4 voltas ainda da' aviso");
+  eq(r.porPct, "normal", "e o limiar da percentagem fica neutro");
+}
+
+console.log("");
 console.log("=".repeat(60));
 if (falhou) {
   console.log("!!! " + falhou + " FALHA(S) de " + (passou + falhou));
