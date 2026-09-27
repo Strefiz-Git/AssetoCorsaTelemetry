@@ -31,12 +31,32 @@ Regra no 4 avisa que nao prova nada sobre o mundo.
 Corre:  python tests\test_contrato.py
 """
 import ctypes
+import glob
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.insert(0, os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'python_app'))
+RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, RAIZ)
+
+# Descobre a pasta da app em vez de a escrever. A pasta chamava-se
+# "python_app" e passou a chamar-se "actelemetry_strefiz"; com o caminho
+# escrito a mao, este teste partiu logo -- o que e' a prova de que a
+# proteccao funciona, mas nao de que era assim que se queria.
+#
+# Procura-se pelo modulo, que e' o que interessa: a estrutura pode
+# mudar de nome sem que o contrato mude.
+ACHADO = glob.glob(os.path.join(RAIZ, 'python_app', '*', 'actelemetry_shm.py'))
+if not ACHADO:
+    ACHADO = glob.glob(os.path.join(RAIZ, '**', 'actelemetry_shm.py'))
+if not ACHADO:
+    print('ERRO: nao encontrei actelemetry_shm.py dentro de python_app/.')
+    print('      A app da partida sumiu? E a app que escreve a pagina de')
+    print('      adversarios -- sem ela o dashboard fica sem lista.')
+    sys.exit(2)
+
+PASTA_APP = os.path.dirname(ACHADO[0])
+sys.path.insert(0, PASTA_APP)
+print('pasta da app: %s' % os.path.relpath(PASTA_APP, RAIZ))
 
 import acshm
 import actelemetry_shm as shm

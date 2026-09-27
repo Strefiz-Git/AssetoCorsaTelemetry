@@ -16,13 +16,39 @@ mutado e o teste continuou a falhar. Por isso agora a mutacao e' uma
 unica troca de texto, e o "restaurar" e' a troca inversa exata, com uma
 verificacao depois. Sem isto, um script que mexe em ficheiros e' um
 perigo: o pior caso e' ficar com codigo partido e nao dar por isso.
+
+Duas coisas que este script ja apanhou, ambas por causa de escrever o
+caminho e o texto a mao:
+
+  - a pasta da app passou a chamar-se actelemetry_strefiz, e o caminho
+    escrito aqui deixou de existir;
+  - o comentario "# fracao 0..1" mudou para a linha de cima quando os
+    campos foram reescritos, e o texto a procurar ja nao casava --
+    portanto o script falhava por dois motivos ao mesmo tempo, e um
+    deles escondia o outro.
+
+Daqui a regra: o caminho descobre-se, e o texto a mutar verifica-se
+antes de escrever seja o que for.
 """
+import glob
 import io
+import os
 import sys
 
-ALVO = 'python_app/actelemetry_shm.py'
-CERTO = "('turboBoost', c_float),            # fracao 0..1"
-ERRADO = "('turboBoost', c_float * 2),        # MUTACAO DE TESTE"
+ACHADOS = glob.glob('python_app/*/actelemetry_shm.py') or \
+    glob.glob('**/actelemetry_shm.py', recursive=True)
+if not ACHADOS:
+    print('ERRO: nao encontrei actelemetry_shm.py dentro de python_app/.')
+    sys.exit(2)
+
+ALVO = ACHADOS[0]
+print('alvo: %s' % ALVO)
+
+# o comentario "# fracao 0..1" foi para a linha de cima, por isso a
+# procuras e' so' pelo campo -- e tem de ser UNICA, senao a mutacao ia
+# mexer no sitio errado sem dar erro
+CERTO = "('turboBoost', c_float),"
+ERRADO = "('turboBoost', c_float * 2),   # MUTACAO DE TESTE"
 
 s = io.open(ALVO, encoding='utf-8').read()
 ja_mutado = ERRADO in s
@@ -46,6 +72,12 @@ if ja_mutado:
 
 if CERTO not in s:
     print('ERRO: nao encontrei a linha para mutar. O ficheiro mudou?')
+    sys.exit(1)
+
+if s.count(CERTO) != 1:
+    print('ERRO: a linha aparece %d vezes. Mutar uma delas as outras ficariam'
+          % s.count(CERTO))
+    print('       como estavam, e o teste nao apanhava nada.')
     sys.exit(1)
 
 io.open(ALVO, 'w', encoding='utf-8', newline='').write(s.replace(CERTO, ERRADO, 1))
