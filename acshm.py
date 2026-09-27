@@ -248,6 +248,16 @@ class SPageFileSimHub(ctypes.Structure):
         # comentario em python_app/actelemetry_strefiz/actelemetry_shm.py.
         ("errorCount", c_int32),
         ("lastError", c_char * 128),
+        # O clima, no cabecalho: e' da sessao, nao de cada carro. Todos a
+        # -1 quando nao se sabe, que e' diferente de zero. Ver chuva.md.
+        ("rainAmount", c_float),
+        ("rainFxActive", c_int32),
+        # O vento pela API, para comparar com o da pagina de graficos.
+        ("windSpeedApi", c_float),
+        ("windDirApi", c_float),
+        ("weatherTimeMult", c_float),
+        ("cspVersionCode", c_int32),
+        ("weatherDebug", c_char * 128),
     ]
 
 
@@ -295,7 +305,17 @@ class Opponents:
     # a app nao estiver instalada ou nao arrancar, esta pagina nao existe
     # e open() da "available: False" -- em vez de abrir um mapeamento
     # antigo, com a struct errada, e ler lixo a seguir ao fim.
-    NAME = "acpmf_actelemetry_v1"
+    NAME = "acpmf_actelemetry_v2"
+    # v2 porque a struct GANHOU o bloco do clima e passou de 37040 para
+    # 37192 bytes. Com a v1 a correr, o leitor novo ia buscar 152 bytes a
+    # SEGUIR ao fim real da pagina -- e dava zeros. Zeros e' pior do que
+    # um erro: rainAmount=0 le-se como "nao chove", que e' um numero
+    # plausivel e falso.
+    #
+    # A regra e' a da Regra no 19: a struct mudou de tamanho, logo o nome
+    # muda. Nao para ser cuidadoso -- para que a app antiga NAO crie a
+    # pagina e o dashboard diga a verdade em vez de mostrar numeros
+    # plausiveis.
 
     def __init__(self, name=None):
         self._h = None
@@ -455,7 +475,17 @@ class Opponents:
                     # mostra e' "liga a app no Content Manager", que e' a
                     # instrucao errada. Ver python_app/actelemetry_strefiz.
                     "errorCount": int(v.errorCount),
-                    "lastError": _b(v.lastError)}
+                    "lastError": _b(v.lastError),
+                    # O clima. O -1 significa "a app nao conseguiu ler",
+                    # que e' diferente de zero. O cliente tem de pintar
+                    # isso a neutro -- nunca "nao chove". Ver chuva.md.
+                    "rainAmount": float(v.rainAmount),
+                    "rainFxActive": int(v.rainFxActive),
+                    "windSpeedApi": float(v.windSpeedApi),
+                    "windDirApi": float(v.windDirApi),
+                    "weatherTimeMult": float(v.weatherTimeMult),
+                    "cspVersionCode": int(v.cspVersionCode),
+                    "weatherDebug": _b(v.weatherDebug)}
         except Exception as e:
             self.close()
             return {"available": False, "cars": [], "error": str(e)}

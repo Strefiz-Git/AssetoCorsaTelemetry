@@ -37,7 +37,7 @@ from ctypes import c_char, c_float, c_int32
 # O NOME DA PAGINA. Tem de ser igual ao que esta em acshm.py.
 # tests/test_contrato.py verifica.
 # ---------------------------------------------------------------------------
-PAGE_NAME = "acpmf_actelemetry_v1"
+PAGE_NAME = "acpmf_actelemetry_v2"
 
 # Numero de carros. O AC nao passa de 128 e a struct e' alocada uma vez
 # so, na arranque, portanto 128 e' o maximo sensato.
@@ -162,6 +162,38 @@ class CarPage(ctypes.Structure):
         # ------------------------------------------------------------------
         ('errorCount', c_int32),
         ('lastError', c_char * 128),
+        # ------------------------------------------------------------------
+        # O CLIMA, no cabecalho e nao nos 128 carros: e' da sessao, e
+        # nao de cada um. Ver chuva.md.
+        #
+        # Todos a '-1' quando nao se sabe. A distincao entre "nao chove"
+        # e "nao consigo saber" e' o que separa uma leitura de uma
+        # invencao, e um zero de chuva seria mentira sempre que a funcao
+        # nao existe -- o que acontece se o Custom Shaders Patch nao a
+        # expoer ao Python.
+        # ------------------------------------------------------------------
+        # 0..1. Vem de ac.ext_rainParams()[0].
+        ('rainAmount', c_float),
+        # 0/1. Vem de ac.ext_weatherFxActive().
+        ('rainFxActive', c_int32),
+        # O vento pela API, para comparar com o da memoria partilhada.
+        # Se derem o mesmo numero -- e a razao para os ler as duas -- a
+        # API Python ve o mesmo mundo que a memoria, e isso valida a
+        # premissa de tudo o que esta app escreve.
+        ('windSpeedApi', c_float),
+        ('windDirApi', c_float),
+        # Quao depressa o clima avanca. 1 = tempo real.
+        ('weatherTimeMult', c_float),
+        # A versao do Custom Shaders Patch. Responde a uma pergunta
+        # permanente -- "a minha app esta' a ver o clima ou nao?" -- com
+        # um numero no ecra em vez de uma suposicao sobre o que esta'
+        # instalado.
+        ('cspVersionCode', c_int32),
+        # O texto cru de ac.ext_weatherDebugText(). Nao se sabe o que
+        # traz a nao ser o que o sol_weather extrai com uma regex, e a
+        # forma de saber e' ler. 128 bytes dao para a data e mais umas
+        # coisas.
+        ('weatherDebug', c_char * 128),
     ]
 
 
