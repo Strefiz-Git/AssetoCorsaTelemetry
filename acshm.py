@@ -251,6 +251,32 @@ class SPageFileSimHub(ctypes.Structure):
     ]
 
 
+def _ao_vivo(v):
+    """A posicao ao vivo do AC, convertida de base zero para base um.
+
+    O AC publica DUAS posicoes e elas nao usam a mesma base. Medido com
+    11 carros, 4 leituras:
+
+        carRealTimeLeaderboardPosition   0 a 10
+        carLeaderboardPosition           1 a 11
+
+    Nao e' um valor invalido a 0: 0 e' a posicao ao vivo do lider, e
+    leader. Por isso um `int(live) or int(oficial)` -- que parece uma
+    proteccao -- faz o lider cair no oficial, e o segundo carro fica
+    com o 1 do ao vivo. Dois P1.
+
+    Devolve None quando o valor nao e' utilizavel, e quem chama usa a
+    oficial. Menos zero e' o unico "nao vem" que o AC usa para uma
+    posicao; 0 nao e'. """
+    try:
+        i = int(v)
+    except Exception:
+        return None
+    if i < 0:
+        return None
+    return i + 1
+
+
 def _b(v):
     """c_char array -> str limpo; '' se estiver vazio."""
     if not v:
@@ -355,9 +381,19 @@ class Opponents:
                     # interessa e' onde se esta' agora, por isso a
                     # posicao oficial passa a `posOficial` e fica no
                     # title da linha, para se poder conferir.
-                    "pos": int(c.carRealTimeLeaderboardPosition)
-                           or int(c.carLeaderboardPosition),
+                    # +1, E SEM 'or'. Medido com 11 carros: o campo ao
+                    # vivo vai de 0 a 10 e o oficial de 1 a 11 -- o ao
+                    # vivo e' base zero. Com um 'or' a proteger o caso
+                    # de "nao vir", o 0 do lider caia no oficial e
+                    # dava dois P1 na lista.
+                    #
+                    # So' um NEGATIVO e' "nao disponivel", porque e' o
+                    # unico valor que o AC nao usa para uma posicao.
+                    "pos": (_ao_vivo(c.carRealTimeLeaderboardPosition)
+                            or int(c.carLeaderboardPosition)),
                     "posOficial": int(c.carLeaderboardPosition),
+                    # Como vem do jogo, em base zero. Exposto para
+                    # conferir, nunca para mostrar.
                     "livePos": int(c.carRealTimeLeaderboardPosition),
                     "lap": int(c.lapCount),
                     "speed": round(c.speedMS * 3.6, 1),      # m/s -> km/h
@@ -405,6 +441,8 @@ class Opponents:
             # Ordena pelo MESMO numero que e' mostrado. Ordenar por um e
             # mostrar outro e' como se produz uma lista que parece
             # saltada sem nenhum dos numeros estar errado.
+                        # a posicao ja vem em base um (ver _ao_vivo), portanto o
+            # sort nao tem nada a converter
             cars.sort(key=lambda d: (d["pos"] if d["pos"] > 0 else 999, d["name"]))
             return {"available": True, "pluginVersion": self.pluginVersion,
                     "focus": int(v.focusVehicle), "count": len(cars),

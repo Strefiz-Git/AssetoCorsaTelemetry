@@ -267,6 +267,28 @@ if len(s["cars"]) == 4:
     chk("3.nome", dd["name"], "Albon")
     chk("3.melhor", dd["best"], "01:54.997")        # 114997 ms
 
+# A BASE DAS DUAS POSICOES. Medido com 11 carros: a posicao ao vivo vai
+# de 0 a 10 e a oficial de 1 a 11. Sao bases diferentes, e o teste fixa
+# a conversao porque e' dela que vem um bug que ja aconteceu: com um
+# "or" a proteger o "nao veio", o 0 do LIDER caia no oficial e a lista
+# mostrava dois P1.
+if '_ao_vivo' in dir(acshm):
+    chk("base_zero_0_e_1", (acshm._ao_vivo(0), acshm._ao_vivo(1)), (1, 2))
+    chk("base_zero_10", acshm._ao_vivo(10), 11)
+    chk("negativo_e_nao_disponivel", acshm._ao_vivo(-1), None)
+
+if len(s["cars"]) == 4:
+    # NENHUM PODE REPETIR. Com 11 carros, os valores 1..11 sao distintos;
+    # se a lista mostrar dois iguais, ha' uma base errada em vez de uma
+    # posicao errada. Esta e' a verificacao que teria apanhado o P1
+    # duplicado -- e nao ha' nenhuma agora: o teste so' comparava cada
+    # carro com o seu proprio valor, o que passa mesmo quando dois
+    # carros mostram o mesmo numero.
+    mostradas = [x["pos"] for x in s["cars"]]
+    chk("nenhuma_posicao_repetida", len(set(mostradas)), len(mostradas))
+    chk("todas_as_posicoes_presentes",
+        sorted(mostradas), [1, 2, 3, 4])
+
 if erros:
     print("!!! %d FALHA(S) !!!" % len(erros))
     print("\n".join(erros))
