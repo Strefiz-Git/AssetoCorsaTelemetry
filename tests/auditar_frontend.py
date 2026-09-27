@@ -153,7 +153,8 @@ if I18N:
 
     NOVAS = ["fuel.measuring", "fuel.lapsWhy", "fuel.oneLapWhy",
              "fuel.avisoWhy", "fuel.criticoWhy", "fuel.avisoWhyPct",
-             "lb.posTitle", "opp.errTitle", "opp.err"]
+             "lb.posTitle", "opp.errTitle", "opp.err",
+             "wx.rain", "wx.dry", "wx.rainTitle", "wx.rainUnknown"]
     emFalta = [k for k in NOVAS if k not in I18N["pt-PT"]]
     if emFalta:
         ko("chaves novas em falta: %s" % emFalta)
