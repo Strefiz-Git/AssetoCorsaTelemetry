@@ -363,20 +363,39 @@ print("=== 6. MOJIBAKE: uma ida e volta pelo PowerShell ===")
 #     Ã seguida de letra, espaco, ou nada  ->  a letra Ã
 #     Ã seguida de pontuacao ou controlo    ->  mojibake
 MOJIBAKE = re.compile("[ÃÂâ][\u0080-¿­]")
+# Os ficheiros de teste entram na lista porque dois deles TEM BOM, e
+# ninguem os apanhou. A forma como se descobriu foi a mais honesta
+# possível: nao foi uma verificação, foi um `git diff` a mostrar 82
+# linhas alteradas onde se tinham acrescentado 8. A verificação que
+# devia ter dito algo nao dizia, porque o problema nao era encoding.
 Ficheiros = ["static/index.html", "static/app.js", "static/style.css",
-             "acshm.py", "AGENTS.md", "README.md"]
+             "acshm.py", "AGENTS.md", "README.md",
+             "tests/test_acshm.py", "tests/test_layout.py",
+             "tests/auditar_frontend.py", "tests/run_all.py"]
 for caminho in Ficheiros:
     p2 = os.path.join(RAIZ, caminho)
     if not os.path.exists(p2):
         continue
-    txt = io.open(p2, encoding="utf-8").read()
+    # O BOM primeiro, e em BYTES. Um BOM antes do <!DOCTYPE> e' a mesma
+    # classe de dano do mojibake e pela mesma razao nao aparece: o
+    # ficheiro continua a decodificar, o Python continua a aceitar, e o
+    # browser continua a mostrar a pagina. Ficam os os ficheiros que o
+    # PowerShell escreve com 'Out-File -Encoding utf8'.
+    tem_bom = io.open(p2, "rb").read(3) == b"\xef\xbb\xbf"
+    # 'utf-8-sig' em vez de 'utf-8': se o BOM estiver la, o 'utf-8'
+    # punha-lo no primeiro U+FEFF do texto e a busca do mojibake
+    #-passava a ler a partir de uma posicao errada.
+    txt = io.open(p2, encoding="utf-8-sig").read()
     m = MOJIBAKE.search(txt)
+    if tem_bom:
+        ko("BOM no inicio de %s -- o PowerShell escreveu-o e nada o "
+           "apanha: o ficheiro continua a decodificar" % caminho)
     if m:
         i = m.start()
         ko("MOJIBAKE em %s, perto de: %r"
            % (caminho, txt[max(0, i - 25):i + 12]))
-    else:
-        ok("%s sem mojibake" % caminho)
+    if not tem_bom and not m:
+        ok("%s sem BOM e sem mojibake" % caminho)
 
 # e os acentos que tem de estar: uma lista de palavras ENVELHECE, e ja
 #peaker de uma: 'travão' foi posto aqui sem estar no ficheiro, e a

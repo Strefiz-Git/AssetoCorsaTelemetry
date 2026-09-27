@@ -1,4 +1,4 @@
-﻿"""
+"""
 Valida o LAYOUT das structs: escreve um valor unico em TODOS os campos e
 le tudo de volta. Se a ordem ou a dimensao de algum campo estiver errada,
 a leitura devolve o valor do campo vizinho - que e' o tipo de bug que nao

@@ -1,4 +1,4 @@
-﻿"""
+"""
 Teste do acshm sem o Assetto Corsa a correr.
 
 IMPORTANTE: criamos paginas de shared memory com nomes FICTICIOS
