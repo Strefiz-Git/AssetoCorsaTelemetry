@@ -95,7 +95,11 @@ def tamanho_esperado(struct):
 # nao move nenhum offset, e o test_contrato falha se um dos lados o
 # puser no meio.
 VEHICLE_FIXO = 280
-PAGINA_FIXA = 4 + 4 + 512 + 280 * 128 + 512 + 4 + 32   # 36908
+# 37040 = cabecalho (4+4+512 + 280*128 + 512 + 4 + 32) + 4 + 128
+# os dois ultimos sao o errorCount e o lastError, acrescentados no fim do
+# cabecalho para a app poder publicar as falhas em vez de as esconder
+# (foi assim que a leaderboard ficou vazia sem ninguem saber porquê)
+PAGINA_FIXA = 4 + 4 + 512 + 280 * 128 + 512 + 4 + 32 + 4 + 128   # 37040
 
 ESPERADO_VEHICLE = tamanho_esperado(acshm.acsVehicleInfo)
 ESPERADO_PAGINA = tamanho_esperado(acshm.SPageFileSimHub)

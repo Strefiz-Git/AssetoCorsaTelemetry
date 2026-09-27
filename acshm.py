@@ -243,6 +243,11 @@ class SPageFileSimHub(ctypes.Structure):
         ("acInstallPath", c_char * 512),
         ("isInternalMemoryModuleLoaded", c_int32),
         ("pluginVersion", c_char * 32),
+        # As falhas da app, publicadas. Acrescentados no fim do cabecalho
+        # para nao mexer em nenhum offset do que ja existia. Ver o
+        # comentario em python_app/actelemetry_strefiz/actelemetry_shm.py.
+        ("errorCount", c_int32),
+        ("lastError", c_char * 128),
     ]
 
 
@@ -321,7 +326,9 @@ class Opponents:
             n = min(int(v.numVehicles), 128)
             if n <= 0:
                 return {"available": True, "pluginVersion": self.pluginVersion,
-                        "focus": int(v.focusVehicle), "count": 0, "cars": []}
+                        "focus": int(v.focusVehicle), "count": 0, "cars": [],
+                        "errorCount": int(v.errorCount),
+                        "lastError": _b(v.lastError)}
             cars = []
             for i in range(n):
                 c = v.vehicleInfo[i]
@@ -380,7 +387,16 @@ class Opponents:
             cars.sort(key=lambda d: (d["pos"] if d["pos"] > 0 else 999, d["name"]))
             return {"available": True, "pluginVersion": self.pluginVersion,
                     "focus": int(v.focusVehicle), "count": len(cars),
-                    "cars": cars}
+                    "cars": cars,
+                    # O que a app esta' a evitar dizer em voz alta. A app
+                    # engole excepcoes de proposito, para nao morrer a
+                    # meio de escrever -- mas se tambem nao as publica,
+                    # uma falha em qualquer sitio vira uma lista vazia
+                    # sem explicacao, e o unico texto que o dashboard
+                    # mostra e' "liga a app no Content Manager", que e' a
+                    # instrucao errada. Ver python_app/actelemetry_strefiz.
+                    "errorCount": int(v.errorCount),
+                    "lastError": _b(v.lastError)}
         except Exception as e:
             self.close()
             return {"available": False, "cars": [], "error": str(e)}
