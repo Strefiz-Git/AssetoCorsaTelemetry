@@ -717,6 +717,96 @@ documento e não no dashboard — e não há nada que o diga.
 
 ---
 
+## Regra nº 20 — a tabela do tempo, e o que dela se consegue ler
+
+O vocabulário do tempo do Assetto Corsa não está no AC. Está no Pure
+Planner, em
+`ac_info/apps/lua/PurePlanner/settings/settings_defaults.lua`, em 37
+linhas: o nome da cena e as quantidades que o próprio jogo reconhece.
+
+**O comentário de cabeçalho desse ficheiro está certo** — nomeia as
+treze colunas e batem com a linha, uma a uma:
+
+```lua
+-- name  id  rain  probability  variance  wetness  water  wind
+   humidity  mist  sun  air_temp  road_temp
+```
+
+Isto está aqui escrito porque eu passei uns minutos a achar o contrário.
+Li o comentário por um `print` limitado a 104 caracteres, que o cortou a
+meio de `humidity`, e escrevi que o comentário nomeava nove colunas
+quando a linha tem treze. **Não nomeia nove.** O que engana é o
+alinhamento: as colunas do comentário não estão alinhadas com os
+valores, e a última linha acaba em `},` — vírgula **depois** do fecho,
+e `\r` no fim. Cortar só o `}` deixa o `road_temp` colado ao fecho, e o
+parse falha em "campo não numérico", que culpa o número e não a linha.
+
+Regra: **antes de dizer que um comentário está desatualizado, vê-lo
+inteiro.** E põe uma guarda que compare o que o comentário diz com o que
+o código espera — foi o `ler_cenas.py` a abortar com "o comentário da
+tabela mudou" que me obrigou a olhar, e a diferença era um `nome` meu
+onde o ficheiro tem `name`.
+
+### As doze cenas secas, e porque só uma se distingue
+
+**Doze das 37 cenas têm `rain` a zero.** Com só a chuva, o painel dizia
+"seco" a todas:
+
+| cena | vento | o que a distingue |
+|---|---|---|
+| `windy` | **50** | o vento — **é a única legível** |
+| `broken_clouds` | 35 | nuvem |
+| `scattered_clouds` | 20 | nuvem |
+| `few_clouds`, `overcast_clouds` | 15 | nuvem |
+| `clear` | 5 | nuvem |
+| `fog`, `mist`, `smoke`, `haze`, `sand`, `dust` | 0 | `humidity`, `mist` |
+
+`humidity`, `mist` e `sun` **não estão na memória partilhada**. Isto foi
+contado, não deduzido: nos 60 campos da `SPageFilePhysics` há
+`airTemp`, `roadTemp` e `airDensity`, e mais nada que diga respeito ao
+tempo. É a Regra nº 15 pelo avesso — afirmar que um dado não existe a
+partir de uma lista que eu escrevi não vale, e por isso é que se foi
+contar os campos.
+
+E a `air_temp` da tabela **não serve como detector**: é o valor do
+*preset*, e o Pure põe a chuva abaixo de zero de propósito, para a
+precipitação sair neve e não chuva. A tabela toda vai de −12 °C a
++5 °C, e uma sessão normal lê 20 °C — não corresponde a presets nenhum.
+Temperatura de preset não descreve o que se está a ver.
+
+### A unidade do `wind`, que não está confirmada
+
+O AC documenta `windSpeed` em **m/s**. A tabela não diz nada, e as duas
+leituras são plausíveis:
+
+| | `windy` a 50 | `hurricane` a 120 |
+|---|---|---|
+| se for **m/s** | 180 km/h, muito forte | 432 km/h, furacão a sério |
+| se for **km/h** | 50 km/h, brisa | 120 km/h, forte mas não furacão |
+
+**A medição que resolve é uma só:** escolher `windy` no Pure Planner,
+deixar assentar, e ler o `windSpeed`. Perto de **50** é m/s; perto de
+**14** é km/h. Está escrito no bloco `CENAS_VENTO` de `static/tempo.js`.
+
+Até essa medição, o erro vai para o lado seguro: os limiares são
+valores da tabela, e um limiar alto demais nunca dispara. O que não é
+aceitável é o inverso — dizer VENTOSO com brisa. Por isso a
+`pintarChuva` põe o número cru na dica, que é o único sítio onde se põe
+sem estar a interpretar.
+
+### Duas cenas com a mesma chuva
+
+A tabela tem `tornado` (0,300 de chuva, 100 de vento) e `heavy_sleet`
+(0,300, 0). Com só a chuva as duas diziam CHUVA FORTE — e uma é um
+tornado e a outra é grão. Foi isso que motivou o eixo do vento.
+
+Regra geral: **quando uma decisão passa a ter mais do que uma entrada,
+verifica se nenhuma delas é redundante.** A chuva era a única, e
+parecia suficiente porque nunca se viu `tornado` e `heavy_sleet` lado a
+lado — e têm a mesma quantidade.
+
+---
+
 ## Regra nº 6 — ctypes em Windows: armadilhas
 
 Todas as quatro happened durante a construção deste projecto:
