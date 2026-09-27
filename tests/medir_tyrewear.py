@@ -59,12 +59,26 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import acshm
 
-addr = acshm.k32.MapViewOfFile(
-    acshm.k32.OpenFileMappingW(acshm.FILE_MAP_READ, False, 'acpmf_physics'),
-    acshm.FILE_MAP_READ, 0, 0, ctypes.sizeof(acshm.SPageFilePhysics))
-if not addr:
-    raise SystemExit('  nao mapeei a pagina de fisica: o jogo esta' + chr(39) + ' aberto?')
-ph = acshm.SPageFilePhysics.from_address(addr)
+def pagina(nome, struct):
+    """Mapeia uma pagina do jogo. So' LEITURA (Regra nº 1)."""
+    a = acshm.k32.MapViewOfFile(
+        acshm.k32.OpenFileMappingW(acshm.FILE_MAP_READ, False, nome),
+        acshm.FILE_MAP_READ, 0, 0, ctypes.sizeof(struct))
+    if not a:
+        raise SystemExit('  nao mapeei a pagina %s: o jogo esta a abrir?' % nome)
+    return struct.from_address(a)
+
+
+# A fisica tem os valores do pneu. O CONTADOR DE VOLTAS NAO ESTA AQUI: a
+# struct da fisica nao tem nenhum campo de voltas. Quem conta as voltas do
+# jogador e' o `completedLaps` da pagina de GRAFICOS.
+#
+# O `lapCount` existe, mas no registo de cada CARRO -- a struct dos
+# adversarios -- que e' outra pagina e outra interface, e da' o numero de
+# outro carro. Foi o que a primeira versao usou, e deu
+# 'SPageFilePhysics object has no attribute lapCount'.
+ph = pagina('acpmf_physics', acshm.SPageFilePhysics)
+gr = pagina('acpmf_graphics', acshm.SPageFileGraphic)
 
 # --- o jogo esta' a viver? -------------------------------------------
 p0 = ph.packetId
@@ -84,49 +98,57 @@ n_voltas = 0
 t0 = time.time()
 
 print('  %8s  %-38s' % ('volta', 'tyreWear da partida, 0..100 (como esta na struct)'))
-while True:
-    try:
-        volta = int(ph.lapCount)
+nucleo = None
+try:
+    while True:
+        volta = int(gr.completedLaps)
         agora = [ph.tyreWear[i] for i in range(4)]
         nucleo = [round(ph.tyreCoreTemperature[i]) for i in range(4)]
-        vel = ph.speedKmh
-    except KeyboardInterrupt:
-        break
-    except Exception as e:
-        print('  deixei de ler a partida: %s' % e)
-        break
 
-    if ultima_volta is None:
-        ultima_volta = volta
-        anterior = agora
-        print('  %8d  %s   (a espera da volta %d para medir)'
-              % (volta, ' '.join('%6.2f' % v for v in agora), volta + 1))
-    elif volta != ultima_volta:
-        d = [agora[i] - anterior[i] for i in range(4)]
-        print('  %8d  %s   desceu %s'
-              % (volta, ' '.join('%6.2f' % v for v in agora),
-                 ' '.join('%+6.2f' % v for v in d)))
-        n_voltas += 1
-        anterior = agora
-        ultima_volta = volta
-        if n_voltas >= 3:
-            break
-    time.sleep(0.5)
+        if ultima_volta is None:
+            ultima_volta = volta
+            anterior = agora
+            print('  %8d  %s   (a espera da volta %d para medir)'
+                  % (volta, ' '.join('%6.2f' % v for v in agora), volta + 1))
+        elif volta != ultima_volta:
+            d = [agora[i] - anterior[i] for i in range(4)]
+            print('  %8d  %s   desceu %s'
+                  % (volta, ' '.join('%6.2f' % v for v in agora),
+                     ' '.join('%+6.2f' % v for v in d)))
+            n_voltas += 1
+            anterior = agora
+            ultima_volta = volta
+            if n_voltas >= 3:
+                break
+        time.sleep(0.5)
+except KeyboardInterrupt:
+    # O Ctrl+C e' a forma de sair. Sai com o que ja foi medido, que
+    # chega -- e nao com um traceback que tapa a saida.
+    print('')
+    print('  interrompido a meio.')
+except Exception as e:
+    # Um erro de leitura e' uma pagina que deixou de poder ser lida. Nao
+    # e' uma linha para saltuar e seguir em frente. A primeira versao
+    # tinha um `except` largo que apanhava a minha propria gralha como
+    # se fosse a partida ter fechdo, e o resumo continuava em frente com
+    # valores velhos -- daqui um NameError sem nada a ver com a causa.
+    raise SystemExit('  a leitura falhou a meio: %s: %s'
+                     % (type(e).__name__, e))
 
-print('')
-print('  o nucleo ao fim: %s   (a %.0f km/h)'
-      % (nucleo, ph.speedKmh))
+if nucleo is not None:
+    print('')
+    print('  o nucleo ao fim: %s   (a %.0f km/h)' % (nucleo, ph.speedKmh))
 if n_voltas == 0:
     raise SystemExit('  nao se fechou nenhuma volta: nao ha taxa para medir.')
 
 print('')
 print('  agora a conta, que e' + chr(39) + ' a unica que interessa:')
 print('    a media de quanto cada roda desceu por volta, nos ultimos')
-print('    minutos, diz se os 98,67 sao "98,67%% de resto" ou nao.')
+print('    minutos, diz se os 98,67 sao "98,67% de resto" ou nao.')
 print('')
 print('    REGRA DE LEITURA, e nao e' + chr(39) + ' uma interpretacao:')
-print('      ~1 a 3%% por volta  ->  a partida e' + chr(39) + ' mesmo 0..100 "quanto')
+print('      ~1 a 3% por volta  ->  a partida e' + chr(39) + ' mesmo 0..100 "quanto')
 print('                                   resta", e o HUD mede noutra escala.')
-print('      ~10 a 15%% por volta ->  os 98,67 NAO sao "98,67%% de resto",')
+print('      ~10 a 15% por volta ->  os 98,67 NAO sao "98,67% de resto",')
 print('                                   e o numero da partida nao pode')
 print('                                   mostrar-se assim.')
