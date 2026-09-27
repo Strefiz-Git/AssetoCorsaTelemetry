@@ -32,6 +32,9 @@ RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ALVO = os.path.join(RAIZ, "acshm.py")
 TESTE = os.path.join("tests", "test_opponents.py")
 
+# codigo que os testes de memoria devolvem quando o jogo esta a correr
+AVISO_JOGO_VIVO = 2
+
 # (descricao, original, partido)
 MUTACOES = [
     ("campo novo a meio (isConnected repetido)",
@@ -99,6 +102,19 @@ def main():
     limpar_cache()
 
     rc, saida = correr_teste()
+
+    # O teste de baixo aborta com o codigo 2 se o AC estiver a correr
+    # (Regra n.1: nao se escreve na memoria com alguem a conduzir). Isso
+    # NAO e' o teste estar partido -- e' o teste a recusar-se. Sem esta
+    # distincao, ter o jogo aberto produzia "FALHA: o teste ja falha sem
+    # nenhuma alteracao", que e' uma acusacao falsa: o problema era o
+    # momento, nao o codigo.
+    if rc == AVISO_JOGO_VIVO:
+        print(saida.rstrip())
+        print()
+        print("Saltado: o Assetto Corsa esta a correr. Fecha o jogo e repete.")
+        return AVISO_JOGO_VIVO
+
     if rc != 0:
         print("FALHA: o teste ja falha sem nenhuma alteracao.")
         print(saida)
