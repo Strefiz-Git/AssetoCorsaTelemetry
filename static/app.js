@@ -60,7 +60,7 @@ const I18N = {
     'tyres.life': 'Vida do pneu',
     'tyres.measuring': 'a medir', 'tyres.perLap': 'por volta', 'tyres.needTwoLaps': 'Faltam 2 voltas para estimar', 'tyres.lapsOnThisSet': 'voltas neste jogo',
     'tyres.surface': 'Temperatura da banda. O número grande é o do núcleo, que é o que o jogo mostra.',
-    'tyres.wornTitle': 'Desgaste, usado', 'tyres.pressTitle': 'Pressão real, em psi. O jogo mostra o desvio para uma nominal que não é publicada.',
+    'tyres.gripWhat': 'Aderência do pneu, de 0 a 100, em que 100 é a máxima. Não é desgaste: o campo chama-se `tyreWear` mas mede a aderência, e por isso desce só 0,45 por volta — aaderência muda devagar. O desgaste que o HUD do Content Manager mostra é outra grandeza, e os dois não se convertem.', 'tyres.pressTitle': 'Pressão real, em psi. O jogo mostra o desvio para uma nominal que não é publicada.',
     'tyres.lifeNote': 'Estimativa a partir do desgaste já medido neste stint. O Assetto Corsa não publica a vida do composto, e o desgaste que publica é lento demais para dar um número fiável: se aparecer, é porque o valor desta vez é plausível.',
     'tyres.notWear': 'não dá',
     'tyres.notWearWhy': 'O desgaste que o jogo publica é lento demais para um stint real: 0,17% ao fim de duas voltas dariam 588 voltas de vida. Não dá para prever a partir dele.',
@@ -147,7 +147,7 @@ const I18N = {
     'tyres.life': 'Vida do pneu',
     'tyres.measuring': 'medindo', 'tyres.perLap': 'por volta', 'tyres.needTwoLaps': 'Faltam 2 voltas para estimar', 'tyres.lapsOnThisSet': 'voltas neste stint',
     'tyres.surface': 'Temperatura da banda. O número grande é o do núcleo, que é o que o jogo mostra.',
-    'tyres.wornTitle': 'Desgaste, usado', 'tyres.pressTitle': 'Pressão real, em psi. O jogo mostra o desvio para uma nominal que não é publicada.',
+    'tyres.gripWhat': 'Aderência do pneu, de 0 a 100, em que 100 é a máxima. Não é desgaste: o campo chama-se `tyreWear` mas mede a aderência, e por isso desce só 0,45 por volta — aaderência muda devagar. O desgaste que o HUD do Content Manager mostra é outra grandeza, e os dois não se convertem.', 'tyres.pressTitle': 'Pressão real, em psi. O jogo mostra o desvio para uma nominal que não é publicada.',
     'tyres.lifeNote': 'Estimativa feita do desgaste que já aconteceu neste stint, não de uma tabela do jogo: o Assetto Corsa não publica a vida do pneu. Depois de duas voltas medidas o número já significa alguma coisa; antes disso é um palpite.',
     'brakes.title': 'FREIOS', 'brakes.bias': 'B. FREIO',
     'brakes.biasTitle': 'Distribuição da frenagem, em porcentagem do freio total. Medido 0,58 num TS040 sem nada mexido. O HUD do Content Manager mostra o mesmo campo e ajusta de 0,5 em 0,5.',
@@ -229,7 +229,7 @@ const I18N = {
     'tyres.life': 'Vida del neumático',
     'tyres.measuring': 'midiendo', 'tyres.perLap': 'por vuelta', 'tyres.needTwoLaps': 'Faltan 2 vueltas para poder estimar', 'tyres.lapsOnThisSet': 'vueltas en este stint',
     'tyres.surface': 'Temperatura de la banda. El número grande es el del núcleo, que es el que muestra el juego.',
-    'tyres.wornTitle': 'Desgaste, gastado', 'tyres.pressTitle': 'Presión real, en psi. El juego muestra la desviación respecto a una nominal que no se publica.',
+    'tyres.gripWhat': 'Adherencia del neumático, de 0 a 100, donde 100 es la máxima. No es desgaste: el campo se llama `tyreWear` pero mide la adherencia, y por eso baja solo 0,45 por vuelta — la adherencia cambia despacio. El desgaste que muestra el HUD del Content Manager es otra magnitud, y los dos no se convierten.', 'tyres.pressTitle': 'Presión real, en psi. El juego muestra la desviación respecto a una nominal que no se publica.',
     'tyres.notWear': 'no se puede',
     'tyres.notWearWhy': 'El desgaste que publica el juego no acompaña un stint real: da 0,17% tras dos vueltas, o que serían 588 vueltas de vida. No se puede predecir a partir de ahí.',
     'fuel.measuring': 'midiendo',
@@ -322,7 +322,7 @@ const I18N = {
     'fuel.criticoWhy': 'Below 1 lap: no margin at all. At the average rate, what is left runs out before the lap ends.',
     'tyres.measuring': 'measuring', 'tyres.perLap': 'per lap', 'tyres.needTwoLaps': 'Needs 2 laps before it can estimate', 'tyres.lapsOnThisSet': 'laps on this set',
     'tyres.surface': 'Tread temperature. The big number is the core, which is what the game shows.',
-    'tyres.wornTitle': 'Wear, used', 'tyres.pressTitle': 'Real pressure, in psi. The game shows the deviation from a nominal that is not published.',
+    'tyres.gripWhat': 'Tyre grip, 0 to 100, where 100 is the maximum. Not wear: the field is called `tyreWear` but it measures grip, which is why it drops only 0.45 per lap — grip changes slowly. The wear the Content Manager HUD shows is a different quantity, and the two do not convert.', 'tyres.pressTitle': 'Real pressure, in psi. The game shows the deviation from a nominal that is not published.',
     'tyres.notWear': 'cannot tell',
     'tyres.notWearWhy': 'The wear the game publishes does not track a real stint: 0.17% after two laps, which would be 588 laps of life. There is no way to predict from it.',
     'tyres.lifeNote': 'Estimated from the wear that has already happened on this stint, not from a game table: Assetto Corsa does not publish the compound life. After two measured laps the number means something; before that it is a guess.',
@@ -1499,15 +1499,53 @@ function renderTyres(hostId, d) {
     // nao ha' forma de o reproduzir a partir do que o AC publica.
     // Aqui escreve-se DESGASTE, que e' o que medimos, e nao se finge que
     // e' o mesmo numero.
-    const restante = (d.tyreWear && d.tyreWear[i] != null) ? d.tyreWear[i] : null;
-    setTxt(hostId + '-w' + i, restante == null ? '--' : restante.toFixed(1) + '%');
+    // A ADERENCIA DO PNEU. E' este o campo `tyreWear`, e o nome e'
+    // enganador -- nao e' desgaste.
+    //
+    // O Live Telemetry, no ac_info, e' uma implementacao independente da
+    // mesma leitura, e diz o que o campo e':
+    //
+    //   AC1's `tyreWear` is a grip/health signal, not a monotonic wear
+    //   counter: it starts ~0.995 on a fresh tyre, climbs toward 1.0
+    //   during warm-up, then drifts back down as the tyre actually
+    //   wears.
+    //
+    // E divide por 100, para ficar em 0..1.
+    //
+    // Isto explica o que se mediu, e que antes parecia um erro:
+    //
+    //   volta 0   100.00  100.00  100.00  100.00   aderencia maxima
+    //   volta 1    99.58   99.56   99.23   99.18   -0.42 -0.44 -0.76 -0.82
+    //   volta 2    99.07   99.03   98.66   98.60   -0.51 -0.54 -0.58 -0.58
+    //   volta 3    98.67   98.68   98.33   98.29   -0.40 -0.35 -0.33 -0.31
+    //
+    // Sao 0,45 por cento por volta. Se isto fosse desgaste, um pneu
+    // duraria 220 VOLTAS, e nenhum composto dura 220 voltas. Nao dura:
+    // e' que a aderencia muda devagar. E as rodas de tras a descerem
+    // mais e' porque perdem aderencia antes, nao porque se gastem mais.
+    //
+    // E o HUD do Content Manager, que mostra 70 a 73%, mede OUTRA
+    // grandeza: o `wheel.tyreWear` da Lua e' o desgaste consumido, 0 a 1
+    // com 1 = destruido. Os dois campos chamam-se igual e nao sao a mesma
+    // coisa, e nao ha' conversao entre eles.
+    //
+    // A documentacao oficial do ACC escreve so' "Tyre wear", sem unidade
+    // e sem intervalo. A do AC base esta cifrada e nao se consegue ler.
+    // Portanto o nome vem da implementacao de outra pessoa e da medicao,
+    // e nao da documentacao -- que fica escrito para quem vier depois.
+    const ader = (d.tyreWear && d.tyreWear[i] != null) ? d.tyreWear[i] : null;
+    setTxt(hostId + '-w' + i, ader == null ? '—' : ader.toFixed(1));
     const we = $(hostId + '-w' + i);
     if (we) {
-      // os avisos invertem-se: agora e' o que resta que interessa
-      const cls = restante == null ? ''
-        : restante <= 20 ? ' bad' : restante <= 40 ? ' warn' : '';
+      // Os limiares voltam. Para um sinal de ADERENCIA, 40 e 20 sao de
+      // facto alarmedores -- era por isso que nunca disparavam: porque
+      // o campo nunca descia dos 98. Nao era o limiar que estava mal,
+      // era o NOME, que punha um sinal de aderencia a ser lido como
+      // desgaste restante.
+      const cls = ader == null ? ''
+        : ader <= 20 ? ' bad' : ader <= 40 ? ' warn' : '';
       we.className = 'tyre-worn' + cls;
-      we.title = t('tyres.wornTitle') + ' ' + (100 - restante).toFixed(1) + '%';
+      we.title = t('tyres.gripWhat') + (ader == null ? '' : ' ' + ader.toFixed(1));
     }
     drawTyreBar(hostId + '-b' + i, core);
     // psi, e nao kPa. Medido num F1: 28.7 a 32.3. Se fossem kPa seriam
