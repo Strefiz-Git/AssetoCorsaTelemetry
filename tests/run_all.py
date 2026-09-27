@@ -29,14 +29,20 @@ SUITE = [
     ("o JavaScript faz parse", "py", "verificar_js.py"),
     ("a app e o leitor falam igual", "py", "test_contrato.py"),
     ("o servidor fica calado", "py", "test_handler.py"),
+    ("o payload tem o que o painel precisa", "py", "test_payload.py"),
     ("tempos de volta e delta", "node", "test_tempos.js"),
     ("vida do pneu", "node", "test_tyres.js"),
     ("voltas de combustivel", "node", "test_combustivel.js"),
     ("o frontend aguenta-se de pe", "py", "auditar_frontend.py"),
+    ("a regra 2.3.3 morde mesmo", "py", "mutacao_acessibilidade.py"),
     ("valores nao finitos", "py", "verificar_finitos.py"),
     ("os testes mordem mesmo", "py", "test_mutation.py"),
+    ("o contrato e' mesmo verificado", "py", "mutacao_contrato.py"),
     ("o loop da app nao engole falhas", "py", "test_loop_app.py"),
     ("o loop da app morde mesmo", "py", "mutacao_loop.py"),
+    ("as cenas do tempo sao as do jogo", "node", "test_tempo.js"),
+    ("a medicao do pneu morde", "py", "test_medir_tyrewear.py"),
+    ("o README bate com o codigo", "py", "verificar_readme.py"),
     ("texto sem caracteres estranhos", "py", "verificar_texto.py"),
     ("mensagens de commit limpas", "py", "verificar_commits.py"),
 ]
@@ -70,7 +76,7 @@ def main():
     print("Assetto Corsa Telemetry - suite de testes")
     print("regra: com o AC a correr, os testes de memoria sao ignorados")
     if not tem_node():
-        print("aviso: node nao esta instalado, o teste de tempos nao corre")
+        print("aviso: node nao esta instalado; os tres testes de node nao correm")
 
     total = len(SUITE)
     falhou, ignorados = [], []

@@ -124,6 +124,82 @@ else:
             ko("o piscar do %s esta FORA do no-preference -- vai piscar a "
                "quem pediu para nao ver movimento" % nome)
 
+# A REGRA GERAL, e nao so' os dois alertas nomeados acima
+#
+# Ate aqui a auditoria so' verificava DUAS animacoes pelo nome. O
+# `check_acessibilidade.js` -- que corre no browser, colado na consola --
+# faz a conta geral: quantas animacoes infinitas estao declaradas, e
+# alguma delas esta fora de um bloco `prefers-reduced-motion`. E' a regra
+# 2.3.3.
+#
+# O problema e' que essa conta geral nao corria na suite, porque precisa
+# do DOM. E uma regra que so se pode correr com o browser e' uma regra
+# que ninguem corre. Acrescentada aqui, acusou QUATRO animacoes que
+# estavam a correr para quem pediu para nao ver movimento:
+#
+#     .spinner               a roda do arranque
+#     .wide-btn.mark.on      o pulso do botao que marca a posicao
+#     .drs.avail             a caixa do DRS
+#     .drs.avail .drs-dot    o ponto do DRS
+#
+# As duas do DRS eram as mais sérias, porque a carta inteira e o
+# combustivel -- feitos na mesma sessao, para o mesmo fim -- estavam bem
+# feitos dentro do no-preference. A zona de DRS era a unica a ficar de
+# fora, e por isso era a unica a piscar para quem nao quer.
+#
+# Aqui a mesma regra em forma ESTATICA, que e' melhor do que a do
+# browser: apanha a animacao sem a folha estar ligada e sem a pagina
+# aberta. E' o que permite ao `mutacao_acessibilidade.py` entrar na
+# suite, coisa que antes era impossivel.
+#
+# DOIS ERROS QUE A PRIMEIRA VERSAO DESTA REGRA TEVE, ambos sobre a MESMA
+# coisa: contar as chavetas noutro texto.
+#
+#   - media o texto SEM COMENTARIOS. As linhas desse texto nao sao as
+#     linhas do ficheiro, e o browser le o ficheiro COM os comentarios.
+#     Resultado: acusava seis animacoes legitimas, cujas linhas nao
+#     correspondiam a nada.
+#   - media so' o PRIMEIRO bloco no-preference. Ha' dois neste CSS --
+#     um para o DRS, outro para o combustivel -- e o combustivel estava
+#     no segundo. Resultado: as animacoes do combustivel davam por
+#     fora do bloco.
+#
+# Por isso a contagem e' feita no texto tal e qual, e sobre TODOS os
+# blocos.
+
+
+def _blocos_media(css, condicao):
+    """(inicio, fim) de cada bloco @media que casa `condicao`."""
+    acc = []
+    for m in re.finditer(r"@media \(" + re.escape(condicao) + r"\)\{", css):
+        prof = 1
+        for k in range(m.end(), len(css)):
+            if css[k] == "{":
+                prof += 1
+            elif css[k] == "}":
+                prof -= 1
+                if prof == 0:
+                    acc.append((m.start(), k))
+                    break
+    return acc
+
+
+_np = _blocos_media(s, "prefers-reduced-motion:no-preference")
+infinitas = list(re.finditer(r"animation(-name)?\s*:[^;}]*infinite", s))
+dentro = [m for m in infinitas if any(a < m.start() < b for a, b in _np)]
+fora = [m for m in infinitas if m not in dentro]
+if not fora:
+    ok("as %d animacoes infinitas estao todas dentro de um no-preference"
+       % len(infinitas))
+else:
+    for m in fora:
+        ln = s[:m.start()].count("\n") + 1
+        ko("animacao INFINITA fora do no-preference, linha %d do CSS: %r "
+           "-- a regra 2.3.3" % (ln, m.group(0)[:44]))
+    ok("(%d de %d dentro; ha' %d bloco(s) no-preference, e ha' que os "
+       "contar todos)" % (len(dentro), len(infinitas), len(_np)))
+
+
 red = bloco_media(s, "prefers-reduced-motion:reduce")
 if red is None:
     ko("nao existe o media query reduce")

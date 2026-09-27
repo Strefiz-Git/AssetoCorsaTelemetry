@@ -385,12 +385,37 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(body)
 
     def _file(self, rel):
-        path = os.path.normpath(os.path.join(STATIC, rel.lstrip("/")))
-        if not path.startswith(STATIC) or not os.path.isfile(path):
+        # A verificacao e' por CONTEUDO, e nao por `startswith`.
+        #
+        # `path.startswith(STATIC)` e' verificacao por prefixo, e tem duas
+        # falhas conhecidas. A primeira: `C:\proj\static` e' prefixo de
+        # `C:\proj\static_secreto`, que e' outra coisa. A segunda: o
+        # Windows e' case-insensitive e `startswith` nao e', portanto um
+        # caminho com as letras todas em maiusculas e' rejeitado mesmo
+        # sendo o mesmo caminho.
+        #
+        # Nao ha' `static_secreto` ao lado de `static` hoje, por isso a
+        # forma actual nao e' exploravel -- e o `test_payload.py` prova
+        # isso com seis formas de subir a pasta. Mas a verificacao
+        # dizia que protegia o que so' protege o NOME da pasta, e uma
+        # proteccao que protege ate quando muda e' uma proteccao que
+        # ninguem deve deixar quieta.
+        #
+        # O `commonpath` responde as duas de uma vez: devolve o caminho
+        # comum mais longo, e so' coincide com `STATIC` quando o ficheiro
+        # esta mesmo dentro. Se `alvo` estiver noutra unidade, levanta
+        # ValueError -- e uma unidade diferente NAO e' dentro de nada
+        # nosso, logo e' False.
+        alvo = os.path.normpath(os.path.join(STATIC, rel.lstrip("/\\")))
+        try:
+            dentro = os.path.commonpath([alvo, STATIC]) == STATIC
+        except ValueError:
+            dentro = False          # outra unidade: fora, sem discussao
+        if not dentro or not os.path.isfile(alvo):
             return self._send(404, b"nao encontrado")
-        ext = os.path.splitext(path)[1].lower()
-        with open(path, "rb") as f:
+        with open(alvo, "rb") as f:
             data = f.read()
+        ext = os.path.splitext(alvo)[1].lower()
         self._send(200, data, MIME.get(ext, "application/octet-stream"))
 
     # -- rotas ---------------------------------------------------------
@@ -622,21 +647,38 @@ def main():
     ap.add_argument("--rate", type=int, default=200, help="amostras por segundo")
     ap.add_argument("--abrir", action="store_true",
                     help="abre o browser quando o servidor ja esta a ouvir")
+    ap.add_argument("--bind", default="0.0.0.0",
+                    help="endereco a que se liga. 0.0.0.0 e' a rede toda; "
+                         "127.0.0.1 so' neste PC")
     args = ap.parse_args()
 
     hub = Hub(rate_hz=args.rate)
     hub.start()
     Handler.hub = hub
 
-    srv = Servidor(("0.0.0.0", args.port), Handler)
+    srv = Servidor((args.bind, args.port), Handler)
     srv.daemon_threads = True
 
     ip = lan_ip()
+    so_local = args.bind in ("127.0.0.1", "localhost", "::1")
     print("=" * 56)
     print("  Telemetria do Assetto Corsa")
     print("=" * 56)
-    print(f"  Este PC : http://localhost:{args.port}/")
-    print(f"  Rede    : http://{ip}:{args.port}/")
+    if so_local:
+        print(f"  Neste PC : http://localhost:{args.port}/")
+        print("  Nao aceita ligacoes de fora. Para as aceitar:")
+        print(f"    python server.py --bind 0.0.0.0 --port {args.port}")
+    else:
+        print(f"  Neste PC : http://localhost:{args.port}/")
+        print(f"  Rede     : http://{ip}:{args.port}/")
+        if not so_local:
+            print()
+            print("  AVISO: qualquer pessoa na mesma rede pode ver os teus")
+            print("  dados de telemetria e mudar a pasta do jogo em")
+            print("  /api/settings. Nao ha palavra-passe. Numa rede de casa")
+            print("  ou de trabalho isso e' aceitavel; numa rede de hotel,")
+            print("  de cafetaria ou de faculdade, nao.")
+            print(f"  Para fechar: python server.py --bind 127.0.0.1 --port {args.port}")
     print(f"  leitura : {args.rate} amostras/s, difusao a 60 Hz")
     print("  Ctrl+C para parar")
     print("=" * 56)

@@ -162,7 +162,8 @@ class SPageFileStatic(ctypes.Structure):
 
 # ------------------------------------------------- adversarios (opponents)
 # So o AC nao poe os outros carros nas suas paginas. Quem o faz e' a NOSSA
-# app, em python_app/actelemetry.py, que corre DENTRO do jogo e escreve
+# app, em python_app/actelemetry_strefiz/actelemetry_strefiz.py, que corre
+# DENTRO do jogo e escreve
 # esta pagina com os 128 carros. Nao e' uma ligacao de rede: e' mais uma
 # pagina de memoria partilhada, que se le tal e qual as outras.
 #
@@ -299,7 +300,8 @@ def _b(v):
 class Opponents:
     """Leitor da pagina que a NOSSA app Python preenche."""
 
-    # O NOME DA PAGINA e' o contrato com python_app/actelemetry_shm.py.
+    # O NOME DA PAGINA e' o contrato com
+    # python_app/actelemetry_strefiz/actelemetry_shm.py.
     # Tem de ser igual nos dois lados, e tests\test_contrato.py falha se
     # algum mudar sozinho. E' um nome que nunca existiu, de proposito: se
     # a app nao estiver instalada ou nao arrancar, esta pagina nao existe
