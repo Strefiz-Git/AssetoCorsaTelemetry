@@ -57,14 +57,28 @@ for (const [nome, indice, chuva, esperado] of CENAS_DO_JOGO) {
 }
 
 console.log('');
-console.log('=== 2. a escala vai de 0 a 0,8, e NAO de 0 a 1 ===');
-eq(T.CHUVA_MAXIMA, 0.8, 'o topo da escala e\' o do hurricane');
-eq(T.percentDe(0.8), 100, 'o hurricane e\' 100% do vocabulario');
-eq(T.percentDe(0.4), 50, 'a meio do vocabulario e\' 50%');
-eq(T.cenaDe(0.8), 'furacao', '0,8 e\' furacao');
-eq(T.cenaDe(1.0), 'furacao', '1,0 NAO existe no jogo: da\' o topo, e nao 125%');
-eq(T.percentDe(1.0), 100, '1,0 da\' 100%, nao 125%');
-eq(T.percentDe(2.0), 100, 'e nem 250%: o valor e\' limitado antes de converter');
+console.log('=== 2. a escala vai de 0 a 1, e NAO de 0 a 0,8 ===');
+/* O 0,8 e' o valor do PRESET `hurricane` -- o que se escolhe. O valor
+   AO VIVO e' uma fracao 0..1, e mede-se: com o tempo mudado para chuva
+   a meio de uma corrida, o leitor deu 0.9999996423721313, ACIMA de todos
+   os presets. E o `sol_weather` multiplica por 100 para mostrar uma
+   percentagem, o que so' faz sentido se o topo for 1.
+ *
+ * A primeira versao deste teste dizia 0,8, e falhou quando o tecto mudou.
+ * E' para isso que o valor esta' aqui escrito: a proxima pessoa nao
+ * volta a trocar os dois de lugar. */
+eq(T.CHUVA_MAXIMA, 1.0, 'o tecto e\' 1, e nao o 0,8 do preset');
+eq(T.percentDe(1.0), 100, '1,0 e\' 100%');
+eq(T.percentDe(0.5), 50, 'chuva a serio e\' 50%, e nao 62%');
+eq(T.percentDe(0.125), 13, 'a chuva do jogo (0,125) e\' 13% do tecto');
+eq(T.cenaDe(0.8), 'furacao', '0,8 ainda e\' o preset do furacao');
+eq(T.cenaDe(1.0), 'furacao', '1,0 e\' pelo menos o furacao, que e\' o topo');
+eq(T.percentDe(2.0), 100, 'acima de 1 e\' limitado, e nao 200%');
+/* o que a versao errada fazia: com 0,8 de tecto, 0,5 dava 62% e o 1,0
+   dava 100% por coincidencia. A coincidencia e' a pior forma de um
+   numero estar errado, porque o caso que se ve e' o unico que sai
+   certo. */
+eq(T.percentDe(0.5) !== 62, true, '0,5 NAO da' + "'" + ' 62%: essa era a conta do tecto errado');
 
 console.log('');
 console.log('=== 3. "nao sei" nao e\' "seco" ===');

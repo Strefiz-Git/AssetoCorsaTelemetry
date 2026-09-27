@@ -40,8 +40,28 @@
 (function (root) {
   'use strict';
 
-  /* O topo da escala do jogo. `hurricane` e' 0,8. */
-  var CHUVA_MAXIMA = 0.8;
+  /* O tecto da escala e' 1, e NAO o 0,8 do `hurricane`.
+   *
+   * Sao duas coisas que se baralham com ease. O valor de um PRESET e' o
+   * que se ESCOLHE -- e o `hurricane` tem 0,8 porque e' essa a quantidade
+   * que a cena pede. O valor AO VIVO e' o que a simulacao esta' a fazer
+   * AGORA, e esse vai de 0 a 1.
+   *
+   * MEDIDO, numa corrida a meio da qual o tempo foi mudado para chuva: o
+   * leitor deu `rainAmount = 0.9999996423721313`, que esta' ACIMA de todos
+   * os presets. E o `sol_weather` faz `int(RainParams[0] * 100.0)` para
+   * mostrar uma percentagem: se o valor fosse 0..0,8, aquela conta
+   * nunca passaria de 80%, e nao e' caso.
+   *
+   * O que fica a 0,8 sao os limiares das bandas, que sao as quantidades
+   * que o jogo reconhece: 0,001 e' chcada, 0,125 e' chuva, 0,6 e' chuva
+   * forte. Sao pontos de corte significativos no mesmo espaco.
+   *
+   * O ERRO que o tecto errado produzia: com 0,8 como maximo, uma chuva de
+   * 0,5 -- chuva a serio -- mostrava 62%. E o 1,0 era cortado para 0,8 e
+   * dava 100%, por COINCIDENCIA certo, que e' a pior forma de um numero
+   * estar errado. */
+  var CHUVA_MAXIMA = 1.0;
 
   /* A banda de cada cena, da chuva mais fraca para a mais forte. Cada
      limiar e' a quantidade de uma cena real -- por isso 0,001 e 0,030
@@ -81,8 +101,9 @@
     return c.chave;
   }
 
-  /* A percentagem que se mostra. E' `chuva / 0.8` e nao `chuva * 100`,
-     e a razao esta' em cima: a escala do jogo acaba em 0,8. */
+  /* A percentagem que se mostra. E' `chuva * 100`, porque o valor e' uma
+     fracao 0..1 -- o mesmo que o `sol_weather` multiplica por 100 para
+     mostrar. */
   function percentDe(chuva) {
     if (chuva == null || chuva < 0) return null;
     return Math.round((Math.min(chuva, CHUVA_MAXIMA) / CHUVA_MAXIMA) * 100);
