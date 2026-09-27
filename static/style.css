@@ -10,6 +10,14 @@
 @font-face{font-family:Titillium;font-weight:600;src:url(/fonts/TitilliumWeb-SemiBold.ttf) format("truetype");font-display:swap}
 @font-face{font-family:Titillium;font-weight:700;src:url(/fonts/TitilliumWeb-Bold.ttf) format("truetype");font-display:swap}
 @font-face{font-family:Titillium;font-weight:900;src:url(/fonts/TitilliumWeb-Black.ttf) format("truetype");font-display:swap}
+/* Fonte à parte só para os números pequenos e secundários (desgaste,
+   travões, ERS/ABS/TC, tempos de setor, combustível, meteorologia).
+   O Titillium é bom nos números grandes (marcha, velocidade, temp. do
+   pneu), mas a letras muito pequenas um tipo com formas mais simples e
+   monoespaçado (todos os dígitos com a mesma largura, 0 bem distinto
+   de O) lê-se melhor de relance do que uma letra "de título" reduzida. */
+@font-face{font-family:RobotoMono;font-weight:400;src:url(/fonts/RobotoMono-Regular.woff2) format("woff2");font-display:swap}
+@font-face{font-family:RobotoMono;font-weight:700;src:url(/fonts/RobotoMono-Bold.woff2) format("woff2");font-display:swap}
 
 :root{
   --bg:#000; --panel:#151C1D; --block:#171717; --line:#22292a;
@@ -358,7 +366,7 @@ body{
   display:flex;flex-direction:column;gap:1px}
 .wx-lbl{font-size:8px;font-weight:700;letter-spacing:.12em;color:var(--grey);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.wx-val{font-weight:900;font-size:clamp(12px,1.2vw,15px);
+.wx-val{font-family:RobotoMono,'Roboto Mono',monospace;font-weight:700;font-size:clamp(12px,1.2vw,15px);
   font-variant-numeric:tabular-nums;white-space:nowrap}
 .wx-val i{font-style:normal;font-size:.68em;color:var(--grey);margin-left:2px}
 
@@ -384,7 +392,7 @@ body{
   display:flex;flex-direction:column;gap:3px;
 }
 .l-lbl{font-size:10px;letter-spacing:.14em;color:var(--grey);font-weight:700}
-.l-val{font-size:22px;font-weight:900;color:var(--grey);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.l-val{font-family:RobotoMono,'Roboto Mono',monospace;font-size:22px;font-weight:700;color:var(--grey);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .light.on .l-val{color:var(--green)}
 .light.warn .l-val{color:var(--orange)}
 .light.bad .l-val{color:var(--red)}
@@ -444,7 +452,7 @@ body{
   display:flex;flex-direction:column;gap:1px;min-width:0;
 }
 .sector-box span{font-size:9px;font-weight:700;letter-spacing:.1em;color:var(--grey)}
-.sector-box b{font-weight:900;font-size:15px;font-variant-numeric:tabular-nums}
+.sector-box b{font-family:RobotoMono,'Roboto Mono',monospace;font-weight:700;font-size:15px;font-variant-numeric:tabular-nums}
 .sector-box.best b{color:var(--gold)}
 .sector-box.cur{border:1px solid var(--gold)}
 .bar-track{height:6px;background:#20262a;border-radius:3px;overflow:hidden;margin-top:auto;flex:0 0 auto}
@@ -488,7 +496,7 @@ body{
 }
 .tyre-mid{grid-area:temp;display:flex;flex-direction:column;line-height:1;min-width:0}
 .tyre-temp{font-weight:900;font-size:clamp(20px,2.3vw,28px);font-variant-numeric:tabular-nums}
-.tyre-worn{font-size:16px;font-weight:900;color:var(--white);margin-top:2px}
+.tyre-worn{font-family:RobotoMono,'Roboto Mono',monospace;font-size:16px;font-weight:700;color:var(--white);margin-top:2px}
 .tyre-worn.warn{color:var(--orange)}
 .tyre-worn.bad{color:var(--red)}
 .tyre-bar-wrap{grid-area:sub;display:flex;align-items:center;gap:7px;min-width:0}
@@ -500,19 +508,19 @@ body{
   display:flex;align-items:baseline;gap:5px;flex:0 0 auto;white-space:nowrap;
   font-variant-numeric:tabular-nums;
 }
-.tyre-press b{font-size:13px;font-weight:700;color:var(--grey)}
+.tyre-press b{font-family:RobotoMono,'Roboto Mono',monospace;font-size:13px;font-weight:700;color:var(--grey)}
 /* A pressao e' o numero medido, e o desvio (no <b>) e' o secundario.
    Estava ao contrario: a pressao num tom quase invisivel (1,86:1) e o
    desvio a cinzento. A pressao vai a branco e fica pequena; o desvio
    fica a cinzento, que e' o que lhe compete. */
-.tyre-press span{font-size:11px;font-weight:700;color:var(--white);text-align:right}
+.tyre-press span{font-family:RobotoMono,'Roboto Mono',monospace;font-size:11px;font-weight:700;color:var(--white);text-align:right}
 .brake-row{
   display:flex;align-items:baseline;gap:8px;
   margin-top:7px;padding-top:6px;border-top:1px solid var(--line);flex:0 0 auto;
 }
 .brake-row>span:first-child{font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--grey);flex:0 0 auto}
 .brake-vals{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;flex:1 1 auto;min-width:0}
-.brake-vals b{font-weight:900;font-size:20px;font-variant-numeric:tabular-nums;text-align:right}
+.brake-vals b{font-family:RobotoMono,'Roboto Mono',monospace;font-weight:700;font-size:20px;font-variant-numeric:tabular-nums;text-align:right}
 
 /* Danos: quatro barras, uma por canto. Escondidas enquanto estiver tudo
    a zero -- um painel de danos vazio e' ruido. */
@@ -530,7 +538,7 @@ body{
 .fuel-big small{font-size:.38em;color:var(--grey)}
 .kv{display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;border-bottom:1px solid var(--line);font-size:12px;flex:0 0 auto}
 .kv span{color:var(--grey);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.kv b{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.kv b{font-family:RobotoMono,'Roboto Mono',monospace;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
 .kv b.alert{color:var(--red)}
 
 /* ------------------------------------------------------------ leaderboard */
