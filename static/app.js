@@ -67,6 +67,7 @@ const I18N = {
     'brakes.title': 'TRAVÕES', 'brakes.bias': 'B. TRAVA',
     'brakes.biasTitle': 'Distribuição da travagem, em percentagem do travão total. Medido 0,58 num TS040 sem nada mexido. O HUD do Content Manager mostra o mesmo campo e ajusta-o de 0,5 em 0,5.',
     'tyres.damage': 'DANOS',
+    'tyres.suspDamage': 'SUSPENSÃO', 'tyres.engineDamage': 'MOTOR',
     'fuel.title': 'COMBUSTÍVEL',
     'wx.air': 'AR', 'wx.road': 'PISTA', 'wx.wind': 'VENTO', 'wx.density': 'DENSIDADE', 'wx.grip': 'ADERENCIA', 'unit.c': '°C',
     'fuel.inTank': 'Na reserva', 'fuel.lapsLeft': 'Voltas',
@@ -138,6 +139,7 @@ const I18N = {
     'brakes.title': 'FREIOS', 'brakes.bias': 'B. FREIO',
     'brakes.biasTitle': 'Distribuição da frenagem, em porcentagem do freio total. Medido 0,58 num TS040 sem nada mexido. O HUD do Content Manager mostra o mesmo campo e ajusta de 0,5 em 0,5.',
     'tyres.damage': 'AVARIAS',
+    'tyres.suspDamage': 'SUSPENSÃO', 'tyres.engineDamage': 'MOTOR',
     'fuel.title': 'COMBUSTÍVEL',
     'wx.air': 'AR', 'wx.road': 'PISTA', 'wx.wind': 'VENTO', 'wx.density': 'DENSIDADE', 'wx.grip': 'ADERENCIA', 'unit.c': '°C',
     'fuel.inTank': 'No tanque', 'fuel.lapsLeft': 'Voltas',
@@ -208,6 +210,7 @@ const I18N = {
     'brakes.title': 'FRENOS', 'brakes.bias': 'B. FRENO',
     'brakes.biasTitle': 'Distribución de la frenada, en porcentaje del freno total. Medido 0,58 en un TS040 sin tocar nada. El HUD de Content Manager muestra el mismo campo y lo ajusta de 0,5 en 0,5.',
     'tyres.damage': 'DAÑOS',
+    'tyres.suspDamage': 'SUSPENSIÓN', 'tyres.engineDamage': 'MOTOR',
     'fuel.title': 'COMBUSTIBLE',
     'wx.air': 'AIRE', 'wx.road': 'PISTA', 'wx.wind': 'VIENTO', 'wx.density': 'DENSIDAD', 'wx.grip': 'ADHERENCIA', 'unit.c': '°C',
     'fuel.inTank': 'En el depósito', 'fuel.lapsLeft': 'Vueltas',
@@ -281,6 +284,7 @@ const I18N = {
     'brakes.title': 'BRAKES', 'brakes.bias': 'B. BIAS',
     'brakes.biasTitle': 'Brake distribution, as a percentage of total braking. Measured 0.58 on a TS040 untouched. The Content Manager HUD shows the same field and adjusts it in 0.5 steps.',
     'tyres.damage': 'DAMAGE',
+    'tyres.suspDamage': 'SUSPENSION', 'tyres.engineDamage': 'ENGINE',
     'fuel.title': 'FUEL',
     'wx.air': 'AIR', 'wx.road': 'TRACK', 'wx.wind': 'WIND', 'wx.density': 'DENSITY', 'wx.grip': 'GRIP', 'unit.c': '°C',
     'fuel.inTank': 'In tank', 'fuel.lapsLeft': 'Laps',
@@ -1545,32 +1549,57 @@ function renderBrakeBias(d) {
  */
 const DANOS_ORDEM = ['F', 'T', 'E', 'D'];
 const DANO_MAX = 60;
-function renderDanos(d) {
-  const row = $('damage-row');
-  const host = $('damage-bars');
+
+/* Generico: desenha N barras de dano (0..1 cada) numa linha .kv, e
+ * esconde a linha toda quando nenhuma tem dano -- mesma regra em todo
+ * o lado, para nao aparecerem paineis vazios a fazer ruido.
+ * `fracoes` ja vem em 0..1 (quem chama e' que sabe converter a escala
+ * bruta de cada campo). */
+function renderBarraDanos(rowId, hostId, labels, fracoes) {
+  const row = $(rowId);
+  const host = $(hostId);
   if (!row || !host) return;
-  const v = d.carDamage;
-  const vals = Array.isArray(v) ? v.slice(0, 4).map((x) => (typeof x === 'number' ? x : 0)) : [];
-  if (vals.length !== 4) { row.classList.add('hidden'); return; }
+  const vals = Array.isArray(fracoes)
+    ? fracoes.map((x) => (typeof x === 'number' && isFinite(x) ? clamp(x, 0, 1) : 0))
+    : [];
+  if (vals.length !== labels.length) { row.classList.add('hidden'); return; }
   const algum = vals.some((x) => x > 0.01);
   row.classList.toggle('hidden', !algum);
   if (!algum) return;
-  if (host.childElementCount !== 4) {
+  if (host.childElementCount !== labels.length) {
     host.innerHTML = '';
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < labels.length; i++) {
       const s = document.createElement('span');
       s.className = 'dmg';
-      s.innerHTML = '<i class="dmg-t">' + DANOS_ORDEM[i] + '</i>'
+      s.innerHTML = '<i class="dmg-t">' + labels[i] + '</i>'
         + '<i class="dmg-bar"><b></b></i>';
       host.appendChild(s);
     }
   }
-  for (let i = 0; i < 4; i++) {
-    const f = clamp(vals[i] / DANO_MAX, 0, 1);
+  for (let i = 0; i < vals.length; i++) {
+    const f = vals[i];
     const b = host.children[i].querySelector('b');
     if (b) b.style.width = (f * 100).toFixed(0) + '%';
     host.children[i].className = 'dmg' + (f > 0.6 ? ' bad' : f > 0.2 ? ' warn' : '');
   }
+}
+
+function renderDanos(d) {
+  // carroçaria: vem da propria telemetria (0..60 por lado)
+  const v = d.carDamage;
+  const corpo = Array.isArray(v) ? v.slice(0, 4).map((x) => (typeof x === 'number' ? x / DANO_MAX : 0)) : [];
+  renderBarraDanos('damage-row', 'damage-bars', DANOS_ORDEM, corpo);
+
+  // suspensao e motor: NAO vem da telemetria propria, vem da pagina do
+  // SimHub (Opponents) -- so' existe quando o proprio carro aparece
+  // nessa lista (ver S.localCarId, calculado em renderOpponents()).
+  const meu = (S.opponents && Array.isArray(S.opponents.cars) && S.localCarId != null)
+    ? S.opponents.cars.find((c) => c.id === S.localCarId)
+    : null;
+  const susp = meu && Array.isArray(meu.suspDamage) ? meu.suspDamage : [];
+  renderBarraDanos('susp-damage-row', 'susp-damage-bars', DANOS_ORDEM, susp);
+  const motor = meu && typeof meu.engineDamage === 'number' ? [meu.engineDamage] : [];
+  renderBarraDanos('engine-damage-row', 'engine-damage-bars', ['M'], motor);
 }
 
 /* ------------------------------------------------------------ linguas */

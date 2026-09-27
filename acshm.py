@@ -308,6 +308,21 @@ class Opponents:
                     "inPit": bool(c.isCarInPit),
                     "inPitLane": bool(c.isCarInPitline),
                     "connected": bool(c.isConnected),
+                    # suspensionDamage: fraccao 0..1 por roda (0 = intacta).
+                    # engineLifeLeft: bruto 0..1000 (1000 = motor novo). A
+                    # escala vem confirmada de um painel de danos de
+                    # referencia (CMRT), que usa
+                    # "1 - car.engineLifeLeft / 1000" para a fraccao de
+                    # dano -- NAO confirmado ainda contra uma captura desta
+                    # app, porque nunca aqui apareceu motor ou suspensao
+                    # danificados. Se um dia aparecer um numero estranho
+                    # (ex.: negativo persistente ou sempre 0), e' o primeiro
+                    # sitio a verificar.
+                    "suspDamage": [round(max(0.0, min(1.0, float(x))), 3)
+                                   for x in c.suspensionDamage],
+                    "engineDamage": round(
+                        max(0.0, min(1.0, 1.0 - float(c.engineLifeLeft) / 1000.0)),
+                        3),
                 })
             cars.sort(key=lambda d: (d["pos"] if d["pos"] > 0 else 999, d["name"]))
             return {"available": True, "pluginVersion": self.pluginVersion,

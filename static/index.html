@@ -338,6 +338,19 @@
           <span data-i18n="tyres.damage">DANOS</span>
           <span class="damage-bars" id="damage-bars"></span>
         </div>
+        <!-- Suspensao e motor: mesmo esquema do dano de carroçaria acima
+             (so aparece quando ha' dano), mas vem da pagina do SimHub
+             (Opponents), nao da telemetria propria -- por isso so existe
+             quando o proprio carro aparece nessa lista (ver S.localCarId
+             no app.js). -->
+        <div class="kv damage-row hidden" id="susp-damage-row">
+          <span data-i18n="tyres.suspDamage">SUSPENSÃO</span>
+          <span class="damage-bars" id="susp-damage-bars"></span>
+        </div>
+        <div class="kv damage-row hidden" id="engine-damage-row">
+          <span data-i18n="tyres.engineDamage">MOTOR</span>
+          <span class="damage-bars" id="engine-damage-bars"></span>
+        </div>
         <div class="kv grip-row">
           <span data-i18n="wx.grip">ADERÊNCIA</span>
           <b id="wx-grip">—</b>
