@@ -51,6 +51,9 @@ kernel32.CreateFileMappingW.argtypes = [wintypes.HANDLE, ctypes.c_void_p, wintyp
                                         wintypes.DWORD, wintypes.DWORD, wintypes.LPCWSTR]
 
 handles = []
+# os objectos ctypes, para se poder reescrever um campo e reler sem
+# recriar a pagina -- que e' o que o caso da aderencia precisa
+escritos = {}
 for name, struct in zip(NAMES, (acshm.SPageFilePhysics,
                                  acshm.SPageFileGraphic,
                                  acshm.SPageFileStatic)):
@@ -63,6 +66,7 @@ for name, struct in zip(NAMES, (acshm.SPageFilePhysics,
     assert addr, f"nao mapeei {name}"
     ctypes.memset(addr, 0, ctypes.sizeof(struct))
     obj = struct.from_address(addr)
+    escritos[name] = obj
     if name == NAMES[0]:
         obj.speedKmh = 246.75; obj.rpms = 11250; obj.gear = 5
         obj.gas = 0.8; obj.brake = 0.0; obj.fuel = 42.5
@@ -132,6 +136,29 @@ for k, want in checks:
     got = s.get(k)
     if got != want:
         bad.append(f"  {k}: esperava {want!r}, obtive {got!r}")
+
+# --- a aderencia: o zero e' "nao disponivel", a pista molhada nao ------
+# E' o caso que ha na sessao: com o jogo parado, o 'surfaceGrip' fica a
+# zero, e o 'pintarGrip' pintava a vermelho -- um 'ADERENCIA 0.00' a
+# dizer que o carro estava sobre gelo, sem haver nada para saber.
+#
+# O teste tem de provar OS DOIS SENTIDOS. Com so' o 0 -> -1, uma guarda
+# errada do tipo `if gr.surfaceGrip < 1` passava o teste e matava o
+# aviso de pista molhada, que e' a razao de o campo existir. Por isso o
+# 0,62 -- molhado a serio -- tem de chegar ao snapshot como 0,62.
+graficos = escritos[NAMES[1]]
+for escrito, quer, porque in (
+        (0.0,  -1,   "o jogo parado nao tem aderencia a simular"),
+        (0.62, 0.62, "pista molhada tem de continuar a passar, com cor"),
+        (1.0,  1.0,  "seco tem de continuar a passar"),
+):
+    graficos.surfaceGrip = escrito
+    obtive = acshm.ACTelemetry(names=NAMES).snapshot()["surfaceGrip"]
+    if obtive != quer:
+        bad.append(f"  surfaceGrip {escrito}: esperava {quer!r}, obtive {obtive!r}"
+                   f"  ({porque})")
+    else:
+        print(f"  surfaceGrip {escrito} -> {quer}   ({porque})")
 
 print("ligado:", s["connected"], "| AC", s["acVersion"])
 print()
