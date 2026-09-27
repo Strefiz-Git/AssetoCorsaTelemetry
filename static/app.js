@@ -2188,7 +2188,12 @@ function pintarChuva(id, d) {
   el.textContent = t('wx.' + cena);
   el.title = t('wx.rainTitle') + ' ' + pct + '%'
     + (v >= Tempo.CHUVA_MAXIMA ? '  (' + t('wx.topoDoCartao') + ')' : '');
-  if (u) u.textContent = v === 0 ? '' : pct + '%';
+  // O numero vai na dica, e nao ao lado da palavra. Com "TROVOADA" ou
+  // "TROVOADA FORTE" nao cabia: a margem entre a palavra e a unidade e'
+  // de 2 px, e o resultado era "TROVOADA30%", lido como uma palavra so.
+  // A PALAVRA e' o sinal, a COR e' a intensidade, e o numero exato e'
+  // para quando se passa o rato.
+  if (u) u.textContent = '';
 
   // A cor segue a intensidade. Nao e' decoracao: em chuva forte o valor
   // muda depressa, e e' o que se quer ver a correr.
