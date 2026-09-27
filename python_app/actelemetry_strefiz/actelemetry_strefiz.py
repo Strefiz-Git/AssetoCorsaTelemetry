@@ -39,6 +39,51 @@ from ctypes import c_float, c_int32
 
 from actelemetry_shm import Shared, MAX_SECTORS, vec3
 
+# ---------------------------------------------------------------------------
+# O CTYPES QUE CARREGOU, E' O CERTO?
+# ---------------------------------------------------------------------------
+# O `sys.path.insert` acima e' a proteccao, e uma proteccao fraca: uma
+# entrada de `sys.path` que NAO EXISTE e' ignorada em silencio pelo
+# Python, sem erro e sem aviso. Provado -- meter um caminho que nao
+# existe a frente do `sys.path` e fazer `import ctypes` da o ctypes do
+# SISTEMA, sem uma palavra.
+#
+# E o caso nao e' teorico. Os `_ctypes.pyd` NAO estao no git: um
+# `git archive` do repositorio traz dois ficheiros em
+# `python_app/actelemetry_strefiz/` e nenhuma pasta `stdlib`. Quem faz
+# clone, copia a pasta para o jogo e liga a app fica, sem um unico sinal,
+# com a proteccao exactamente a ausente que o comentario de cima proibe
+# -- e com a struct escrita com os tamanhos do ctypes errado.
+#
+# Por isso o resultado e' VERIFICADO, e nao presumido. O `_ctypes` e' a
+# extensao C que define `c_float` e `c_int32`; ela vem de dentro da
+# pasta que acabamos de meter a frente. Se vier de outro sítio, diz-se
+# alto, porque daqui em diante os numeros da struct sao numeros de outro
+# interpreter.
+#
+# Nao se aborta. O dashboard nao mostra nada, e um `raise` aqui seria
+# indistinguivel do sintoma que ja' conhecemos -- "a app nao arrancou,
+# vai ver o log". Registar e' o que separa as duas coisas.
+import _ctypes as _ctypes_cargado
+
+_CORRECTO = os.path.normcase(os.path.abspath(sysdir)) in \
+    os.path.normcase(os.path.abspath(os.path.dirname(_ctypes_cargado.__file__)))
+
+if not _CORRECTO:
+    ac.console('AssettoCorsaTelemetry: AVISO GRAVE -- o ctypes carregado '
+               'e' + chr(39) + ' o do sistema, e nao o do jogo. A struct '
+               'fica com o tamanho errado e os valores lidos vao estar '
+               'errados sem dar erro nenhum.')
+    ac.log('AssettoCorsaTelemetry: o _ctypes veio de %s, e devia ter vindo '
+           'de %s' % (_ctypes_cargado.__file__, sysdir))
+    ac.log('AssettoCorsaTelemetry: a pasta %s nao existe, ou esta vazia. '
+           'Corre "python instalar_app.py" na raiz do projecto, que copia '
+           'os .pyd do jogo para aqui. Ou copia-os a mao de '
+           'assettocorsa/apps/python/system/lib-dynload/.' % sysdir)
+else:
+    ac.log('AssettoCorsaTelemetry: ctypes do jogo, de %s'
+           % os.path.basename(_ctypes_cargado.__file__))
+
 shared = Shared()
 
 VERSION = "1.1.0"
