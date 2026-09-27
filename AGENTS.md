@@ -497,8 +497,8 @@ O jogo tem **duas interfaces** completamente distintas, e campos com o
 
 | | memória partilhada | API Lua (`ac.getCar`) |
 |---|---|---|
-| `tyreWear` | **0..100**, 100 = novo | **fracção 0..1**, 1 = novo |
-| como se mostra | o valor | `(1 - tyreWear) * 100` = **gasto** |
+| `tyreWear` | **0..100**, 100 = novo | **fracção 0..1**, 1 = **destruído** |
+| como se mostra | o valor, que é o que resta | `(1 - tyreWear) * 100` = **o que resta** |
 
 O HUD do Content Manager faz exactamente isso:
 
@@ -506,8 +506,70 @@ O HUD do Content Manager faz exactamente isso:
 local wear_string = string.format("%d%%", (1 - wheel.tyreWear) * 100)
 ```
 
-Portanto **não se podem comparar os dois números**, e quem copiar a
-fórmula da Lua para o `acshm.py` passa a mostrar o desgaste ao contrário.
+**A direcção do valor da Lua já esteve escrita ao contrário aqui, e
+vale a pena ver porque é que se decidiu ao contrário.** A primeira
+versão dizia "fracção 0..1, 1 = novo" e "a fórmula mostra o gasto". São
+as duas ao contrário, e a prova está nas duas linhas seguintes do
+`CMRT-Complete-HUD`:
+
+```lua
+if wheel.isBlown or wheel.tyreWear >= 1 then   -- 1 = destruído
+  is_broken = true
+end
+...
+if wheel.tyreWear < -0.1 or (data_maybe_unavailable and wheel.tyreWear == 0) then
+  wear_string = '-'                             -- o zero é "não escrito"
+end
+```
+
+`>= 1` ser **partido** só faz sentido se 1 for o fim da vida. Se 1
+fosse "novo", essa linha estaria a marcar o pneu novo como partido — e
+um HUD com um erro desses saltava aos olhos. E o `== 0` ser tratando
+como **indisponível**, e não como "novo", é a mesma coisa pelo outro
+lado: num valor de desgaste, zero é a página não escrita, nunca um
+pneu intacto.
+
+Portanto: Lua `tyreWear` é **quanto já foi gasto**, e `(1 - tyreWear) * 100`
+é **quanto resta**. Que é o mesmo sentido que a memória partilhada, e
+não o contrário.
+
+### E porque é que isto não chega para comparar os dois números
+
+Ter a mesma direcção não é ter o mesmo número. Medido lado a lado, com
+as duas leituras no mesmo instante (a temperatura do núcleo bate a 1 °C
+entre as duas, por isso é o mesmo carro e o mesmo segundo):
+
+| | FL | FR | RL | RR |
+|---|---|---|---|---|
+| memória partilhada (`acshm.py`) | 98,7 | 98,8 | 98,4 | 98,4 |
+| HUD do CM, lido como "restante" | 88 | 91 | 82 | 82 |
+
+Dez pontos de diferença, e **sem explicação**. O que está confirmado:
+
+- **Não é um offset.** A `struct` está alinhada: `tyreCoreTemperature`
+  (offset 152) bate com o HUD a 1 °C, e vem **depois** de `tyreWear`
+  (offset 120). Se o `tyreWear` estivesse deslocado, a temperatura
+  também estaria.
+- **A ordem das rodas bate.** FR é o melhor dos dois lados, RL e RR os
+  piores. Não é ruído: é o mesmo estado, lido por duas interfaces.
+- **Não se pode confirmar pelo Python.** O enum `CS` do
+  `acsys.py` tem **73 campos e nenhum é o desgaste** — foi contado um a
+  um. Não há `TyreWear` nem equivalente, ao contrário do que se supunha
+  ao escrever a regra. Sem ele, a app não consegue publicar o valor da
+  Lua para o comparar com o da memória no mesmo frame, que era a
+  prova que resolvia isto (o mesmo método que o `windSpeedApi` usou).
+
+As duas explicações que ficam em pé, e **nenhuma está provada**:
+
+1. **O HUD lê o carro da câmara, não o jogador.** O `tires/first.lua`
+   faz `ac.getCar(focused)`, e o `focused` vem de
+   `ac.getSim().focusedCar` (`common/players.lua`, linha 862) — que é
+   o carro que a câmara está a ver, e muda se a câmara mudar.
+2. **Um dos dois números não é desgaste.**
+
+Regra prática: **não ajustar o número sem a prova.** Um valor
+plausível e errado é o pior resultado possível, porque ninguém o
+questiona — é a Regra nº 19 noutro sítio.
 
 ### O que a Lua mostra e a memória partilhada não tem
 
