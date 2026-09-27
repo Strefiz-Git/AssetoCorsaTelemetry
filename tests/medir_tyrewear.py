@@ -51,6 +51,25 @@ import os
 import sys
 import time
 
+# Quantas voltas medir. O comando e':
+#     python medir_tyrewear.py [voltas]
+# Sem nada, tres. Numa pista curta, DUAS chegam: a taxa e' a mesma de
+# volta para volta, e a unica razao para as tres e' a primeira ser
+# eventualmente diferente -- a de entrada, com o pneu frio e o carro
+# ainda a massar, que conta mais do que o gesto de uma corrida a serio.
+#
+# Nao ha' razao nenhuma para medir num circuito longo. O que interessa
+# e' a ORDEM DE GRANDEZA da taxa, nao o valor exacto, e isso nao muda
+# de pista para pista: a decisao e' entre "~1 a 3% por volta" e "~10 a
+# 15% por volta", que sao duas coisas muito diferentes. Numa pista
+# curta o desgaste por volta e' menor, mas ainda assim muito acima do
+# que se confunda com as duas bandas -- e ha' mais voltas por minuto.
+try:
+    VOLTAS = max(1, int(sys.argv[1])) if len(sys.argv) > 1 else 3
+except ValueError:
+    raise SystemExit('  o numero de voltas tem de ser um inteiro: %r'
+                     % (sys.argv[1],))
+
 # O caminho sai do FICHEIRO, e nao da pasta onde se corre. A primeira
 # versao punha '.' -- que e' a pasta de trabalho -- e por isso dava
 # 'No module named acshm' quando o comando era dado de dentro de
@@ -88,7 +107,7 @@ if ph.packetId == p0:
                      '  Com o jogo em pausa ou no menu o packetId tambem para,\n'
                      '  e nao se mede taxa nenhuma. Arrancar com o jogo a andar.')
 print('  o jogo esta a frame. A medir o tyreWear, volta a volta.')
-print('  Conduz duas ou tres voltas sem parar. Ctrl+C quando chega a zero.')
+print('  Conduz %d volta(s) sem parar. Ctrl+C quando chega a zero.' % VOLTAS)
 print('')
 
 NOME = ('FL', 'FR', 'RL', 'RR')
@@ -118,7 +137,7 @@ try:
             n_voltas += 1
             anterior = agora
             ultima_volta = volta
-            if n_voltas >= 3:
+            if n_voltas >= VOLTAS:
                 break
         time.sleep(0.5)
 except KeyboardInterrupt:
