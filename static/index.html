@@ -259,6 +259,15 @@
             <span class="wx-lbl" data-i18n="wx.density">DENSIDADE</span>
             <span class="wx-val"><span id="wx-density">—</span><i>kg/m³</i></span>
           </div>
+          <!-- A CHUVA, ao lado da aderencia. Vem da API Python que a
+               app publica, e nao da memoria partilhada -- que nao a tem.
+               Quando a funcao nao existe, o valor e' -1 e aqui fica um
+               travessao com a dica a dizer porquê. Nunca um zero: zero
+               e' "nao chove", e -1 e' "nao se sabe". Ver chuva.md. -->
+          <div class="wx" id="wx-rain-box">
+            <span class="wx-lbl" data-i18n="wx.rain">CHUVA</span>
+            <span class="wx-val"><span id="wx-rain">—</span><i id="wx-rain-u">%</i></span>
+          </div>
         </div>
       </section>
 

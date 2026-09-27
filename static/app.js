@@ -70,6 +70,10 @@ const I18N = {
     'tyres.suspDamage': 'SUSPENSÃO', 'tyres.engineDamage': 'MOTOR',
     'fuel.title': 'COMBUSTÍVEL',
     'wx.air': 'AR', 'wx.road': 'PISTA', 'wx.wind': 'VENTO', 'wx.density': 'DENSIDADE', 'wx.grip': 'ADERENCIA', 'unit.c': '°C',
+    "wx.rain": "CHUVA",
+    "wx.dry": "seco",
+    "wx.rainTitle": "Intensidade da chuva, pela API do jogo. Vem de ac.ext_rainParams() e so' existe com o Custom Shaders Patch.",
+    "wx.rainUnknown": "A app nao consegue ler o clima. A intensidade da chuva vem do Custom Shaders Patch, que precisa de expor ac.ext_rainParams() ao Python. Sem isso o numero seria 0, e 0 significa 'nao chove', que nao e' a verdade.",
     'fuel.inTank': 'Na reserva', 'fuel.lapsLeft': 'Voltas',
     'fuel.ambient': 'Ar / pista', 'fuel.penalty': 'Penalidade',
     'fuel.ersUsed': 'ERS na volta', 'fuel.none': 'nenhuma',
@@ -157,6 +161,10 @@ const I18N = {
     'fuel.criticoWhy': 'Abaixo de 1 volta: nao ha' + '\u2019' + ' margem nenhuma. No ritmo medio, o que resta acaba antes de a volta terminar.',
     'fuel.title': 'COMBUSTÍVEL',
     'wx.air': 'AR', 'wx.road': 'PISTA', 'wx.wind': 'VENTO', 'wx.density': 'DENSIDADE', 'wx.grip': 'ADERENCIA', 'unit.c': '°C',
+    "wx.rain": "CHUVA",
+    "wx.dry": "seco",
+    "wx.rainTitle": "Intensidade da chuva, pela API do jogo. Vem de ac.ext_rainParams() e so' existe com o Custom Shaders Patch.",
+    "wx.rainUnknown": "A app nao consegue ler o clima. A intensidade da chuva vem do Custom Shaders Patch, que precisa de expor ac.ext_rainParams() ao Python. Sem isso o numero seria 0, e 0 significa 'nao chove', que nao e' a verdade.",
     'fuel.inTank': 'No tanque', 'fuel.lapsLeft': 'Voltas',
     'fuel.ambient': 'Ar / pista', 'fuel.penalty': 'Penalty',
     'fuel.ersUsed': 'ERS na volta', 'fuel.none': 'nenhuma',
@@ -237,6 +245,10 @@ const I18N = {
     'tyres.suspDamage': 'SUSPENSIÓN', 'tyres.engineDamage': 'MOTOR',
     'fuel.title': 'COMBUSTIBLE',
     'wx.air': 'AIRE', 'wx.road': 'PISTA', 'wx.wind': 'VIENTO', 'wx.density': 'DENSIDAD', 'wx.grip': 'ADHERENCIA', 'unit.c': '°C',
+    "wx.rain": "LLUVIA",
+    "wx.dry": "seco",
+    "wx.rainTitle": "Intensidad de la lluvia, por la API del juego. Viene de ac.ext_rainParams() y solo existe con el Custom Shaders Patch.",
+    "wx.rainUnknown": "La app no puede leer el clima. La intensidad de la lluvia viene del Custom Shaders Patch, que tiene que exponer ac.ext_rainParams() a Python. Sin eso el numero seria 0, y 0 significa 'no llueve', que no es verdad.",
     'fuel.inTank': 'En el depósito', 'fuel.lapsLeft': 'Vueltas',
     'fuel.ambient': 'Aire / pista', 'fuel.penalty': 'Penalización',
     'fuel.ersUsed': 'ERS en la vuelta', 'fuel.none': 'ninguna',
@@ -320,6 +332,10 @@ const I18N = {
     'tyres.suspDamage': 'SUSPENSION', 'tyres.engineDamage': 'ENGINE',
     'fuel.title': 'FUEL',
     'wx.air': 'AIR', 'wx.road': 'TRACK', 'wx.wind': 'WIND', 'wx.density': 'DENSITY', 'wx.grip': 'GRIP', 'unit.c': '°C',
+    "wx.rain": "RAIN",
+    "wx.dry": "dry",
+    "wx.rainTitle": "Rain intensity, from the game API. It comes from ac.ext_rainParams() and only exists with the Custom Shaders Patch.",
+    "wx.rainUnknown": "The app cannot read the weather. Rain intensity comes from the Custom Shaders Patch, which has to expose ac.ext_rainParams() to Python. Without it the number would be 0, and 0 means 'no rain', which is not true.",
     'fuel.inTank': 'In tank', 'fuel.lapsLeft': 'Laps',
     'fuel.ambient': 'Air / track', 'fuel.penalty': 'Penalty',
     "lb.posTitle": "Official Assetto Corsa position. The list shows the live position, which counts laps not yet completed; the official one only counts finished laps, which is why it lags at the start of a race.",
@@ -2037,6 +2053,7 @@ function pintarClima(d) {
     setTxt(pfx + 'wx-road', d.roadTemp != null ? fmtTemp(d.roadTemp) : '—');
     setTxt(pfx + 'wx-wind', d.windSpeed != null ? d.windSpeed.toFixed(0) : '—');
     pintarGrip(pfx + 'wx-grip', d.surfaceGrip);
+    pintarChuva(pfx + 'wx-rain', d);
   }
 
   // densidade do ar: 1.225 ao nivel do mar, menos um pouco por altitude
@@ -2050,6 +2067,51 @@ function pintarClima(d) {
     const ok = d.airDensity != null && d.airDensity > 0.9 && d.airDensity < 1.4;
     dens.style.color = ok ? '' : 'var(--grey)';
   }
+
+/* A CHUVA.
+ *
+ * Vem da API Python que a nossa app publica -- a memoria partilhada
+ * nao a tem, e isso esta' confirmado campo a campo (chuva.md, Regra
+ * no 15). A app le ac.ext_rainParams()[0], que e' 0..1.
+ *
+ * O -1 e' "nao se sabe", e e' o que aparece quando o Custom Shaders
+ * Patch nao expoe essa funcao ao Python. Nesse caso mostra-se um
+ * travessao com a dica a dizer porquê, e NAO um zero: um zero e' "nao
+ * chove", que e' uma afirmacao que nao temos.
+ *
+ * O que se mostra, em pt-PT:
+ *   -1     travessao, e a dica explica que a app nao le o clima
+ *    0     a palavra "seco", a cinzento
+ *   0..1   a percentagem, com a cor a mudar com a intensidade
+ */
+function pintarChuva(id, d) {
+  const el = $(id);
+  if (!el) return;
+  const u = $(id + '-u');
+  const v = d.rainAmount;
+
+  if (v == null || v < 0) {
+    el.textContent = '\u2014';
+    el.style.color = 'var(--grey)';
+    el.title = t('wx.rainUnknown');
+    if (u) { u.textContent = ''; u.style.display = 'none'; }
+    return;
+  }
+  if (u) u.style.display = '';
+
+  const pct = Math.round(Math.max(0, Math.min(1, v)) * 100);
+  el.textContent = pct === 0 ? t('wx.dry') : String(pct);
+  el.title = t('wx.rainTitle') + ' ' + pct + '%';
+  if (u) u.textContent = pct === 0 ? '' : '%';
+
+  // A cor segue a intensidade. Nao e' decoracao: em chuva forte o
+  // valor muda depressa, e e' o numero que se quer ver a correr.
+  let cor = '';
+  if (v >= 0.5) cor = 'var(--blue)';
+  else if (v >= 0.15) cor = 'var(--badge-blue)';
+  el.style.color = cor;
+  if (u) u.style.color = cor;
+}
 }
 
 /* Aderencia: 1.0 e' o valor de seco. Só se pinta quando desce, que e'
