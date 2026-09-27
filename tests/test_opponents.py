@@ -105,7 +105,12 @@ ESPERADO_VEHICLE = tamanho_esperado(acshm.acsVehicleInfo)
 ESPERADO_PAGINA = tamanho_esperado(acshm.SPageFileSimHub)
 # a pagina e' numVehicles + focusVehicle + serverName + 128 veiculos
 #             + acInstallPath + isInternalMemoryModuleLoaded + version
-assert ESPERADO_PAGINA == 4 + 4 + 512 + ESPERADO_VEHICLE * 128 + 512 + 4 + 32, \
+#             + errorCount + lastError
+# Os dois ultimos sao as falhas publicadas pela app. Se esta' formula
+# ficar errada, o aviso e' o do proprio teste: e' a unica verificacao
+# que diz que o _fields_ ainda fecha com o que o codigo espera.
+assert ESPERADO_PAGINA == (4 + 4 + 512 + ESPERADO_VEHICLE * 128
+                          + 512 + 4 + 32 + 4 + 128), \
     "a pagina nao e' a soma dos seus campos - reve o _fields_"
 assert ESPERADO_VEHICLE == VEHICLE_FIXO, \
     "acsVehicleInfo mudou de tamanho: %d, e o _fields_ diz %d. " \
@@ -206,13 +211,34 @@ chk("slot_vazio_foi_descartado",
     [c["id"] for c in s["cars"] if c["id"] == 99], [])
 
 if len(s["cars"]) == 4:
-    a, b, c, dd = s["cars"][0], s["cars"][1], s["cars"][2], s["cars"][3]
+    #procura por nome, e nao por indice. A lista e' ORDENADA pela posicao
+    # mostrada, e a posicao mostrada e' a ao vivo. Com o 'Re' em 3.o
+    # oficial e 8.o ao vivo, a ordem muda -- e um teste que ver por
+    # indice acusaria a implementacao de estar errada quando o que
+    # mudou foi, precisamente, a ordem.
+    porNome = dict((c["name"], c) for c in s["cars"])
+    a = porNome["Strefiz"]
+    b = porNome["Perez"]
+    c = porNome["Re"]
+    dd = porNome["Albon"]
+
+    # A ordem da lista tem de ser a ordem dos numeros que a lista
+    # mostra. Ordenar por um e mostrar outro e' como se produz uma
+    # lista que parece saltada sem nenhum dos numeros estar errado.
+    chk("ordem_pela_posicao_mostrada",
+        [x["pos"] for x in s["cars"]],
+        sorted(x["pos"] for x in s["cars"]))
+    chk("as_duas_posicoes_por_carro",
+        [(x["posOficial"], x["pos"], x["livePos"]) for x in s["cars"]],
+        [(1, 1, 1), (2, 2, 2), (4, 4, 4), (3, 8, 8)])
+
     chk("0.nome", a["name"], "Strefiz")
     chk("0.carro", a["car"], "red_bull_rb21")
     chk("0.velocidade_kmh", a["speed"], 220.0)     # 61.1 m/s * 3.6 = 219.96 -> 220.0
     chk("0.melhor", a["best"], "01:48.188")       # 108188 ms
     chk("0.volta", a["lap"], 12)
     chk("0.pos", a["pos"], 1)
+    chk("0.pos_oficial", a["posOficial"], 1)
     chk("0.pos_ao_vivo", a["livePos"], 1)
     chk("0.pct", a["pct"], 0.0)
     chk("0.x", a["x"], 309.78)
@@ -224,8 +250,14 @@ if len(s["cars"]) == 4:
     chk("1.nome", b["name"], "Perez")
     chk("1.pos_ao_vivo_diferente", b["livePos"], 2)
 
+    # O 'Re' e' o caso que motivou a mudanca: 3.o oficial, 8.o ao vivo.
+    # A lista mostra o ao vivo, e a oficial fica na dica. Este carro
+    # estava no box e com uma volta a menos, que e' exactamente o caso
+    # em que o oficial atrasa.
     chk("2.nome", c["name"], "Re")
-    chk("2.pos_oficial_vs_ao_vivo", (c["pos"], c["livePos"]), (3, 8))
+    chk("2.pos_mostrada_e_a_ao_vivo", c["pos"], 8)
+    chk("2.pos_oficial_guardada", c["posOficial"], 3)
+    chk("2.pos_ao_vivo", c["livePos"], 8)
     chk("2.box", c["inPit"], True)
     chk("2.melhor", c["best"], "01:53.043")        # 113043 ms
 

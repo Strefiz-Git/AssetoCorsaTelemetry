@@ -339,7 +339,25 @@ class Opponents:
                     "id": int(c.carId),
                     "name": name,
                     "car": _b(c.carModel),
-                    "pos": int(c.carLeaderboardPosition),
+                    # A posicao mostrada e' a AO VIVO, e nao a oficial.
+                    #
+                    # As duas existem no AC e discordam. Medido nesta
+                    # corrida, no mesmo instante, para o mesmo carro:
+                    # pos=11 e livePos=5. A oficial conta voltas
+                    # completas, e no primeiro tempo de uma corrida nao
+                    # te promove por teres passado mais depressa alguem
+                    # que ainda nao fechou a volta.
+                    #
+                    # O cabecalho do dashboard ja' usava a ao vivo. Com a
+                    # lista a usar a oficial, as duas metades do ecra
+                    # diziam coisas diferentes -- subias de posicao e a
+                    # lista nao se mexia. Para quem conduz, o que
+                    # interessa e' onde se esta' agora, por isso a
+                    # posicao oficial passa a `posOficial` e fica no
+                    # title da linha, para se poder conferir.
+                    "pos": int(c.carRealTimeLeaderboardPosition)
+                           or int(c.carLeaderboardPosition),
+                    "posOficial": int(c.carLeaderboardPosition),
                     "livePos": int(c.carRealTimeLeaderboardPosition),
                     "lap": int(c.lapCount),
                     "speed": round(c.speedMS * 3.6, 1),      # m/s -> km/h
@@ -384,6 +402,9 @@ class Opponents:
                     "splits": [_ms(c.lastSplitsMS[i])
                                for i in range(min(int(c.lastSplitsCount), MAX_SECTORS))],
                 })
+            # Ordena pelo MESMO numero que e' mostrado. Ordenar por um e
+            # mostrar outro e' como se produz uma lista que parece
+            # saltada sem nenhum dos numeros estar errado.
             cars.sort(key=lambda d: (d["pos"] if d["pos"] > 0 else 999, d["name"]))
             return {"available": True, "pluginVersion": self.pluginVersion,
                     "focus": int(v.focusVehicle), "count": len(cars),
