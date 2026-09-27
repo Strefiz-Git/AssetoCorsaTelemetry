@@ -29,6 +29,7 @@ SUITE = [
     ("o JavaScript faz parse", "py", "verificar_js.py"),
     ("a app e o leitor falam igual", "py", "test_contrato.py"),
     ("o servidor fica calado", "py", "test_handler.py"),
+    ("o payload tem o que o painel precisa", "py", "test_payload.py"),
     ("tempos de volta e delta", "node", "test_tempos.js"),
     ("vida do pneu", "node", "test_tyres.js"),
     ("voltas de combustivel", "node", "test_combustivel.js"),
