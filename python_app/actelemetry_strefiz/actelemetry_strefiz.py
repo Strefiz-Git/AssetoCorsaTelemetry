@@ -138,6 +138,47 @@ def _anotaErro(e):
         pass
 
 
+def _num(v, roda=None):
+    """O que o getCarState devolve, convertido para numero.
+
+    MEDIDO, COM O JOGO A CORRER: para CurrentTyresCoreTemp, LastTyresTemp,
+    TurboBoost e KersCharge, o ac.getCarState() NAO devolve um numero --
+    devolve uma sequencia. O float() de antes rebentava com
+
+        TypeError: float() argument must be a string or a number
+
+    1 001 704 vezes em duas voltas, e os quatro campos ficavam a zero sem
+    que nada o dissesse. (E' este erro que fez o lastError valer a pena
+    ser publicado: sem ele, a contagem de erros existia mas nao dizia o
+    que era.)
+
+    O mesmo getCarState, SEM conversao, funciona bem noutros campos:
+    speedMS, spLineLength e worldPosition chegam certos. E com int(), o
+    Gear chega certo. Ou seja: a chamada esta' certa, a conversao e' que
+    estava errada.
+
+    O QUE NAO SEI, e que este comentario nao finge saber: se a sequencia
+    tem 1 elemento ou 4. Sao duas leituras diferentes para as
+    temperaturas dos pneus -- se sao 4 e eu ler [0] para todos os quatro,
+    as quatro temperaturas ficam iguais, que e' o sintoma que a
+    docstring de _tempPorPneu descreve. Por isso o codigo NAO escolhe: se
+    vierem 4, tira o elemento da roda pedida; se vier 1, tira o unico.
+    Cobre as duas sem adivinhar. E a mensagem de erro inclui o tipo e o
+    conteudo, para o proximo arranque do jogo dizer qual era.
+    """
+    if isinstance(v, (int, float)):
+        return float(v)
+    if isinstance(v, (list, tuple)):
+        if len(v) == 1:
+            return float(v[0])
+        if roda is not None and len(v) > roda:
+            return float(v[roda])
+        if len(v) > 0:
+            return float(v[0])
+    raise TypeError('getCarState devolveu %s(%r), que nao e' + "' "
+                    + 'um numero' % (type(v).__name__, v))
+
+
 def _tempPorPneu(carro, estado):
     """Temperatura dos 4 pneus, na ordem FL, FR, RL, RR.
 
@@ -168,7 +209,7 @@ def _tempPorPneu(carro, estado):
     pagina mostrava 11 carros enquanto os 128 slots ficavam a zero: uma
     lista vazia, sem erro na consola e sem nada no log.
     """
-    return [_seguro(lambda: float(ac.getCarState(carro, estado, roda)))
+    return [_seguro(lambda: _num(ac.getCarState(carro, estado, roda), roda))
             for roda in range(4)]
 
 
@@ -221,13 +262,13 @@ def escreverCarro(carId, info, nome, tempNuclear, tempBanda):
         info.tyreCoreTemp[i] = tempNuclear[i]
         info.tyreSurfaceTemp[i] = tempBanda[i]
     info.turboBoost = _seguro(
-        lambda: float(ac.getCarState(carId, acsys.CS.TurboBoost)))
+        lambda: _num(ac.getCarState(carId, acsys.CS.TurboBoost)))
     info.kersCharge = _seguro(
-        lambda: float(ac.getCarState(carId, acsys.CS.KersCharge)))
+        lambda: _num(ac.getCarState(carId, acsys.CS.KersCharge)))
     info.drsAvailable = _seguro(
-        lambda: int(ac.getCarState(carId, acsys.CS.DrsAvailable)))
+        lambda: int(_num(ac.getCarState(carId, acsys.CS.DrsAvailable))))
     info.drsEnabled = _seguro(
-        lambda: int(ac.getCarState(carId, acsys.CS.DrsEnabled)))
+        lambda: int(_num(ac.getCarState(carId, acsys.CS.DrsEnabled))))
     # A caixa pela API. O HUD do Content Manager tira a caixa daqui, e
     # nos tiramos do 'gear' da pagina de fisica -- campos com o mesmo
     # nome em interfaces diferentes (Regra no 18). Ha' um bug em que
@@ -237,7 +278,7 @@ def escreverCarro(carId, info, nome, tempNuclear, tempBanda):
     # A sentinela e' -99 e NAO -1, porque -1 e' o reveso: um valor que
     # e' valido seria lido como "caixa invalida", que e' exactamente o
     # bug que se quer ver. Nenhuma caixa chega a -99.
-    info.gearApi = _seguro(lambda: int(ac.getCarState(carId, acsys.CS.Gear)), -99)
+    info.gearApi = _seguro(lambda: int(_num(ac.getCarState(carId, acsys.CS.Gear))), -99)
 
     # --- tempos de setor da ultima volta completa ------------------------
     # A documentacao oficial diz "returns -1 on failure", portanto nao e'
