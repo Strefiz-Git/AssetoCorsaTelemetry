@@ -328,35 +328,47 @@
         <div class="stint" id="tyre-life-box">
           <div class="stint-lbl" data-i18n="tyres.life">Vida do pneu</div>
           <div class="stint-val" id="tyre-life">—</div>
+          <p class="compound-name" id="compound-name">—</p>
           <div class="stint-note" id="tyre-life-note"></div>
         </div>
-
-        <p class="compound-name" id="compound-name">—</p>
         <div class="tyres" id="tyres"></div>
-        <div class="brake-row">
-          <span data-i18n="brakes.title">TRAVÕES</span>
-          <span class="brake-vals" id="brake-temp"></span>
-        </div>
-        <div class="kv grip-row">
-          <span data-i18n="brakes.bias">B. TRAVA</span>
-          <b id="brake-bias">—</b>
-        </div>
-        <!-- Danos. So aparece quando ha' dano: um painel de danos vazio
-             e' ruido, e o HUD do jogo tambem so o mostra quando algo
-             parte. A ordem dos quatro primeiros valores vem do desenho
-             do painel dele: frente, tras, lado esquerdo, lado direito.
-             Suspensao ('S', o pior dos 4 cantos, com o detalhe na dica)
-             e motor ('M') entram NA MESMA fila, no fim -- o cartao tem
-             altura fixa (nao ha' scroll) e nao ha' folga para mais uma
-             linha: a ultima vez que se tentou isso, os travoes ficaram
-             empilhados em cima dos pneus. -->
-        <div class="kv damage-row hidden" id="damage-row">
-          <span data-i18n="tyres.damage">DANOS</span>
-          <span class="damage-bars" id="damage-bars"></span>
-        </div>
-        <div class="kv grip-row">
-          <span data-i18n="wx.grip">ADERÊNCIA</span>
-          <b id="wx-grip">—</b>
+        <!-- O RODAPE E' UMA LINHA QUE BRIGA, e nao quatro.
+             Medido, com o jogo a correr e a janela a 1223 px: a grelha
+             dos pneus tinha 0 px de altura -- o `flex:1 1 auto` com
+             `min-height:0` deixa-a colapsar -- e o conteudo real eram
+             163 px (duas linhas de 78 px, mais 7 de gap). As quatro
+             linhas de rodape ocupavam 111 px. A soma dava 343 px numa
+             carta de 238, e o que se via era TRAVOES, B. TRAVA, DANOS e
+             ADERENCIA desenhados por cima dos pneus.
+
+             Numa linha que quebra, o rodape passa a uns 24 px. Numa
+             janela estreita quebra para duas, que ainda sao 70 px
+             menos do que quatro.
+
+             Os ids nao mudam -- `brake-temp`, `brake-bias`,
+             `damage-row`, `damage-bars` e `wx-grip` sao o que o JS
+             escreve, e so' eles. -->
+        <div class="tyres-foot">
+          <div class="tf-brakes">
+            <span class="tf-lbl" data-i18n="brakes.title">TRAVÕES</span>
+            <span class="brake-vals" id="brake-temp"></span>
+          </div>
+          <div class="kv tf-item">
+            <span data-i18n="brakes.bias">B. TRAVA</span><b id="brake-bias">—</b>
+          </div>
+          <!-- Danos. So aparece quando ha' dano: um painel de danos vazio
+               e' ruido, e o HUD do jogo tambem so o mostra quando algo
+               parte. A ordem dos quatro primeiros valores vem do desenho
+               do painel dele: frente, tras, lado esquerdo, lado direito.
+               Suspensao ('S', o pior dos 4 cantos, com o detalhe na dica)
+               e motor ('M') entram NA MESMA linha, dentro da barra. -->
+          <div class="kv tf-item hidden" id="damage-row">
+            <span data-i18n="tyres.damage">DANOS</span>
+            <span class="damage-bars" id="damage-bars"></span>
+          </div>
+          <div class="kv tf-item">
+            <span data-i18n="wx.grip">ADERÊNCIA</span><b id="wx-grip">—</b>
+          </div>
         </div>
       </section>
 

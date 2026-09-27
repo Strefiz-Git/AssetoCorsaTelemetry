@@ -416,7 +416,7 @@ body{
    pista, densidade do ar, vento. A aderencia e' o unico campo que diz
    se a pista esta molhada - e por isso fica aixo dos pneus. */
 .weather{
-  display:grid;grid-template-columns:repeat(4,1fr);gap:6px;
+  display:grid;grid-template-columns:repeat(5,1fr);gap:6px;
   margin-top:8px;flex:0 0 auto;
 }
 .wx{background:var(--block);border-radius:6px;padding:4px 7px;min-width:0;
@@ -435,12 +435,43 @@ body{
   color:#000;background:var(--gold);border-radius:5px;padding:1px 8px;
   line-height:1.25;white-space:nowrap;
 }
+/* O nome do composto esta DENTRO do bloco do stint, e nao numa linha
+   propria. Medido: a linha propria custava 15 px mais 10 de margem, e
+   eram 25 px que a carta dos pneus nao tinha. E o sitio natural -- o
+   composto e' aquele de que a vida do stint esta a ser medida.
+
+   O `margin-left:auto` empurra-o para a direita. O `stint-note`, que
+   fica ao lado dele, tem a razao longa e pode desaparecer -- e a
+   largura do composto cede-lhe, porque e' o unico dos dois com
+   `flex:0 0 auto` e `text-overflow:ellipsis`. */
 .compound-name{
   font-size:10px;font-weight:600;color:var(--grey);
-  margin:4px 0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  margin:0 0 0 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   flex:0 0 auto;
 }
 .grip-row{margin-top:5px;padding-top:0;border-bottom:0}
+
+/* ---------------------------------------------------------- rodape dos pneus
+   As quatro linhas (TRAVOES, B. TRAVA, DANOS, ADERENCIA) eram quatro
+   elementos de bloco com 26 a 33 px cada: 111 px no total, numa carta
+   que precisa de 343 px e tem 238. Numa linha que quebra, sao ~24 px
+   numa janela larga e ~46 px numa estreita.
+
+   O `gap` vertical e' o que faz a quebra parecer intencional: sem ele,
+   duas linhas colam uma na outra e le-se como uma so. */
+.tyres-foot{
+  flex:0 0 auto; display:flex; flex-wrap:wrap; align-items:baseline;
+  gap:3px 16px; margin-top:7px; padding-top:6px;
+  border-top:1px solid var(--line); font-size:12px;
+}
+/* dentro do rodape os `.kv` nao podem esticar: com `flex:1 1 auto` e o
+   `justify-content:space-between` do `.kv`, cada um ocupa uma fracao da
+   largura e o `space-between` afasta o valor da etiqueta -- quatro
+   pares EthESPACE. `flex:0 0 auto` e' o que mantem cada par junto. */
+.tyres-foot .kv{flex:0 0 auto;padding:0;border-bottom:0;gap:6px}
+.tyres-foot .kv span{flex:0 0 auto}
+.tf-brakes{display:flex;align-items:baseline;gap:8px;flex:0 0 auto}
+.tf-lbl{color:var(--grey);font-weight:700;white-space:nowrap}
 
 /* luzes de estado */
 .lights{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:7px;margin-top:9px;flex:0 0 auto}
@@ -538,6 +569,18 @@ body{
 .stint-note{font-size:11px;font-weight:600;color:var(--grey);font-variant-numeric:tabular-nums;margin-top:1px}
 
 .tyres{flex:1 1 auto;display:grid;grid-template-columns:1fr 1fr;gap:7px;min-height:0}
+/* A grelha dos pneus NAO pode colapsar a zero.
+   Com `min-height:0` e `flex:1 1 auto`, o algoritmo de flex encolhe-a
+   ate zero quando o resto da carta nao cabe -- e o conteudo dela
+   transborda, porque `.tyre` nao tem `overflow:hidden`. O que se via
+   eram os valores dos pneus por baixo das linhas do rodape.
+
+   Medido: a caixa media 0 px e o conteudo 163 px. Este `min-height`
+   e' o piso, e 118 px e' o que duas celulas de 55 px mais o gap de 7
+   precisam. Se alguma vez a carta for mais baixa que isto, o que sai
+   fora e' um canto de pneu -- e a auditoria frontend avisa, em vez de
+   haver texto por cima de texto. */
+.tyres{min-height:127px}
 /* Cada pneu e' um bloco: o canto no topo-esquerda como etiqueta, a
    temperatura como numero heroi, e o resto em corpo pequeno por baixo.
    Era uma fila horizontal de tres coisas lado a lado, e a temperatura --
@@ -551,9 +594,21 @@ body{
   grid-area:nome;font-size:11px;font-weight:700;letter-spacing:.1em;
   color:var(--grey);align-self:center;
 }
-.tyre-mid{grid-area:temp;display:flex;flex-direction:column;line-height:1;min-width:0}
-.tyre-temp{font-weight:900;font-size:clamp(20px,2.3vw,28px);font-variant-numeric:tabular-nums}
-.tyre-worn{font-family:RobotoMono,'Roboto Mono',monospace;font-size:16px;font-weight:700;color:var(--white);margin-top:2px}
+/* A temperatura e a aderencia na PILHA, mas lado a lado.
+   Empilhadas davam 46 px: a temperatura a `clamp(20px,2.3vw,28px)` e
+   por baixo a aderencia a 16 px, com 2 de margem. Deitadas, ficam 24.
+
+   A razao de caberem na mesma linha e' a largura: a celula tem ~285 px
+   numa carta de 600, e o nome (`FL`) come 24. Sobram 250 para o que
+   interessa, e `24 °C  99,9` ocupa metade disso. E' a mesma leitura do
+   HUD do jogo, que poe as duas coisas lado a lado.
+
+   O `--worn` e' o que estava a dar a altura: com `align-items:baseline`,
+   os dois numeros alinham pela base, como dois numeros devem alinhar. */
+.tyre-mid{grid-area:temp;display:flex;flex-direction:row;align-items:baseline;
+  gap:7px;line-height:1;min-width:0}
+.tyre-temp{font-weight:900;font-size:clamp(20px,2.3vw,28px);font-variant-numeric:tabular-nums;flex:0 0 auto}
+.tyre-worn{font-family:RobotoMono,'Roboto Mono',monospace;font-size:14px;font-weight:700;color:var(--white);flex:0 0 auto;min-width:0}
 .tyre-worn.warn{color:var(--orange)}
 .tyre-worn.bad{color:var(--red)}
 .tyre-bar-wrap{grid-area:sub;display:flex;align-items:center;gap:7px;min-width:0}
@@ -708,6 +763,23 @@ body.paused .app{opacity:.6;filter:saturate(.5)}
   }
   .c-map{min-height:230px}.c-main{min-height:240px}
   .c-laps,.c-tyres,.c-pedals,.c-fuel{min-height:150px}
+/* A carta dos pneus precisa de mais do que os outros 150.
+
+   Medido, com o jogo a correr e a janela a 1223 px: o conteudo dela
+   dava 279 px (16 do cabecalho + 38 do stint + 127 da grelha + 55 do
+   rodape, mais 11 de padding e tres gaps de 7) e a carta media 238. O
+   que faltava aparecia como rodape por fora da carta -- ou, antes de o
+   rodape ter cabido numa linha, como quatro linhas de texto por cima
+   das celulas dos pneus.
+
+   Dar-lhe 290 e' pedir a altura de que ela precisa, e nao ha' Pagination
+   a pagina: a grelha da vista e' de duas colunas e a linha fica com a
+   altura do mais alto. A carta da direita dessa linha estica, e uma
+   carta com folga e' melhor do que uma carta a mais.
+
+   Os outros tres ficam nos 150. Ninguem precisa de mais, e subir tudo
+   por igual era esconder o problema, nao resolver. */
+.c-tyres{min-height:290px}
   /* O grafico dos pedais precisa de altura: com 3 faixas mais a regua do
      tempo, abaixo de ~150 px cada faixa fica com pouco mais de 30 px e
      deixa de se ler. Medido: a 1100 px ficava com 69 px. */
