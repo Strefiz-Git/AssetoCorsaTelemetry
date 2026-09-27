@@ -84,6 +84,73 @@ VERSION = "1.1.0"
 
 _EXT = {}
 
+# A SONDA DO DESGASTE, e separada da do clima de proposito.
+#
+# O clima vem do Custom Shaders Patch, que expoe funcoes `ac.ext_*`. O
+# desgaste vem da OUTRA interface -- a do objecto carro -- que e' a que
+# o HUD do Content Manager usa. Sao sondagens diferentes, e uma falhar
+# nao tem nada a ver com a outra.
+#
+# A PERGUNTA: `ac.getCar` existe em PYTHON?
+#
+#   - o SDK de Lua tem, e documenta `.wheels[0..3].tyreWear` como fracao
+#     0..1, onde 1 e' o pneu gasto. E' a mesma grandeza que o HUD mostra
+#     com `(1 - tyreWear) * 100`;
+#   - o enum `CS` do `acsys.py`, que e' o que o Python usa, tem **73
+#     campos e nenhum e' o desgaste**. Nao ha' `TyreWear` nem equivalente;
+#   - e nao ha' SDK de Python do CSP na instalacao: o modulo `ac` e'
+#     injectado pelo Content Manager em runtime, e a unica API
+#     documentada em disco e' o `acsys.py`.
+#
+# Portanto nao se supoe -- mede-se. E mede-se NO LOG, e nao na struct: a
+# struct que crescer obriga os dois lados a mudar no mesmo instante, e
+# ate o AC reiniciar o leitor da' `available: false` e a lista de
+# adversarios esvazia. Nao se paga esse preco para uma medicao.
+#
+# A conta que prova que sao grandezas diferentes ja esta feita, e nao
+# precisa da sonda: a memoria partilhada da' 100,0 e a formula do HUD
+# aplicada a esse valor da' -9900.
+_EXT_PNEU = {'estado': 'por sondar'}
+
+
+def _sondaPneu():
+    """Se `ac.getCar` existe em Python, e o que as rodas dao.
+
+    Le DUAS vezes, de proposito: o carro da CAMERA, que e' o que o HUD
+    mostra, e o carro 0, que e' o jogador. A diferenca entre os dois e'
+    a razao de ser uma comparacao e nao uma leitura -- e ja foi o que
+    happens no primeiro bug da secao: o painel a mostrar o pneu de outra
+    pessoa."""
+    f = getattr(ac, 'getCar', None)
+    if f is None:
+        _EXT_PNEU['estado'] = 'sem getCar'
+        ac.log('AssettoCorsaTelemetry: ac.getCar NAO existe em Python. '
+               'O desgaste fica so com o campo de aderencia da memoria '
+               'partilhada, que e\' outra grandeza. Regra nº 18.')
+        return
+    partes = []
+    for indice, nome in ((None, 'camera'), (0, 'jogador')):
+        try:
+            carro = ac.getSim().focusedCar if indice is None else indice
+            c = f(carro)
+            rodas = getattr(c, 'wheels', None)
+            if not rodas:
+                partes.append('%s= sem rodas' % nome)
+                continue
+            vals = []
+            for i in range(4):
+                v = getattr(rodas[i], 'tyreWear', None)
+                vals.append('%.3f' % v if isinstance(v, (int, float)) else '?')
+            partes.append('%s(carro %s) = %s' % (nome, carro, ' '.join(vals)))
+        except Exception as e:
+            partes.append('%s= ERRO %s' % (nome, e))
+    _EXT_PNEU['estado'] = ' | '.join(partes)
+    ac.log('AssettoCorsaTelemetry: desgaste pela Lua -- %s'
+           % _EXT_PNEU['estado'])
+    ac.log('AssettoCorsaTelemetry: o `tyreWear` da memoria partilhada deu '
+           '100,0 e a formula do HUD aplicada a esse valor daria -9900, '
+           'logo sao grandezas diferentes. o do HUD.')
+
 
 def _sondaClima():
     """Procura as funcoes de clima uma vez, no arranque."""
@@ -512,6 +579,13 @@ def acMain(ac_version):
     # Python. Chamar isto aqui dentro, a cada ciclo, seria
     # precisamente o erro que a funcao existe para evitar.
     _sondaClima()
+    # E a do desgaste, pelo mesmo motivo e pela mesma razao: uma vez so,
+    # no arranque. A DIFFERENCA e' que esta nao escreve nada na pagina --
+    # so' mede se `ac.getCar` existe em Python, e deixa o resultado no
+    # log. Publicar o valor exigiria crescer a struct, e a struct que
+    # cresce obriga os dois lados a mudar no mesmo instante, com a lista
+    # de adversarios a esvaziar ate o AC reiniciar. Ver _sondaPneu().
+    _sondaPneu()
 
     page = shared.get()
     page.serverName = _seguro(lambda: ac.getServerName().encode('utf-8'), b'')
