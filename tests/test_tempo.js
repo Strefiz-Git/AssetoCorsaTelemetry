@@ -146,6 +146,131 @@ eq(T.CENAS[0].limiar, 0, 'a primeira banda e\' o zero, e nao 0,001');
 eq(T.CENAS[T.CENAS.length - 1].limiar, 0.8, 'a ultima e\' o hurricane');
 
 console.log('');
+console.log('=== 8. o eixo do VENTO, com os pares (chuva, vento) reais ===');
+/* Estes valores sao as DUAS colunas da mesma linha da tabela do Pure
+ * Planner -- a terceira, `rain`, e a oitava, `wind`. Ate aqui so' se
+ * alimentava a terceira ao `cenaDe`, e era por isso que DUAS cenas com a
+ * mesma chuva davam a mesma palavra.
+ *
+ * A razao de ser um teste separado e nao mais uma linha em 1: e' a
+ * backwards-compatibilidade. `cenaDe(chuva)` com um so' argumento tem de
+ * dar exactamente o que dava antes, porque e' assim que o `app.js` chama
+ * quando nao ha' Custom Shaders Patch, e porque os 57 casos acima
+ * chamam-no de um so' argumento. Um segundo parametro que mudasse
+ * alguma coisa sem querer nao apareceria em nenhum deles. */
+const COM_VENTO = [
+  // nome,            chuva,  vento,  esperado
+  ['windy',             0,      50,  'ventoso'],
+  ['squalls',        0.025,     70,  'aguaceiro'],
+  ['tornado',        0.3,      100,  'tornado'],
+  ['hurricane',      0.8,      120,  'furacao'],
+];
+for (const [nome, chuva, vento, esperado] of COM_VENTO) {
+  eq(T.cenaDe(chuva, vento), esperado,
+     nome + ': chuva ' + chuva + ', vento ' + vento);
+}
+
+console.log('');
+console.log('=== 9. a colisao que motivated o eixo: mesma chuva, cenas distintas ===');
+/* `tornado` e `heavy_sleet` tem 0,300 de chuva as duas. Com so' a chuva
+ * as duas diziam CHUVA FORTE, e uma e' um tornado e a outra e' grao.
+ * Este e' o caso que vale a pena ter escrito. */
+eq(T.cenaDe(0.3, 0), 'chuvaForte', 'heavy_sleet: 0,300 sem vento');
+eq(T.cenaDe(0.3, 100), 'tornado', 'tornado: o MESMO 0,300 com vento');
+ok(T.cenaDe(0.3, 0) !== T.cenaDe(0.3, 100),
+   'as duas saem do o mesmo numero e da' + 'm palavras diferentes');
+
+console.log('');
+console.log('=== 10. o vento NAO pode estragar uma cena de chuva que ele nao domina ===');
+/* Estes sao os casos em que o vento e' alto mas a chuva manda. O
+ * `heavy_thunderstorm` tem 0,35 de chuva e 70 de vento -- o mesmo 70 do
+ * `squalls`. Se o limiar fosse so' o vento, os dois dariam aguaceiro. */
+eq(T.cenaDe(0.35, 70), 'trovoadaForte', 'heavy_thunderstorm: 0,35 e 70 de vento');
+eq(T.cenaDe(0.6, 30), 'chuvaForte', 'heavy_rain: 0,6 e 30 de vento');
+eq(T.cenaDe(0.125, 20), 'chuva', 'rain: 0,125 e 20 de vento');
+eq(T.cenaDe(0.2, 40), 'trovoada', 'thunderstorm: 0,2 e 40 de vento');
+eq(T.cenaDe(0.03, 0), 'neve', 'snow: 0,03 sem vento');
+eq(T.cenaDe(0.025, 0), 'chiadaForte', 'squalls SEM o vento que o define');
+ok(T.cenaDe(0.025, 0) !== T.cenaDe(0.025, 70),
+   'squalls com e sem o seu vento dao palavras diferentes');
+
+console.log('');
+console.log('=== 11. as cenas secas: o vento abaixo de 50 nao inventa nada ===');
+/* As 12 cenas com chuva zero so' se distinguem por `humidity`, `mist` e
+ * `sun`, e nenhum desses campos esta' na memoria partilhada -- foi
+ * verificado nos 60 campos da SPageFilePhysics. O `windy` tem 50 de
+ * vento e e' o unico delas que o vento alcanca. */
+eq(T.cenaDe(0, 5), 'seco', 'clear: 5 de vento, abaixo do limiar');
+eq(T.cenaDe(0, 15), 'seco', 'few_clouds: 15 de vento');
+eq(T.cenaDe(0, 35), 'seco', 'broken_clouds: 35 de vento, ainda abaixo');
+eq(T.cenaDe(0, 49.9), 'seco', '49,9 de vento ainda nao e\' ventoso');
+eq(T.cenaDe(0, 50), 'ventoso', '50 de vento e\' o `windy` da tabela');
+eq(T.cenaDe(0, 0), 'seco', 'fog: chuva e vento a zero, e diz so\' seco');
+
+console.log('');
+console.log('=== 12. sem vento medido, tudo fica como estava ===');
+/* E' o que acontece sem o Custom Shaders Patch: a app escreve -1. E o
+ * que acontece em qualquer codigo que ainda chame com um argumento. */
+eq(T.cenaDe(0.3, -1), T.cenaDe(0.3), 'com -1, igual a um so\' argumento');
+eq(T.cenaDe(0.3, null), T.cenaDe(0.3), 'com null, igual a um so\' argumento');
+eq(T.cenaDe(0.3), T.cenaDe(0.3, -1), 'o sentido inverso tambem');
+eq(T.cenaDe(0.3, undefined), 'chuvaForte', 'com undefined');
+/* e o -1 da chuva continua a ser "nao sei", nao "seco" */
+eq(T.cenaDe(-1, 100), null, 'chuva desconhecida, mesmo com furacao, e\' null');
+eq(T.cenaDe(-1, -1), null, 'tudo desconhecido');
+eq(T.nivelDe(-1, 100), 'desconhecido', 'e o nivel tambem');
+
+console.log('');
+console.log('=== 13. o nivel de cor segue a cena, e nao a chuva ===');
+/* 0,3 de chuva cai ABAIXO do limiar de 0,35, logo a cor de chuva e'
+ * `moderada` e nao `forte`. Escrevi `forta` a primeira vez e o teste
+ * falhou -- com razao, e era o teste que estava errado, e nao o
+ * `tempo.js`. Vale a pena ficar escrito: um teste que falha nao e'
+ * sempre o codigo, e aqui a banda estava certa desde o principio. */
+eq(T.nivelDe(0.3, 0), 'moderada', 'chuva 0,3 sem vento');
+/* e com o vento do tornado a MESMA chuva sobe de cor. E' este o caso
+ * que vale a pena: a palavra e a cor mudam sem a chuva mudar nada. */
+eq(T.nivelDe(0.3, 100), 'forte', 'o MESMO 0,3, mas com vento de tornado');
+ok(T.nivelDe(0.3, 0) !== T.nivelDe(0.3, 100),
+   'o vento muda a cor sem a chuva mudar');
+/* e as cenas de vento nao precisam de chuva nenhuma */
+eq(T.nivelDe(0, 50), 'fraca', 'ventoso, sem chuva nenhuma');
+/* Com 70 de vento e CHUVA ZERO o resultado e' `ventoso`, e nao
+ * `aguaceiro` -- e' propositado. O `squalls` da tabela tem 0,025 de
+ * chuva: e' chuva com vento, e sem chuva nao ha' nome para isso. A
+ * unica cena SECA que o vento define e' `windy`, a 50, e 70 continua
+ * acima de 50. Inventar um nome entre `ventoso` e `aguaceiro` seria
+ * exatamente o palpite que a tabela veio substituir. */
+eq(T.cenaDe(0, 70), 'ventoso', '70 de vento sem chuva e\' `ventoso`');
+eq(T.nivelDe(0, 70), 'fraca', 'e por isso a cor e\' a de `ventoso`');
+/* com a chuva do `squalls` presente, o mesmo 70 da aguaceiro */
+eq(T.cenaDe(0.025, 70), 'aguaceiro', 'o mesmo 70, com 0,025 de chuva');
+eq(T.nivelDe(0.025, 70), 'moderada', 'e a cor sobe');
+eq(T.nivelDe(0, 120), 'muiforte', 'furacao, sem chuva');
+ok(T.nivelDe(0, 50) !== T.nivelDe(0, 0),
+   '50 de vento com chuva zero nao e\' a mesma cor que zero de tudo');
+/* e nunca ha' uma cena sem nivel -- e' o que faria a cor desaparecer */
+for (const [, chuva, vento] of COM_VENTO) {
+  ok(T.nivelDe(chuva, vento) !== 'desconhecido',
+     'a cena ' + vento + ' de vento tem nivel');
+}
+
+console.log('');
+console.log('=== 14. a lista do vento e\' decrescente, e o varrimento depende disso ===');
+let decrescente = true;
+for (let i = 1; i < T.CENAS_VENTO.length; i++) {
+  if (T.CENAS_VENTO[i].vento >= T.CENAS_VENTO[i - 1].vento) decrescente = false;
+}
+eq(decrescente, true, 'os limiares de vento descem, sem repetir');
+eq(T.CENAS_VENTO.length, 4, 'quatro cenas de vento, quatro limiares da tabela');
+/* todos os limiares sao valores que existem na coluna `wind` */
+const VENTOS_DA_TABELA = [0, 5, 10, 15, 20, 30, 35, 40, 50, 70, 100, 120];
+for (const r of T.CENAS_VENTO) {
+  ok(VENTOS_DA_TABELA.indexOf(r.vento) >= 0,
+     r.vento + ' e' + ' um valor real da coluna `wind`');
+}
+
+console.log('');
 console.log('='.repeat(60));
 if (falhou) { console.log('!!! ' + falhou + ' FALHA(S) de ' + (passou + falhou)); process.exit(1); }
 console.log('ok: ' + passou + ' casos. As cenas do tempo sao as do jogo.');

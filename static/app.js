@@ -71,7 +71,7 @@ const I18N = {
     'fuel.title': 'COMBUSTÍVEL',
     'wx.air': 'AR', 'wx.road': 'PISTA', 'wx.wind': 'VENTO', 'wx.density': 'DENSIDADE', 'wx.grip': 'ADERENCIA', 'unit.c': '°C',
     "wx.rain": "CHUVA",
-    "wx.seco": "SECO", "wx.chiada": "CHIADA", "wx.chiadaForte": "CHIADA FORTE", "wx.chuvaFraca": "CHUVA FRACA", "wx.chuva": "CHUVA", "wx.chuvaForte": "CHUVA FORTE", "wx.neve": "NEVE", "wx.trovoada": "TROVOADA", "wx.trovoadaForte": "TROVOADA FORTE", "wx.furacao": "FURACÃO", "wx.topoDoCartao": "o topo do que o jogo tem",
+    "wx.seco": "SECO", "wx.chiada": "CHIADA", "wx.chiadaForte": "CHIADA FORTE", "wx.chuvaFraca": "CHUVA FRACA", "wx.chuva": "CHUVA", "wx.chuvaForte": "CHUVA FORTE", "wx.neve": "NEVE", "wx.trovoada": "TROVOADA", "wx.trovoadaForte": "TROVOADA FORTE", "wx.furacao": "FURACÃO", "wx.ventoso": "VENTOSO", "wx.aguaceiro": "AGUACEIRO", "wx.tornado": "TORNADO", "wx.topoDoCartao": "o topo do que o jogo tem",
     "wx.rainTitle": "Intensidade da chuva, pela API do jogo. Vem de ac.ext_rainParams() e so' existe com o Custom Shaders Patch.",
     "wx.rainUnknown": "A app nao consegue ler o clima. A intensidade da chuva vem do Custom Shaders Patch, que precisa de expor ac.ext_rainParams() ao Python. Sem isso o numero seria 0, e 0 significa 'nao chove', que nao e' a verdade.",
     'fuel.inTank': 'Na reserva', 'fuel.lapsLeft': 'Voltas',
@@ -162,7 +162,7 @@ const I18N = {
     'fuel.title': 'COMBUSTÍVEL',
     'wx.air': 'AR', 'wx.road': 'PISTA', 'wx.wind': 'VENTO', 'wx.density': 'DENSIDADE', 'wx.grip': 'ADERENCIA', 'unit.c': '°C',
     "wx.rain": "CHUVA",
-    "wx.seco": "SECO", "wx.chiada": "CHIADA", "wx.chiadaForte": "CHIADA FORTE", "wx.chuvaFraca": "CHUVA FRACA", "wx.chuva": "CHUVA", "wx.chuvaForte": "CHUVA FORTE", "wx.neve": "NEVE", "wx.trovoada": "TROVOADA", "wx.trovoadaForte": "TROVOADA FORTE", "wx.furacao": "FURACÃO", "wx.topoDoCartao": "o topo do que o jogo tem",
+    "wx.seco": "SECO", "wx.chiada": "CHIADA", "wx.chiadaForte": "CHIADA FORTE", "wx.chuvaFraca": "CHUVA FRACA", "wx.chuva": "CHUVA", "wx.chuvaForte": "CHUVA FORTE", "wx.neve": "NEVE", "wx.trovoada": "TROVOADA", "wx.trovoadaForte": "TROVOADA FORTE", "wx.furacao": "FURACÃO", "wx.ventoso": "VENTOSO", "wx.aguaceiro": "AGUACEIRO", "wx.tornado": "TORNADO", "wx.topoDoCartao": "o topo do que o jogo tem",
     "wx.rainTitle": "Intensidade da chuva, pela API do jogo. Vem de ac.ext_rainParams() e so' existe com o Custom Shaders Patch.",
     "wx.rainUnknown": "A app nao consegue ler o clima. A intensidade da chuva vem do Custom Shaders Patch, que precisa de expor ac.ext_rainParams() ao Python. Sem isso o numero seria 0, e 0 significa 'nao chove', que nao e' a verdade.",
     'fuel.inTank': 'No tanque', 'fuel.lapsLeft': 'Voltas',
@@ -246,7 +246,7 @@ const I18N = {
     'fuel.title': 'COMBUSTIBLE',
     'wx.air': 'AIRE', 'wx.road': 'PISTA', 'wx.wind': 'VIENTO', 'wx.density': 'DENSIDAD', 'wx.grip': 'ADHERENCIA', 'unit.c': '°C',
     "wx.rain": "LLUVIA",
-    "wx.seco": "SECO", "wx.chiada": "LLOVIZNA", "wx.chiadaForte": "LLOVIZNA FUERTE", "wx.chuvaFraca": "LLUVIA LIGERA", "wx.chuva": "LLUVIA", "wx.chuvaForte": "LLUVIA FUERTE", "wx.neve": "NIEVE", "wx.trovoada": "TORMENTA", "wx.trovoadaForte": "TORMENTA FUERTE", "wx.furacao": "HURACÁN", "wx.topoDoCartao": "el tope de lo que tiene el juego",
+    "wx.seco": "SECO", "wx.chiada": "LLOVIZNA", "wx.chiadaForte": "LLOVIZNA FUERTE", "wx.chuvaFraca": "LLUVIA LIGERA", "wx.chuva": "LLUVIA", "wx.chuvaForte": "LLUVIA FUERTE", "wx.neve": "NIEVE", "wx.trovoada": "TORMENTA", "wx.trovoadaForte": "TORMENTA FUERTE", "wx.furacao": "HURACÁN", "wx.ventoso": "VENTOSO", "wx.aguaceiro": "AGUACERO", "wx.tornado": "TORNADO", "wx.topoDoCartao": "el tope de lo que tiene el juego",
     "wx.rainTitle": "Intensidad de la lluvia, por la API del juego. Viene de ac.ext_rainParams() y solo existe con el Custom Shaders Patch.",
     "wx.rainUnknown": "La app no puede leer el clima. La intensidad de la lluvia viene del Custom Shaders Patch, que tiene que exponer ac.ext_rainParams() a Python. Sin eso el numero seria 0, y 0 significa 'no llueve', que no es verdad.",
     'fuel.inTank': 'En el depósito', 'fuel.lapsLeft': 'Vueltas',
@@ -333,7 +333,7 @@ const I18N = {
     'fuel.title': 'FUEL',
     'wx.air': 'AIR', 'wx.road': 'TRACK', 'wx.wind': 'WIND', 'wx.density': 'DENSITY', 'wx.grip': 'GRIP', 'unit.c': '°C',
     "wx.rain": "RAIN",
-    "wx.seco": "CLEAR", "wx.chiada": "DRIZZLE", "wx.chiadaForte": "HEAVY DRIZZLE", "wx.chuvaFraca": "LIGHT RAIN", "wx.chuva": "RAIN", "wx.chuvaForte": "HEAVY RAIN", "wx.neve": "SNOW", "wx.trovoada": "THUNDERSTORM", "wx.trovoadaForte": "HEAVY THUNDERSTORM", "wx.furacao": "HURRICANE", "wx.topoDoCartao": "the top of what the game has",
+    "wx.seco": "CLEAR", "wx.chiada": "DRIZZLE", "wx.chiadaForte": "HEAVY DRIZZLE", "wx.chuvaFraca": "LIGHT RAIN", "wx.chuva": "RAIN", "wx.chuvaForte": "HEAVY RAIN", "wx.neve": "SNOW", "wx.trovoada": "THUNDERSTORM", "wx.trovoadaForte": "HEAVY THUNDERSTORM", "wx.furacao": "HURRICANE", "wx.ventoso": "WINDY", "wx.aguaceiro": "SQUALL", "wx.tornado": "TORNADO", "wx.topoDoCartao": "the top of what the game has",
     "wx.rainTitle": "Rain intensity, from the game API. It comes from ac.ext_rainParams() and only exists with the Custom Shaders Patch.",
     "wx.rainUnknown": "The app cannot read the weather. Rain intensity comes from the Custom Shaders Patch, which has to expose ac.ext_rainParams() to Python. Without it the number would be 0, and 0 means 'no rain', which is not true.",
     'fuel.inTank': 'In tank', 'fuel.lapsLeft': 'Laps',
@@ -2183,11 +2183,26 @@ function pintarChuva(id, d) {
   }
   if (u) u.style.display = '';
 
-  const cena = Tempo.cenaDe(v);
+  // O VENTO entra na cena. A tabela de 37 cenas do Pure Planner tem DUAS
+  // com a mesma chuva e ventos opostos -- `tornado` (0,300 de chuva,
+  // 100 de vento) e `heavy_sleet` (0,300, 0) -- e com so' a chuva as
+  // duas diziam a mesma coisa. O `windSpeed` ja' era lido, ia no
+  // cabecalho da pagina, e estava a ser deitado fora.
+  //
+  // Fica -1 quando nao ha' vento medido, e o `tempo.js` ignora o -1 e
+  // comporta-se exactamente como antes. E' o que acontece em qualquer
+  // sessao sem o Custom Shaders Patch.
+  const w = (d.windSpeed == null || d.windSpeed < 0) ? -1 : d.windSpeed;
+  const cena = Tempo.cenaDe(v, w);
   const pct = Tempo.percentDe(v);
   el.textContent = t('wx.' + cena);
   el.title = t('wx.rainTitle') + ' ' + pct + '%'
-    + (v >= Tempo.CHUVA_MAXIMA ? '  (' + t('wx.topoDoCartao') + ')' : '');
+    + (v >= Tempo.CHUVA_MAXIMA ? '  (' + t('wx.topoDoCartao') + ')' : '')
+    // O vento na dica, com o numero cru. E' o unico sitio onde se poe
+    // sem interpretar: enquanto a UNIDADE da coluna `wind` da tabela nao
+    // estiver confirmada -- o AC documenta m/s, a tabela nao diz nada --
+    // o numero e' o que se pode ler sem estar a supor. Ver CENAS_VENTO.
+    + (w >= 0 ? '  \u00b7  ' + t('wx.wind') + ' ' + w.toFixed(1) + ' m/s' : '');
   // O numero vai na dica, e nao ao lado da palavra. Com "TROVOADA" ou
   // "TROVOADA FORTE" nao cabia: a margem entre a palavra e a unidade e'
   // de 2 px, e o resultado era "TROVOADA30%", lido como uma palavra so.
@@ -2197,8 +2212,15 @@ function pintarChuva(id, d) {
 
   // A cor segue a intensidade. Nao e' decoracao: em chuva forte o valor
   // muda depressa, e e' o que se quer ver a correr.
-  const cor = v >= 0.6 ? 'var(--blue)'
-    : v >= 0.125 ? 'var(--badge-blue)' : '';
+  // A cor segue a CENA, e nao a chuva. Antes eram dois calculos
+  // separados, com limiares proprios -- 0,125 e 0,6 -- e a palavra vinha
+  // das bandas, com 0,125, 0,35 e 0,6. Discordavam entre 0,35 e 0,6: a
+  // palavra dizia TROVOADA FORTE e a cor era a de chuva a serio.
+  // Nenhum teste via isso, porque os dois estavam certos porlado.
+  const nivel = Tempo.nivelDe(v, w);
+  const cor = nivel === 'muiforte' ? 'var(--blue)'
+    : (nivel === 'forte' || nivel === 'moderada') ? 'var(--badge-blue)'
+    : '';
   el.style.color = cor;
   if (u) u.style.color = cor;
 }

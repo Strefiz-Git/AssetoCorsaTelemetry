@@ -83,6 +83,92 @@
     { limiar: 0.800, chave: 'furacao' }          // hurricane,    28
   ];
 
+  /* O EIXO DO VENTO, e a metade da tabela que estava a ser ignorada.
+   *
+   * A tabela de 37 cenas tem TREZE colunas, nao nove -- o comentario de
+   * cabecalho do Pure Planner esta' desatualizado e omite `mist`, `sun`,
+   * `air_temp` e `road_temp`. Ate aqui so' se usava a terceira, a `rain`.
+   * A oitava e' o `wind`, e o `windSpeed` JA' ERA LIDO: esta' no
+   * cabecalho da pagina, em m/s, e a API e a memoria partilhada batem
+   * (22,0 contra 22,5 medidos). Estava a ser lido e nao usado.
+   *
+   * A razao de ser preciso: DUAS cenas da tabela tem a MESMA chuva e
+   * ventos que nao se confundem.
+   *
+   *     tornado       0,300 de chuva    100 de vento
+   *     heavy_sleet   0,300 de chuva      0 de vento
+   *
+   * Com so' chuva as duas dizem "CHUVA FORTE" -- e uma e' um tornado e a
+   * outra e' grao. E na secura o caso e' ainda mais limpo: `windy` tem
+   * chuva zero e vento 50, e o painel dizia "SECO", que e' mentira.
+   *
+   * Nenhum limiar aqui e' redondo por escolha: todos sao o valor de `wind`
+   * de uma cena real da tabela.
+   *
+   * A UNIDADE NAO ESTA' CONFIRMADA, e e' o unico buraco Known desta
+   * tabela. A documentacao do AC diz que o `windSpeed` e' em m/s; a
+   * tabela nao diz nada, e `hurricane` a 120 tanto pode ser 120 m/s
+   * (432 km/h, furacao de verdade) como 120 km/h (33 m/s, vento forte mas
+   * nao furacao). Nao se pode decidir a partir da tabela, porque a tabela
+   * nao tem unidades. A medicao que resolve e' uma so': escolher `windy`
+   * no Pure Planner e ler o `windSpeed` -- se der perto de 50, a coluna e'
+   * m/s; se der perto de 14, e' km/h. Esta' escrito no `chuva2.md`.
+   *
+   * ate essa medicao, o erro e' para o lado seguro: um limiar alto demais
+   * nunca dispara, e uma cena errada por vento a mais nunca aparece. O
+   * que nao e' aceitavel e' o inverso -- disparar `ventoso` com brisa. */
+  var CENAS_VENTO = [
+    // `hurricane`, 28: 0,8 de chuva e 120 de vento. Sem restricao de
+    // chuva, porque 120 e' o topo da tabela e nao ha' cena acima disso --
+    // e porque um vento de furacao e' um furacao com chuva ou sem.
+    { vento: 120.0, chave: 'furacao' },
+    // `tornado`, 27: 0,3 de chuva e 100 de vento. A chuva minima e' a
+    // do proprio preset arredondada para baixo (0,25), porque sem ela
+    // qualquer vento de 100 com chuva zero seria chamado tornado, e a
+    // tabela nao tem isso.
+    { vento: 100.0, chave: 'tornado', chuvaMin: 0.25 },
+    // `squalls`, 26: 0,025 de chuva e 70 de vento. Com chuva zero NAO e'
+    // aguaceiro -- cai para `ventoso`, que e' o que a secao de vento da
+    // tabela diz a 50. Por isso a chuva minima e' 0,001 e nao 0.
+    { vento: 70.0, chave: 'aguaceiro', chuvaMin: 0.001, chuvaMax: 0.10 },
+    // `windy`, 31: chuva zero e 50 de vento. A chuva maxima e' a do
+    // limiar da chcada, que e' 0,001 -- abaixo disso nao ha' chuva.
+    { vento: 50.0, chave: 'ventoso', chuvaMax: 0.001 }
+  ];
+
+  /* O vento chega a definir a cena? Devolve a chave, ou null para nao
+   * se meter.
+   *
+   * A ORDEM E' QUE FAZ O TRABALHO, e da' um bug que o teste apanhou na
+   * primeira versao. A lista esta' por ordem DECRESCENTE de vento
+   * (120, 100, 70, 50) e o `return` no primeiro que serve e' o que
+   * escolhe a cena mais forte que o vento justify.
+   *
+   * O que estava errado era o `break`. Escrevi `if (vento < r.vento)
+   * break` com o comentario "a lista e' decrescente, portanto e' o mesmo
+   * que um `while` sem ecra". Nao e' o mesmo, e o raciocinio estava
+   * invertido: numa lista DECRESCENTE, falhar um limiar alto nao
+   * desiste nada, porque todos os que vem a seguir sao MAIS BAIXOS. Com
+   * 50 de vento, a primeira linha pedia 120, o `break` parava ali, e a
+   * quarta -- que e' exactamente a do `windy` -- nunca era olhada. O
+   * resultado era "seco" com 50 de vento, que e' o erro exacto que este
+   * eixo veio corrigir.
+   *
+   * O `continue` e' que esta' certo, e o `return` e' o que escolhe. */
+  function cenaDeVento(chuva, vento) {
+    // sem vento medido, o comportamento e' o de sempre: so' a chuva decide
+    if (vento == null || vento < 0) return null;
+    for (var i = 0; i < CENAS_VENTO.length; i++) {
+      var r = CENAS_VENTO[i];
+      // ainda nao chega a este limiar -- tenta o seguinte, que e' menor
+      if (vento < r.vento) continue;
+      if (r.chuvaMin != null && chuva < r.chuvaMin) continue;
+      if (r.chuvaMax != null && chuva > r.chuvaMax) continue;
+      return r.chave;
+    }
+    return null;
+  }
+
   /* Que cena da' esta carga de chuva?
    *
    * A lista esta ordenada, por isso e' um varrimento com `break`. E nao
@@ -90,8 +176,14 @@
    * `break` -- que so' dariam o mesmo resultado se a lista estivesse ao
    * contrario. Um dia alguem ordena isto sem querer, e o `break` continua
    * a dar a cena correcta. */
-  function cenaDe(chuva) {
+  function cenaDe(chuva, vento) {
     if (chuva == null || chuva < 0) return null;
+    // O primeiro paragrafo e' o que mudou. Com o vento a -1 -- que e' o
+    // que a app escreve quando nao ha `ac.getWindSpeed` -- isto devolve
+    // null e cai nas bandas de chuva, exactamente como antes. Por isso
+    // os 57 casos do `test_tempo.js` continuam a passar sem mudar um.
+    var doVento = cenaDeVento(chuva, vento);
+    if (doVento) return doVento;
     var v = Math.min(chuva, CHUVA_MAXIMA);
     var c = CENAS[0];
     for (var i = 0; i < CENAS.length; i++) {
@@ -109,10 +201,31 @@
     return Math.round((Math.min(chuva, CHUVA_MAXIMA) / CHUVA_MAXIMA) * 100);
   }
 
-  /* A cena tem uma cor? A escala e' a do jogo, e as bandas de cor sao
-     as mesmas que os limiares -- verde para o seco, e a subir. */
-  function nivelDe(chuva) {
+  /* O nivel de cor. Recebe a mesma coisa que `cenaDe` -- a chuva e o
+   * vento -- e nao a chave, para que quem chama nao tenha de a calcular
+   * duas vezes e o risco de as duas contas divergirem.
+   *
+   * A razao e' a regra nº 16 aplicada a uma cor: enquanto a palavra e a
+   * cor sairam de duas contas diferentes, `chuva` a dizer uma coisa e a
+   * cor outra, e nenhum teste apanha -- porque os dois estavam certos
+   * individualmente. Passando a chave, e' impossivel divergirem: a cor
+   * vem da cena que a palavra mostra.
+   *
+   * Os niveis de vento nao sao novos. Sao os mesmos nomes, escolhidos
+   * por ordem do `wind` da tabela -- 50, 70, 100, 120 -- para nao
+   * inventar uma escala de cor nova quando a escala da chuva ja
+   * responde. */
+  var NIVEL_DE_VENTO = {
+    ventoso: 'fraca',       // 50
+    aguaceiro: 'moderada',  // 70
+    tornado: 'forte',       // 100
+    furacao: 'muiforte'     // 120
+  };
+
+  function nivelDe(chuva, vento) {
     if (chuva == null || chuva < 0) return 'desconhecido';
+    var doVento = cenaDeVento(chuva, vento);
+    if (doVento && NIVEL_DE_VENTO[doVento]) return NIVEL_DE_VENTO[doVento];
     if (chuva < 0.001) return 'seco';
     if (chuva < 0.05) return 'muitofraca';
     if (chuva < 0.125) return 'fraca';
@@ -124,6 +237,7 @@
   var api = {
     CHUVA_MAXIMA: CHUVA_MAXIMA,
     CENAS: CENAS,
+    CENAS_VENTO: CENAS_VENTO,
     cenaDe: cenaDe,
     percentDe: percentDe,
     nivelDe: nivelDe
