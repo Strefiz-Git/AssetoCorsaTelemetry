@@ -488,7 +488,7 @@ body{
 }
 .tyre-mid{grid-area:temp;display:flex;flex-direction:column;line-height:1;min-width:0}
 .tyre-temp{font-weight:900;font-size:clamp(20px,2.3vw,28px);font-variant-numeric:tabular-nums}
-.tyre-worn{font-size:12px;font-weight:800;color:var(--white);margin-top:2px}
+.tyre-worn{font-size:16px;font-weight:900;color:var(--white);margin-top:2px}
 .tyre-worn.warn{color:var(--orange)}
 .tyre-worn.bad{color:var(--red)}
 .tyre-bar-wrap{grid-area:sub;display:flex;align-items:center;gap:7px;min-width:0}
@@ -500,7 +500,7 @@ body{
   display:flex;align-items:baseline;gap:5px;flex:0 0 auto;white-space:nowrap;
   font-variant-numeric:tabular-nums;
 }
-.tyre-press b{font-size:11px;font-weight:700;color:var(--grey)}
+.tyre-press b{font-size:13px;font-weight:700;color:var(--grey)}
 /* A pressao e' o numero medido, e o desvio (no <b>) e' o secundario.
    Estava ao contrario: a pressao num tom quase invisivel (1,86:1) e o
    desvio a cinzento. A pressao vai a branco e fica pequena; o desvio
@@ -512,7 +512,7 @@ body{
 }
 .brake-row>span:first-child{font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--grey);flex:0 0 auto}
 .brake-vals{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;flex:1 1 auto;min-width:0}
-.brake-vals b{font-weight:900;font-size:15px;font-variant-numeric:tabular-nums;text-align:right}
+.brake-vals b{font-weight:900;font-size:20px;font-variant-numeric:tabular-nums;text-align:right}
 
 /* Danos: quatro barras, uma por canto. Escondidas enquanto estiver tudo
    a zero -- um painel de danos vazio e' ruido. */
