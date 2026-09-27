@@ -204,10 +204,32 @@ body{
    o ponto pequeno: e' o que se ve com o canto do olho a acelerar */
 .drs.avail{
   border-color:var(--green);
-  animation:drs-box-flash 1s steps(1,end) infinite;
+  animation:drs-box-flash .62s steps(1,end) infinite;
 }
-.drs.avail .drs-dot{background:var(--green);animation:drs-blink 1s steps(1,end) infinite}
+.drs.avail .drs-dot{background:var(--green);animation:drs-blink .62s steps(1,end) infinite}
 .drs.avail .drs-txt{color:var(--green)}
+
+/* E A CARTA INTEIRA, nao so' a caixa. `.drs-alert` e' posta em JS pelo
+   `setDrs` na carta que contem o DRS.
+
+   A razao: a caixa do DRS e' um rectangulo pequeno dentro de um painel
+   grande cheio de numeros, e a carta do combustivel e' a unica outra
+   coisa do ecra que muda de tamanho -- ou seja, salta. As duas
+   competem pela mesma atencao e a que ganha e' sempre a maior. Com a
+   Zona de DRS a passar sem dar por isso, o que se perde nao e' um
+   numero: e' uma ultrapassagem.
+
+   O verde e' o do DRS, por requisito -- o verde e' o que o piloto
+   associa ao DRS, e um aviso de DRS a laranja lia-se como combustivel.
+   O que vem do combustivel e' o MOVIMENTO: a mesma rampa de preto para
+   a cor, a mesma moldura grossa, o mesmo ritmo. */
+@media (prefers-reduced-motion:no-preference){
+.c-main.drs-alert{animation:drscarta .62s ease-in-out infinite}
+@keyframes drscarta{
+  0%,100%{box-shadow:inset 0 0 0 4px #000}
+  50%    {box-shadow:inset 0 0 0 4px var(--green)}
+}
+}
 
 /* aberto -> solido e a brilhar, sem piscar (ja nao ha nada para fazer) */
 .drs.open{border-color:var(--green);background:#122a10}
@@ -246,11 +268,17 @@ body{
      FORMA: o aviso fica com um contorno a tracejado e o critico com
      um contorno inteiro. Quem nao distingue uma cor ainda distingue a
      outra forma. */
-  .c-fuel.fuel-aviso{outline:2px dashed var(--orange);outline-offset:2px}
-  .c-fuel.fuel-critico{outline:2px solid var(--red-txt);outline-offset:2px}
+  .c-fuel.fuel-aviso{outline:4px dashed var(--orange);outline-offset:2px}
+  .c-fuel.fuel-critico{outline:4px solid var(--red-txt);outline-offset:2px}
 
   .drs.avail{animation:none;background:#122a10;border-style:dashed}
   .drs.avail .drs-dot{animation:none;background:transparent;box-shadow:inset 0 0 0 3px var(--green)}
+  /* A carta do DRS tambem, e pela mesma razao que a do combustivel: a
+     animacao nunca existiu para quem pede para nao ver movimento, e o
+     que se poe e' a FORMA. Contorno a tracejado, porque e' a mesma
+     forma do aviso de combustivel. E a 4 px, que e' o que se ve a
+     vinte metros. */
+  .c-main.drs-alert{animation:none;outline:4px dashed var(--green);outline-offset:-2px}
   .drs.open{background:#122a10}
   .drs.open .drs-dot{box-shadow:0 0 0 3px var(--green)}
 
@@ -719,31 +747,75 @@ body.paused .app{opacity:.6;filter:saturate(.5)}
    A CLASSIFICAO ESTA NA CLASSE, e nao numa cor posta por JS: e' o que
    permite ao prefers-reduced-motion trocar o movimento por forma sem
    tocar em JavaScript. Ver o bloco do media query mais abaixo. */
-.c-fuel.fuel-aviso{border-color:var(--orange);box-shadow:inset 0 0 0 1px var(--orange)}
-.c-fuel.fuel-aviso .fuel-big{color:var(--orange)}
-.c-fuel.fuel-aviso .bar-fill.fuel{background:var(--orange)}
+/* A COR do aviso e' `--fuel-cor`, que o app.js poe a partir da
+   PERCENTAGEM -- a rampa do `corDe`, em `combustivel.js`: 15% amarelo,
+   7,5% laranja, 0% vermelho, e o meio sai da interpolacao.
 
-.c-fuel.fuel-critico{border-color:var(--red-txt);box-shadow:inset 0 0 0 1px var(--red-txt)}
-.c-fuel.fuel-critico .fuel-big{color:var(--red-txt)}
-.c-fuel.fuel-critico .bar-fill.fuel{background:var(--red)}
+   O `--fuel-cor` nao existe quando nao ha' percentagem para graduar, e
+   por isso cada regra tem um valor de recurso. O recurso do aviso e' o
+   dourado, o do critico e' o vermelho: sao as pontas da rampa, que e'
+   o que se veria se a percentagem estivesse exactamente no limite. */
+.c-fuel.fuel-aviso{
+  --fuel-cor:var(--gold);
+  border-color:var(--fuel-cor);
+  box-shadow:inset 0 0 0 4px var(--fuel-cor)
+}
+.c-fuel.fuel-aviso .fuel-big{color:var(--fuel-cor)}
+.c-fuel.fuel-aviso .bar-fill.fuel{background:var(--fuel-cor)}
 
-/* O piscar. So' a moldura e' a piscar -- o numero grande fica fixo, senao
-   um numero a piscar deixa de se ler. 1,1 s e' lento o suficiente para
-   nao enjoar e depressa o suficiente para chamar a atencao. */
-/* O piscar so' existe quando o SISTEMA PEDE movimento.
-   Opt-in e nao opt-out: em vez de desligar a animacao para quem nao a
-   quer, declara-se a animacao so' para quem a quer. Assim nao ha
-   duas regras a lutar por especificidade -- que era o que fazia o
-   prefers-reduced-motion nao fazer nada. */
+.c-fuel.fuel-critico{
+  --fuel-cor:var(--red-txt);
+  border-color:var(--fuel-cor);
+  box-shadow:inset 0 0 0 4px var(--fuel-cor)
+}
+.c-fuel.fuel-critico .fuel-big{color:var(--fuel-cor)}
+.c-fuel.fuel-critico .bar-fill.fuel{background:var(--fuel-cor)}
+
+/* O piscar.
+
+   So' a MOLDURA e' que pisca. O numero grande fica fixo, porque um
+   numero a piscar deixa de se ler, e encher a carta de laranja
+   acabaria com o contraste do texto -- que a auditoria mede.
+
+   A COR SOBE DE PRETO A LARANJA, e nao de laranja fraco a laranja
+   forte. Era fraco-forte antes, e nao se via: num painel escuro, um
+   laranja suave ao lado de um laranja forte e' a mesma coisa, e o olho
+   deixa de o registar. O preto e' o fundo da propria carta, por isso
+   arrancar dele e' o maior salto que a moldura da sem mexer no texto.
+
+   A rampa tem passos intermedios, a 30% e a 70%. Com so' o 0% e o
+   50% o browser interpola em espaco linear de cor, e o meio fica com
+   uma cor errada a meio do caminho -- le-se como um salto, nao como
+   uma rampa.
+
+   RAPIDA: 0,62 s no aviso, 0,42 s no critico. Os 1,1 s que havia eram
+   calmos de mais para um aviso de combustivel -- a esta velocidade da
+   pista e' no intervalo de uma pit lane que se decide se se mete ou
+   nao. */
 @media (prefers-reduced-motion:no-preference){
-.c-fuel.fuel-medindo.fuel-aviso{animation:fuelaviso 1.1s ease-out infinite}
-.c-fuel.fuel-medindo.fuel-critico{animation:fuelcritico .75s ease-out infinite}
+.c-fuel.fuel-medindo.fuel-aviso{animation:fuelaviso .62s ease-in-out infinite}
+.c-fuel.fuel-medindo.fuel-critico{animation:fuelcritico .42s ease-in-out infinite}
+/* A rampa vai de PRETO para a COR DA PERCENTAGEM, e volta ao preto.
+   O preto e' o fundo da carta, por isso arrancar dele e' o maior salto
+   que a moldura da sem mexer no texto. Com so' estes dois extremos o
+   browser interpola em espaco linear e o que se ve ja e' uma rampa:
+   preto, escuro, cor, escuro, preto.
+
+   SO' A MOLDURA. Havia um brilho a volta, de 18 px de desfoque a 62%
+   de opacidade, e lia-se como um glare branco -- porque a cor a 15% e'
+   um amarelo claro, e um amarelo claro com brilho, posto sobre um painel
+   escuro, e' luz. Medido: `rgba(255,215,0,0.62) 0 0 18px 5px`.
+
+   O numero e' o que interessa, e a moldura a 4 px em cima dele chega
+   para se ver. Um halo em volta de um painel cheio de numeros e' ou
+   ruido, ou pior: rouba a leitura ao numero, que e' a unica coisa que
+   o piloto precisa de la. */
 @keyframes fuelaviso{
-  0%,100%{box-shadow:inset 0 0 0 1px var(--orange),0 0 0 0 rgba(245,128,32,.45)}
-  50%    {box-shadow:inset 0 0 0 1px var(--orange),0 0 0 6px rgba(245,128,32,0)}
+  0%,100%{box-shadow:inset 0 0 0 4px #000}
+  50%    {box-shadow:inset 0 0 0 4px var(--fuel-cor)}
 }
 }
 @keyframes fuelcritico{
-  0%,100%{box-shadow:inset 0 0 0 1px var(--red-txt),0 0 0 0 rgba(255,60,60,.5)}
-  50%    {box-shadow:inset 0 0 0 1px var(--red-txt),0 0 0 8px rgba(255,60,60,0)}
+  0%,100%{box-shadow:inset 0 0 0 4px #000}
+  50%    {box-shadow:inset 0 0 0 4px var(--fuel-cor)}
 }

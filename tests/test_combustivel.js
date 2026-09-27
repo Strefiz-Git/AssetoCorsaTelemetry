@@ -362,6 +362,42 @@ console.log("=== 18. nivelDe: o mais alarmente dos dois ===");
 }
 
 console.log("");
+console.log("=== 19. corDe: a rampa do aviso, de amarelo a vermelho ===");
+{
+  // Os tres pontos que o pedido fixou: 15% amarelo, 7,5% laranja,
+  // 0% vermelho. O do meio NAO esta escrito no codigo -- e' o que a
+  // interpolacao da. E' por isso que o teste o mede: se alguem mudar
+  // uma das cores das pontas, o meio deixa de ser laranja e este
+  // teste acusa.
+  eq(C.corDe(15), null, "aos 15% nao ha cor: o aviso comeca AQUI");
+  eq(C.corDe(15.1), null, "acima do aviso continua sem cor");
+  eq(C.corDe(null), null, "sem percentagem nao ha cor");
+  eq(C.corDe(undefined), null, "undefined tambem nao ha cor");
+
+  eq(C.corDe(15 - 1e-9), "rgb(255,215,0)",
+     "imediatamente abaixo de 15% e' o dourado do painel");
+  eq(C.corDe(7.5), "rgb(255,138,30)",
+     "a meio da rampa sai o LARANJA, sem ninguem o ter escrito");
+  eq(C.corDe(0), "rgb(255,60,60)", "a zero e' o vermelho do painel");
+  eq(C.corDe(-3), "rgb(255,60,60)", "abaixo de zero nao da' a volta ao topo");
+
+  // e a rampa e' mesmo uma rampa: a cada passo o verde desce, sem degraus
+  var anterior = null;
+  var desce = true;
+  for (var p = 14.5; p > 0; p -= 0.5) {
+    var n = C.corDe(p).match(/\d+/g).map(Number);
+    if (anterior !== null && n[1] >= anterior[1]) desce = false;
+    anterior = n;
+  }
+  eq(desce, true, "o verde desce em todos os passos: e' uma rampa, nao degraus");
+
+  // e o canal vermelho nao mexe -- so' escurece. Se mexe-se, a
+  // interpolacao esta' a fazer outra coisa.
+  eq(C.corDe(15 - 1e-9).split(",")[0], C.corDe(0).split(",")[0],
+     "o vermelho fica nos 255 nos dois extremos: o que desce e' a cor");
+}
+
+console.log("");
 console.log("=".repeat(60));
 if (falhou) {
   console.log("!!! " + falhou + " FALHA(S) de " + (passou + falhou));

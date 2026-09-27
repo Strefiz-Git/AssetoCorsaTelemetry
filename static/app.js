@@ -1601,11 +1601,17 @@ function renderTyreLife(d) {
 function renderCombustivel(d) {
   const el = $('fuel-laps');
   const cartao = document.querySelector('.c-fuel');
+  // A percentagem, normalizada UMA vez. Serve para o calculo do nivel e
+  // para a cor, e tem de ser a mesma nos dois: se cada um normalizasse
+  // a seu jeito, um dia uma delas recebia 0 e a outra null, e a cor
+  // dizia 'acabou o combustivel' no frame em que o alerta calava.
+  const pct = (typeof d.fuelPct === 'number' && isFinite(d.fuelPct))
+    ? d.fuelPct : null;
   const r = Combustivel.estimarCombustivel(S.combustivel, {
     litros: d.fuelL,
     voltas: d.lap,
     connected: !!d.connected
-  }, typeof d.fuelPct === 'number' && isFinite(d.fuelPct) ? d.fuelPct : null);
+  }, pct);
   S.combustivel = r.estado;
 
   if (el) {
@@ -1643,6 +1649,22 @@ function renderCombustivel(d) {
     cartao.classList.remove('fuel-medindo');
   } else {
     cartao.classList.add('fuel-medindo');
+  }
+  // A COR segue a percentagem, e nao o nivel. Sao coisas diferentes: o
+  // nivel decide se PISCAR (e sao dois limiares independentes, o das
+  // voltas e o da percentagem), a cor decide o QUANTO se ve. Se a cor
+  // fosse a do nivel, um alerta disparado pelas VOLTAS com 60% de
+  // combustivel saltava para o vermelho -- e havia 60% para dar.
+  //
+  // Por isso a cor sai da percentagem, e nao do nivel. E quando o alerta
+  // veio das voltas e a percentagem esta' alta, `corDe` da' null e a
+  // carta fica com a cor do aviso, que e' a saida honesta: nao ha
+  // percentagem para graduar.
+  const cor = Combustivel.corDe(pct);
+  if (cor) {
+    cartao.style.setProperty('--fuel-cor', cor);
+  } else {
+    cartao.style.removeProperty('--fuel-cor');
   }
   const pctEl = $('fuel-pct');
   if (pctEl) {
@@ -2173,6 +2195,20 @@ function setDrs(els, d) {
     if (!e) return;
     e.classList.toggle('open', !!(d.hasDRS && on));
     e.classList.toggle('avail', !!(d.hasDRS && !on && avail));
+    // A CARTA INTEIRA tambem avisa, e nao so' a caixa do DRS. A caixa e'
+    // um rectangulo pequeno dentro de um painel grande cheio de
+    // numeros -- e' o que se ve com o canto do olho a acelerar, mas
+    // tanto o painel como a caixa competingem pela mesma atencao, e a
+    // que ganha e' a do combustivel, que e' maior.
+    //
+    // A classe vai para o `.card` que contem o DRS, e nao se usa
+    // `:has(.drs.avail)` no CSS: o `:has()` e' um seleccionador que,
+    // num browser que nao o suporte, nao dá erro nenhum -- a regra
+    // simplesmente nunca casa e o alerta nunca aparece. Um alerta que
+    // falha em silencio e' pior do que um alerta que nao existe,
+    // porque alguem conta com ele. Ver Regra nº 14.
+    const cartao = e.closest('.card');
+    if (cartao) cartao.classList.toggle('drs-alert', !!(d.hasDRS && !on && avail));
   });
   return { on, avail };
 }

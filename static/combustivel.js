@@ -74,6 +74,53 @@
    * razao para calar o outro. */
   var AVISO_PCT = 15;
 
+  /* A COR do aviso, em funcao da percentagem que resta.
+   *
+   * Nao sao tres zonas com tres nomes: e' UMA rampa, entre duas cores, e
+   * os pontos intermedios sao o que sai da interpolacao.
+   *
+   *     15%  ->  #FFD700  (o dourado do painel)
+   *      0%  ->  #FF3C3C  (o vermelho do painel)
+   *
+   * A meio -- 7,5% -- a mistura da' #FF8A1E, que e' o laranja. Nao foi
+   * posto de proposito: e' o que está no meio das duas, e e' a
+   *_confirmation de que a rampa esta' certa. Se se escrever
+   * 'laranja' a mao, sao tres constantes que divergem; a rampa e' uma so.
+   *
+   * Porquê uma rampa e nao tres degraus: o piloto ve o combustivel a
+   * descer. Com degraus, a cor salta de amarelo para laranja de repente
+   * e nao se sabe se piorou ou se foi um erro de leitura. Com a rampa, a
+   * cor DESCE com o numero, e o olho ve as duas coisas a andar juntas.
+   *
+   * Devolve null fora do aviso: acima de AVISO_PCT nao ha cor nenhuma,
+   * porque a carta esta' normal e pintar o normal de amarelo seria um
+   * alarme falso. */
+  var COR_ALTO = [255, 215, 0];    // #FFD700, aos AVISO_PCT
+  var COR_BAIXO = [255, 60, 60];   // #FF3C3C, aos 0
+
+  function corDe(pctRestante) {
+    var c = _mistura(pctRestante);
+    return c ? _rgb(c) : null;
+  }
+
+
+  function _mistura(pctRestante) {
+    if (pctRestante == null) return null;
+    if (pctRestante >= AVISO_PCT) return null;
+    if (pctRestante <= 0) return COR_BAIXO.slice();
+    // t vai de 1 (no limiar do aviso) a 0 (sem nada)
+    var t = pctRestante / AVISO_PCT;
+    var c = [];
+    for (var i = 0; i < 3; i++) {
+      c.push(Math.round(COR_BAIXO[i] + (COR_ALTO[i] - COR_BAIXO[i]) * t));
+    }
+    return c;
+  }
+
+  function _rgb(c) {
+    return 'rgb(' + c[0] + ',' + c[1] + ',' + c[2] + ')';
+  }
+
   /* O NIVEL DE AVISO, calculado com o que estiver disponivel.
    *
    * Deliberadamente SEPARADO de `valido`, e essa separacao e' a
@@ -277,6 +324,7 @@
   var api = {
     estimarCombustivel: estimarCombustivel,
     nivelDe: nivelDe,
+    corDe: corDe,
     AVISO_VOLTAS: AVISO_VOLTAS,
     CRITICO_VOLTAS: CRITICO_VOLTAS,
     AVISO_PCT: AVISO_PCT,
