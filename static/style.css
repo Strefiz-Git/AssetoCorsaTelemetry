@@ -60,7 +60,14 @@ body{
 .boot-box{text-align:center;padding:24px}
 .boot h1{font-weight:900;font-size:clamp(20px,3vw,34px);letter-spacing:.04em;margin-top:18px}
 .boot p{color:var(--grey);font-weight:600;margin-top:6px;font-size:14px}
-.spinner{width:42px;height:42px;margin:0 auto;border:3px solid var(--grey);border-top-color:var(--gold);border-radius:50%;animation:spin 1s linear infinite}
+/* O `spin` fica dentro do no-preference. Uma roda a girar e' movimento
+   infinito, e a regra 2.3.3 e' sobre movimento infinito, sem exception
+   para "mas so' quando se esta' a carregar". Quem pediu para nao ver
+   movimento nao quer ver a roda a girar. */
+.spinner{width:42px;height:42px;margin:0 auto;border:3px solid var(--grey);border-top-color:var(--gold);border-radius:50%}
+@media (prefers-reduced-motion:no-preference){
+.spinner{animation:spin 1s linear infinite}
+}
 @keyframes spin{to{transform:rotate(360deg)}}
 
 /* ------------------------------------------------------------ menu inicial */
@@ -138,7 +145,11 @@ body{
 .wide-btn.mark:hover{color:var(--green);border-color:var(--green)}
 .wide-btn.mark.on{
   background:var(--green);border-color:var(--green);color:#04240a;
-  animation:mark-pulse 1.1s ease-in-out infinite;
+}
+/* Mesmo caso do `spin`: o pulso do botao que marca a posicao e' movimento
+   infinito, e vai para dentro do no-preference. */
+@media (prefers-reduced-motion:no-preference){
+.wide-btn.mark.on{animation:mark-pulse 1.1s ease-in-out infinite}
 }
 @keyframes mark-pulse{
   0%,100%{box-shadow:0 0 0 0 rgba(35,207,22,.5)}
@@ -201,12 +212,18 @@ body{
 .drs-inline .drs-txt{font-size:15px}
 
 /* disponivel mas fechado -> pisca a CAIXA TODA (fundo + ponto), nao so
-   o ponto pequeno: e' o que se ve com o canto do olho a acelerar */
+   o ponto pequeno: e' o que se ve com o canto do olho a acelerar
+
+   O `animation` NAO esta aqui. As duas declaracoes infiniteas do DRS
+   estavam declaradas fora de qualquer `prefers-reduced-motion`, e por
+   isso corriam para quem pediu para nao ver movimento -- enquanto a carta
+   inteira (`drscarta`, mais abaixo) e o combustivel estavam bem hechos.
+   Era a unica coisa que a regra geral apanhava, e so' a apanhou quando
+   a regra passou a existir na suite. */
 .drs.avail{
   border-color:var(--green);
-  animation:drs-box-flash .62s steps(1,end) infinite;
 }
-.drs.avail .drs-dot{background:var(--green);animation:drs-blink .62s steps(1,end) infinite}
+.drs.avail .drs-dot{background:var(--green)}
 .drs.avail .drs-txt{color:var(--green)}
 
 /* E A CARTA INTEIRA, nao so' a caixa. `.drs-alert` e' posta em JS pelo
@@ -224,6 +241,8 @@ body{
    O que vem do combustivel e' o MOVIMENTO: a mesma rampa de preto para
    a cor, a mesma moldura grossa, o mesmo ritmo. */
 @media (prefers-reduced-motion:no-preference){
+.drs.avail{animation:drs-box-flash .62s steps(1,end) infinite}
+.drs.avail .drs-dot{animation:drs-blink .62s steps(1,end) infinite}
 .c-main.drs-alert{animation:drscarta .62s ease-in-out infinite}
 @keyframes drscarta{
   0%,100%{box-shadow:inset 0 0 0 4px #000}
