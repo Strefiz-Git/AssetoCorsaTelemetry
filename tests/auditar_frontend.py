@@ -103,13 +103,26 @@ if nopref is None:
     ko("nao existe o media query no-preference")
 else:
     i = s.index(nopref)
-    k = s.find("animation:fuelaviso")
-    if k >= 0 and nopref in s and k > i:
-        ok("a animacao do aviso esta dentro do no-preference")
-    else:
-        ko("a animacao do aviso de combustivel esta FORA do "
-           "no-preference -- vai piscar a quem pediu para nao ver "
-           "movimento")
+    # Todos os alertas que PISCAM, e nao so' o do combustivel. Cada um
+    # com a sua animacao, porque cada um tem o seu nome -- e a razao de
+    # ser uma lista e nao uma busca solta: quando se acrescenta um
+    # alerta novo, esta lista e' o que lembra de o meter aqui. Sem ela,
+    # o alerta novo entra a piscar para quem pediu para nao ver
+    # movimento, e ninguem da por isso.
+    #
+    # Os dois motivos que podem falhar sao diferentes e os dois Here:
+    # a animacao nao existe (o alerta ficou sem nada) ou esta FORA do
+    # no-preference (vai piscar a quem nao quer).
+    for nome, decl in (("combustivel", "animation:fuelaviso"),
+                       ("DRS na carta", "animation:drscarta")):
+        k = s.find(decl)
+        if k < 0:
+            ko("o piscar do %s nao existe no CSS -- o alerta desapareceu" % nome)
+        elif k > i:
+            ok("o piscar do %s esta dentro do no-preference" % nome)
+        else:
+            ko("o piscar do %s esta FORA do no-preference -- vai piscar a "
+               "quem pediu para nao ver movimento" % nome)
 
 red = bloco_media(s, "prefers-reduced-motion:reduce")
 if red is None:
@@ -120,6 +133,11 @@ else:
            "(tracejado vs inteiro)")
     else:
         ko("o aviso de combustivel nao tem regra nenhuma no reduce")
+    if "drs-alert" in red:
+        ok("o alerta do DRS tem forma alternativa no reduce")
+    else:
+        ko("o alerta do DRS nao tem regra nenhuma no reduce -- quem nao "
+           "quer movimento fica sem qualquer aviso de que ha' zona")
 
 # ---------------------------------------------------------------------------
 print("")
