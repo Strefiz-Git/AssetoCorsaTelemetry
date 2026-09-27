@@ -25,13 +25,13 @@ do jogo, porque só lá dentro a API existe.
 Essa app é **nossa**, e está em [`python_app/`](python_app/):
 
 ```
-assettocorsa/apps/python/actelemetry/
-    actelemetry.py         o plugin
+assettocorsa/apps/python/actelemetry_strefiz/
+    actelemetry_strefiz.py     o plugin
     actelemetry_shm.py     a struct e o nome da página
     stdlib/stdlib64/       os .pyd do ctypes (obrigatórios)
 ```
 
-Copia a pasta `python_app` para `assettocorsa/apps/python/actelemetry/`
+Copia a pasta `python_app` para `assettocorsa/apps/python/actelemetry_strefiz/`
 e liga-a em **Content Manager → Settings → Python Apps**. Confirma que
 arrancou pelo log do AC: `AssettoCorsaTelemetry 1.0.0 a escrever`.
 
