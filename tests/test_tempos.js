@@ -16,7 +16,7 @@ const T = require(path.join(__dirname, '..', 'static', 'tempos.js'));
 
 const { toSec, deltaParaRef, melhorTempo, empilharPonto, VOLTA_MINIMA_S,
         intervaloAoVivo, novoRastreadorPosicoes, corridaArranca, registarPosicoes,
-        diferencaPosicao } = T;
+        diferencaPosicao, novoRastreadorTracos, registarTraco, intervaloPreciso } = T;
 
 let n = 0;
 const falhas = [];
@@ -232,6 +232,38 @@ ok('a corrida parou', corridaArranca(rast, true), true);
 rast.inicio = {};
 registarPosicoes(rast, 7, 2, 200);
 ok('apos reiniciar, a contagem recomeca', diferencaPosicao(rast, 7, 2), 0);
+
+/* ------------------------------------------------ intervalo exacto (CMRT) */
+console.log('\n--- intervalo exacto (traco por carro) ---');
+
+/* carro 5 faz uma volta de 100 s a ritmo constante: 1 s por cada 1% */
+let tr = novoRastreadorTracos();
+for (let i = 0; i <= 100; i++) registarTraco(tr, 5, i / 100, i, 1);
+
+ok('a 60% da pista o carro 5 ia aos 60 s', intervaloPreciso(tr, 5, 0.60), 100 - 60);
+ok('a 10% da pista o carro 5 ia aos 10 s', intervaloPreciso(tr, 5, 0.10), 100 - 10);
+ok('interpola entre amostras (25.5%)', intervaloPreciso(tr, 5, 0.255), 100 - 25.5);
+nulo('carro que nunca se viu', intervaloPreciso(tr, 99, 0.5));
+nulo('sem tracos nenhuns', intervaloPreciso(novoRastreadorTracos(), 5, 0.5));
+
+/* uma nova volta (lap muda) apaga o traco antigo - com so' 2 pontos ainda
+   nao chega para responder, tem de cair para a estimativa por ritmo */
+registarTraco(tr, 5, 0.01, 0.2, 2);
+registarTraco(tr, 5, 0.02, 0.4, 2);
+nulo('volta nova ainda tem poucos pontos', intervaloPreciso(tr, 5, 0.5));
+
+/* o traco de um carro nao mistura com o de outro */
+for (let i = 0; i <= 100; i++) registarTraco(tr, 6, i / 100, 999 + i, 2);
+ok('carros diferentes tem tracos independentes',
+   intervaloPreciso(tr, 6, 0.5) !== null && intervaloPreciso(tr, 5, 0.5) === null, true);
+
+/* recuar mais de meia pista sem o 'lap' ainda ter mudado tambem conta como
+   volta nova (o mesmo sintoma que a propria volta do jogador trata) */
+let tr2 = novoRastreadorTracos();
+for (let i = 0; i <= 50; i++) registarTraco(tr2, 1, i / 100, i, 3); // 0% a 50%, ainda no lap 3
+registarTraco(tr2, 1, 0.02, 200, 3); // "voltou" a 2% sem o lap mudar: e' volta nova
+ok('recuo grande de posicao reinicia o traco mesmo com o mesmo lap',
+   intervaloPreciso(tr2, 1, 0.30), null);
 
 /* --- fecho ------------------------------------------------------------- */
 console.log();

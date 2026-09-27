@@ -562,6 +562,9 @@ body{
 .lb-name{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .lb-name small{color:var(--grey);font-weight:600;font-size:10px;margin-left:5px}
 .lb-lap,.lb-time,.lb-best,.lb-gap{text-align:right;font-weight:700;font-size:12px}
+/* so' aparece o cursor de ajuda quando ha' de facto um tooltip (splits) --
+   ver splitsTitle() em app.js. Sem isto o cursor mentia em carros sem dado. */
+.lb-time[title]{cursor:help}
 /* o intervalo e' tempo ate ao carro da frente: verde quando se esta' a
    chegar, vermelho quando se esta' a afastar. O numero e' o que
    responde a pergunta da corrida, ao contrario da diferenca entre
@@ -571,6 +574,14 @@ body{
 
 /* a melhor volta da corrida, como o roxo do CSP */
 .lb-best.top{color:#B57BFF}
+/* Flash de 2,5 s quando o carro acaba de bater o melhor tempo da sessao
+   (ver renderOpponents em app.js). O brilho comeca forte e desaparece; a
+   cor final e' a do .top que ja fica depois, por isso nao se anima a cor. */
+.lb-best.newbest{animation:lb-newbest-flash 2.5s ease-out}
+@keyframes lb-newbest-flash{
+  0%{text-shadow:0 0 10px #B57BFF,0 0 2px #B57BFF}
+  100%{text-shadow:none}
+}
 
 /* setas de posicao ganha/perdida, como o CSP */
 .lb-up,.lb-down{font-style:normal;font-size:9px;margin-left:3px;vertical-align:1px}

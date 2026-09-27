@@ -76,7 +76,7 @@ const I18N = {
     'lb.title': 'CLASSIFICAÇÃO', 'lb.telTitle': 'TEU CARRO',
     'lb.pos': 'P', 'lb.name': 'PILOTO', 'lb.lap': 'VOLTA',
     'lb.time': 'TEMPO', 'lb.best': 'MELHOR', 'lb.gap': 'INT.',
-    'lb.intTitle': 'Tempo estimado até ao carro da frente, pelo ritmo da última volta dele. Não é exacto: o Content Manager guarda a volta completa de cada carro e sabe o tempo real.',
+    'lb.intTitle': 'Tempo até ao carro da frente. Na mesma volta é o tempo exacto que ele levou a passar pelo mesmo ponto da pista; fora isso é uma estimativa pelo ritmo da última volta dele.',
     'lb.penalty': 'Penalidade', 'lb.drs': 'DRS',
     'foot.src': 'memória do AC, sem SimHub',
     'status.live': 'AO VIVO', 'status.paused': 'EM PAUSA',
@@ -148,7 +148,7 @@ const I18N = {
     'lb.title': 'CLASSIFICAÇÃO', 'lb.telTitle': 'SEU CARRO',
     'lb.pos': 'P', 'lb.name': 'PILOTO', 'lb.lap': 'VOLTA',
     'lb.time': 'TEMPO', 'lb.best': 'MELHOR', 'lb.gap': 'INT.',
-    'lb.intTitle': 'Tempo estimado até ao carro da frente, pelo ritmo da última volta dele. Não é exacto: o Content Manager guarda a volta completa de cada carro e sabe o tempo real.',
+    'lb.intTitle': 'Tempo até ao carro da frente. Na mesma volta é o tempo exacto que ele levou a passar pelo mesmo ponto da pista; fora isso é uma estimativa pelo ritmo da última volta dele.',
     'lb.penalty': 'Penalty', 'lb.drs': 'DRS',
     'foot.src': 'memória do AC, sem SimHub',
     'status.live': 'AO VIVO', 'status.paused': 'EM PAUSA',
@@ -219,7 +219,7 @@ const I18N = {
     'lb.title': 'CLASIFICACIÓN', 'lb.telTitle': 'TU COCHE',
     'lb.pos': 'P', 'lb.name': 'PILOTO', 'lb.lap': 'VUELTA',
     'lb.time': 'TIEMPO', 'lb.best': 'MEJOR', 'lb.gap': 'INT.',
-    'lb.intTitle': 'Tiempo estimado hasta el coche de delante, según el ritmo de su última vuelta. No es exacto: Content Manager guarda la vuelta completa de cada coche y sabe el tiempo real.',
+    'lb.intTitle': 'Tiempo hasta el coche de delante. En la misma vuelta es el tiempo exacto que tardó en pasar por el mismo punto de la pista; si no, es una estimación según el ritmo de su última vuelta.',
     'lb.penalty': 'Penalización', 'lb.drs': 'DRS',
     'foot.src': 'memoria del AC, sin SimHub',
     'status.live': 'EN VIVO', 'status.paused': 'EN PAUSA',
@@ -293,7 +293,7 @@ const I18N = {
     'lb.title': 'STANDINGS', 'lb.telTitle': 'YOUR CAR',
     'lb.pos': 'P', 'lb.name': 'DRIVER', 'lb.lap': 'LAP',
     'lb.time': 'TIME', 'lb.best': 'BEST', 'lb.gap': 'INT.',
-    'lb.intTitle': 'Estimated time to the car ahead, from the pace of its last lap. Not exact: Content Manager keeps a full lap trace for every car and knows the real time.',
+    'lb.intTitle': 'Time to the car ahead. On the same lap it is the exact time it took him to pass the same point on track; otherwise it is an estimate from the pace of his last lap.',
     'lb.penalty': 'Penalty', 'lb.drs': 'DRS',
     'foot.src': 'AC memory, no SimHub',
     'status.live': 'LIVE', 'status.paused': 'PAUSED',
@@ -394,6 +394,12 @@ const S = {
   pneuStint: null,
   // onde cada carro estava no inicio, para as setas de posicao
   posicoes: novoRastreadorPosicoes(40),
+  // traco da volta em curso de cada adversario, para o intervalo exacto
+  // da leaderboard (ver intervaloPreciso em tempos.js)
+  oppTracos: novoRastreadorTracos(),
+  // id e instante (performance.now()) do ultimo carro a bater o melhor
+  // tempo da sessao, para o flash na leaderboard (ver renderOpponents)
+  novoMelhorId: null, novoMelhorEm: 0, sessaoMelhorAnterior: null,
   frames: 0, fpsAt: performance.now(), fps: 0,
   trace: { t: [], th: [], br: [], cl: [], hb: [] },
   lastSample: 0, traceHz: 0,
@@ -2452,6 +2458,20 @@ function renderOpponents(o) {
   const me = o.cars.find((c) => c.id === myCarId) || null;
   const tl = (lastD && lastD.trackLength) || 0;
 
+  /* Flash de "nova melhor volta", inspirado no aviso que o CMRT mostra
+   * quando alguem bate o fastest lap da sessao. Aqui e' so' visual: quando
+   * 'sessaoMelhor' desce, guarda-se quem foi (o carro cujo 'best' bate
+   * com o novo valor) e durante 2,5 s a celula dele na leaderboard pisca.
+   * Nao ha' som nem texto -- so' o marcador ja existente (.lb-best.top)
+   * a chamar mais a atencao no momento em que muda. */
+  if (sessaoMelhor > 0 && (S.sessaoMelhorAnterior == null || sessaoMelhor < S.sessaoMelhorAnterior - 1e-6)) {
+    const quem = o.cars.find((c) => toSec(c.best) === sessaoMelhor);
+    S.novoMelhorId = quem ? quem.id : null;
+    S.novoMelhorEm = performance.now();
+  }
+  S.sessaoMelhorAnterior = sessaoMelhor > 0 ? sessaoMelhor : S.sessaoMelhorAnterior;
+  const aFlash = S.novoMelhorId != null && (performance.now() - S.novoMelhorEm) < 2500;
+
   /* O INTERVALO AO VIVO, a ideia veio do leaderboard do Content Manager.
    *
    * Antes a coluna "Dif." era a diferenca entre as melhores voltas: um
@@ -2486,6 +2506,20 @@ function renderOpponents(o) {
       if (d > 0 && d < melhorD) { melhorD = d; melhor = o2; }
     }
     if (!melhor) return { txt: '-', atrasado: false };
+
+    // mesma volta: o traco do carro da frente diz exactamente quanto
+    // tempo ele levou a chegar onde o de tras esta' agora - e' o mesmo
+    // ponto da pista, so' que em instantes diferentes. So' cai para a
+    // media de ritmo (abaixo) quando o traco ainda nao chega la' (carro
+    // acabou de comecar a volta, ou faltaram pacotes).
+    if (melhor.lap === c.lap) {
+      const exato = intervaloPreciso(S.oppTracos, melhor.id, c.pct);
+      if (exato != null) {
+        const s = Math.max(0, exato);
+        return { txt: s < 0.05 ? '0.0' : s.toFixed(1), atrasado: false };
+      }
+    }
+
     const r = intervaloAoVivo({
       trackLength: tl,
       lapF: melhor.lap, pctF: melhor.pct,
@@ -2505,9 +2539,22 @@ function renderOpponents(o) {
      repunha a referencia 60 vezes por segundo e as setas nunca
      apareciam. */
   const corridaAtiva = !!(lastD && lastD.live && lastD.session === 'CORRIDA');
-  if (corridaArranca(S.posicoes, corridaAtiva)) S.posicoes.inicio = {};
+  if (corridaArranca(S.posicoes, corridaAtiva)) {
+    S.posicoes.inicio = {};
+    // a largada tambem apaga os tracos: o traco de antes da corrida (grid,
+    // volta de formacao) nao serve de referencia para o intervalo em pista
+    S.oppTracos = novoRastreadorTracos();
+  }
   const agora = performance.now() / 1000;
   for (const c of o.cars) registarPosicoes(S.posicoes, c.id, c.livePos || c.pos, agora);
+
+  // traco da volta em curso de cada carro (ver intervaloPreciso). O canal
+  // dos adversarios vai a 10 Hz, que chega perfeitamente para isto - nao
+  // e' preciso o mesmo detalhe da propria volta do jogador.
+  for (const c of o.cars) {
+    const seg = toSec(c.cur);
+    if (seg != null) registarTraco(S.oppTracos, c.id, c.pct, seg, c.lap);
+  }
 
   const html = o.cars.map((c) => {
     const best = toSec(c.best);
@@ -2520,6 +2567,7 @@ function renderOpponents(o) {
     const estado = !c.connected ? '<b class="lb-flag off">OFF</b>'
       : c.inPitLane ? '<b class="lb-flag pit">PIT</b>' : '';
     const melhorSessao = best != null && sessaoMelhor > 0 && best <= sessaoMelhor;
+    const flashAqui = aFlash && c.id === S.novoMelhorId;
     const cols = compact
       ? '<span class="lb-pos">' + (c.pos || '-') + seta + '</span>' +
         '<span class="lb-name">' + esc(c.name) + '<small>' + esc(c.car) + '</small></span>' +
@@ -2529,8 +2577,8 @@ function renderOpponents(o) {
         '<span class="lb-name">' + esc(c.name) + '<small>' + esc(c.car) + '</small></span>' +
         '<span class="lb-lap">' + (c.lap + 1) + estado + '</span>' +
         '<span class="lb-gap' + (int.atrasado ? ' pos' : '') + '" title="' + t('lb.intTitle') + '">' + int.txt + '</span>' +
-        '<span class="lb-time">' + (c.last || '--') + '</span>' +
-        '<span class="lb-best' + (melhorSessao ? ' top' : '') + '">' + (c.best || '--') + '</span>';
+        '<span class="lb-time"' + splitsTitle(c) + '>' + (c.last || '--') + '</span>' +
+        '<span class="lb-best' + (melhorSessao ? ' top' : '') + (flashAqui ? ' newbest' : '') + '">' + (c.best || '--') + '</span>';
     return '<div class="lb-row' + (isMe ? ' me' : '') + (c.inPit ? ' pit' : '') + '">' + cols + '</div>';
   }).join('');
 
@@ -2541,6 +2589,17 @@ function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"]/g, (c) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 }
+
+/* Tooltip com os setores da ultima volta do carro, vindos da app do
+   SimHub (ver acshm.py / SimHub.py). Sem eles (plugin antigo, ou o carro
+   ainda nao fechou uma volta) devolve string vazia -- sem title="", o
+   navegador nao mostra tooltip nenhum, o que e' o comportamento certo. */
+function splitsTitle(c) {
+  if (!Array.isArray(c.splits) || !c.splits.length) return '';
+  const partes = c.splits.map((s, i) => 'S' + (i + 1) + ' ' + (s || '--:--.---'));
+  return ' title="' + esc(partes.join('  ·  ')) + '"';
+}
+
 
 /* ------------------------------------------------------------ loop */
 function loop() {

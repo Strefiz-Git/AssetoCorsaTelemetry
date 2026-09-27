@@ -169,6 +169,11 @@ class SPageFileStatic(ctypes.Structure):
 # A app tem de estar activa no Content Manager (Settings -> Python Apps ->
 # "SimHub"). Confirma-se pelo log do AC: "SimHub Was Here!".
 
+# maximo de setores por volta guardados por carro (ver simhub_shared_mem.py
+# da app -- tem de ser O MESMO NUMERO dos dois lados, e' o que define o
+# tamanho da struct).
+MAX_SECTORS = 8
+
 
 class vec3(ctypes.Structure):
     _pack_ = 4
@@ -197,6 +202,11 @@ class acsVehicleInfo(ctypes.Structure):
         ("suspensionDamage", c_float * 4),
         ("engineLifeLeft", c_float),
         ("tyreInflation", c_float * 4),
+        # v3: tempos de setor (ms) da ultima volta completa de cada carro,
+        # vindos de ac.getLastSplits() dentro da app do SimHub. So' fazem
+        # sentido os primeiros 'lastSplitsCount' valores -- ver snapshot().
+        ("lastSplitsMS", c_int32 * MAX_SECTORS),
+        ("lastSplitsCount", c_int32),
     ]
 
 
@@ -225,7 +235,10 @@ def _b(v):
 class Opponents:
     """Leitor da pagina que a app Python do SimHub preenche."""
 
-    NAME = "acpmf_simhub_v2"
+    # v3: struct maior (splits de setor no fim). Se a app do SimHub no
+    # jogo ainda for a v2, esta pagina simplesmente nao existe ainda --
+    # open() falha com "available: False" em vez de ler a struct errada.
+    NAME = "acpmf_simhub_v3"
 
     def __init__(self, name=None):
         self._h = None
@@ -323,6 +336,13 @@ class Opponents:
                     "engineDamage": round(
                         max(0.0, min(1.0, 1.0 - float(c.engineLifeLeft) / 1000.0)),
                         3),
+                    # tempos de setor da ultima volta completa, formatados
+                    # como os outros tempos ("M:SS.mmm"/"--:--.---") para o
+                    # cliente poder usar toSec() sem precisar de um caso
+                    # especial. So' os primeiros 'lastSplitsCount' contam --
+                    # o resto do array e' lixo (nunca escrito nesta volta).
+                    "splits": [_ms(c.lastSplitsMS[i])
+                               for i in range(min(int(c.lastSplitsCount), MAX_SECTORS))],
                 })
             cars.sort(key=lambda d: (d["pos"] if d["pos"] > 0 else 999, d["name"]))
             return {"available": True, "pluginVersion": self.pluginVersion,

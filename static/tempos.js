@@ -216,10 +216,78 @@ function diferencaPosicao(rast, id, pos) {
   return inicio - pos;
 }
 
+/* ==================================================== intervalo exacto
+ *
+ * O 'intervaloAoVivo' acima usa um RITMO MEDIO (ultima volta / comprimento
+ * da pista) para estimar quanto falta ao carro de tras para apanhar o da
+ * frente. E' honesto, mas e' uma media: nao sabe se o da frente estava a
+ * travar ou a acelerar no troco entre os dois carros.
+ *
+ * O leaderboard do CMRT (e o do Content Manager) faz melhor quando pode:
+ * em vez de assumir um ritmo, guarda para cada carro os pares
+ * (posicao na pista, tempo de volta) que vai vendo durante a volta em
+ * curso, e quando precisa do intervalo do carro de tras procura em que
+ * INSTANTE o da frente esteve exactamente na posicao onde o de tras esta'
+ * agora. A diferenca entre esse instante e o tempo de volta actual do da
+ * frente e' o intervalo exacto - sem estimativa nenhuma, porque os dois
+ * carros passaram pelo mesmo sitio da pista, so' que em momentos
+ * diferentes.
+ *
+ * Aqui isso e' o mesmo mecanismo que ja existia para a propria volta de
+ * referencia do jogador (empilharPonto / deltaParaRef): cada adversario
+ * fica com o seu proprio "traco" da volta em curso. So' funciona quando
+ * os dois carros estao NA MESMA VOLTA (quem chama garante isso) e o
+ * traco do da frente ja cobre a posicao do de tras; fora disso cai-se
+ * para o 'intervaloAoVivo' de cima. Nunca ha' aqui um numero inventado.
+ */
+
+// ~2,5 min de volta a 10 Hz (o canal dos adversarios). Bem acima de
+// qualquer volta real, para nao cortar o traco a meio.
+const TRACO_MAX_PONTOS = 1500;
+
+/* Um rasto por carro: { pts: [[pct, seg]], lap: numero da volta em curso }.
+   'lap' e' o que diz quando o traco deixou de valer e tem de recomecar. */
+function novoRastreadorTracos() {
+  return {};
+}
+
+/* Acrescenta uma amostra ao traco do carro 'id'. Recomeca o traco quando a
+ * volta mudou (lap diferente do que tinhamos) OU quando a posicao recuou
+ * mais de meia pista sem o numero da volta ainda ter mudado - o mesmo
+ * sintoma que o app.js ja trata para a propria volta do jogador (ver o
+ * limiar de 0.3 em 'lastLapPct'); aqui usa-se 0.5 porque as amostras vem a
+ * 10 Hz em vez de 60 e um intervalo maior evita apanhar ruido no cruzar da
+ * meta.
+ */
+function registarTraco(rast, id, pct, seg, lap) {
+  if (!rast || id == null) return;
+  if (typeof pct !== 'number' || !isFinite(pct)) return;
+  if (typeof seg !== 'number' || !isFinite(seg)) return;
+  let tr = rast[id];
+  const novaVolta = !tr || tr.lap !== lap ||
+    (tr.pts.length && pct < tr.pts[tr.pts.length - 1][0] - 0.5);
+  if (novaVolta) tr = rast[id] = { pts: [], lap: lap };
+  tr.pts = empilharPonto(tr.pts, pct, seg, TRACO_MAX_PONTOS);
+}
+
+/* O intervalo exacto do carro em 'pctTras' contra o traco do carro da
+ * frente ('idFrente'). Devolve null (nunca um numero a mais) quando ainda
+ * nao ha' traco suficiente ou a posicao pedida cai fora do que o carro da
+ * frente ja percorreu nesta volta - nesses casos e' o chamador que decide
+ * cair para a estimativa por ritmo.
+ */
+function intervaloPreciso(rast, idFrente, pctTras) {
+  const tr = rast && rast[idFrente];
+  if (!tr || tr.pts.length < 4) return null;
+  const agoraFrente = tr.pts[tr.pts.length - 1][1];
+  return deltaParaRef(tr.pts, pctTras, agoraFrente);
+}
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     toSec, deltaParaRef, melhorTempo, empilharPonto, VOLTA_MINIMA_S,
     intervaloAoVivo, VEL_MIN,
-    novoRastreadorPosicoes, corridaArranca, registarPosicoes, diferencaPosicao
+    novoRastreadorPosicoes, corridaArranca, registarPosicoes, diferencaPosicao,
+    novoRastreadorTracos, registarTraco, intervaloPreciso, TRACO_MAX_PONTOS
   };
 }
