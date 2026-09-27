@@ -47,10 +47,16 @@ voltas a taxa esta' medida e a conta acaba.
 So' LEITURA. Nada e' escrito nas paginas do jogo (Regra nº 1).
 """
 import ctypes
+import os
 import sys
 import time
 
-sys.path.insert(0, '.')
+# O caminho sai do FICHEIRO, e nao da pasta onde se corre. A primeira
+# versao punha '.' -- que e' a pasta de trabalho -- e por isso dava
+# 'No module named acshm' quando o comando era dado de dentro de
+# tests\, que e' de onde se corre qualquer coisa deste projecto. E' o
+# mesmo caminho que os outros testes usam.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import acshm
 
 addr = acshm.k32.MapViewOfFile(
