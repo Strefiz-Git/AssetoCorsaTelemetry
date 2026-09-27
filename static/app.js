@@ -1220,10 +1220,7 @@ function drawVolante(canvasId, steer) {
 
   const v = clamp(num(steer) / STEER_REF, -1, 1);
   const ang = v * STEER_GIRO;
-
-  c.save();
-  c.translate(cx, cy);
-  c.rotate(ang);
+  const corMarca = v < -0.02 ? '#23CF16' : v > 0.02 ? '#F58020' : '#FFD700';
 
   // ---- o aro: um circulo com o fundo a direito ------------------------
   // Num volante de F1 o fundo e' plano, para se apoiarem as maos.
@@ -1234,12 +1231,28 @@ function drawVolante(canvasId, steer) {
   // pi-aFundo, que em canvas e' a parte de BAIXO: o aro saia em cima de
   // uma linha recta e nao se lia como um volante. Foi medido - faltava
   // aro do lado esquerdo e sobrava em baixo.
+  //
+  // TUDO o que fica dentro deste save/restore roda com o volante -- e'
+  // suposto, e' o que diz o angulo. O cubo com o numero fica de FORA
+  // (mais abaixo), e nao pode entrar aqui: rodava com o aro e a mais de
+  // ~60% do curso (qualquer curva fechada, nao so' um caso extremo)
+  // aparecia de cabeca para baixo -- "-60" lia-se "09-". Um numero que
+  // se ve a conduzir nao pode ficar ilegivel logo quando mais se precisa
+  // dele numa curva apertada.
+  c.save();
+  c.translate(cx, cy);
+  c.rotate(ang);
+
   const CHAO = 0.70;                 // fracao do raio onde o fundo fica
   const aFundo = Math.asin(CHAO);   // onde o circulo encontra a linha de baixo
-  const largura = Math.max(3, R * 0.26);
+  const largura = Math.max(3, R * 0.24);
 
   // o arco, de um lado ao outro por cima (passa por 3pi/2, que e' o topo)
-  c.strokeStyle = '#232a2b';
+  // gradiente radial em vez de cinzento chapado, para dar volume ao aro
+  const gradAro = c.createRadialGradient(0, 0, R - largura, 0, 0, R);
+  gradAro.addColorStop(0, '#2e3637');
+  gradAro.addColorStop(1, '#181d1e');
+  c.strokeStyle = gradAro;
   c.lineWidth = largura;
   c.lineCap = 'butt';
   c.beginPath();
@@ -1253,10 +1266,10 @@ function drawVolante(canvasId, steer) {
   c.stroke();
 
   // brilho no aro, para dar volume
-  c.strokeStyle = '#3c4445';
-  c.lineWidth = Math.max(1, R * 0.07);
+  c.strokeStyle = 'rgba(255,255,255,0.16)';
+  c.lineWidth = Math.max(1, R * 0.055);
   c.beginPath();
-  c.arc(0, 0, R - largura * 0.18, Math.PI - aFundo + 0.5, Math.PI * 2 + aFundo - 0.5, false);
+  c.arc(0, 0, R - largura * 0.32, Math.PI - aFundo + 0.5, Math.PI * 2 + aFundo - 0.5, false);
   c.stroke();
 
   // ---- punhos, a esquerda e a direita ---------------------------------
@@ -1265,8 +1278,8 @@ function drawVolante(canvasId, steer) {
   // invertido, o arco esquerdo saia com inicio maior que o fim e nao
   // desenhava nada - o volante ficava sem um dos punhos.
   for (const centro of [0, Math.PI]) {
-    c.strokeStyle = '#1a2021';
-    c.lineWidth = largura * 1.06;
+    c.strokeStyle = '#14191a';
+    c.lineWidth = largura * 1.1;
     c.lineCap = 'round';
     c.beginPath();
     c.arc(0, 0, R, centro - 0.42, centro + 0.42, false);
@@ -1274,43 +1287,63 @@ function drawVolante(canvasId, steer) {
   }
 
   // ---- dois raios, de baixo para o cubo ------------------------------
-  c.strokeStyle = '#2b3233';
-  c.lineWidth = Math.max(2, R * 0.15);
+  c.strokeStyle = '#262d2e';
+  c.lineWidth = Math.max(2, R * 0.14);
   c.lineCap = 'round';
   for (const sinal of [-1, 1]) {
     c.beginPath();
     c.moveTo(sinal * Math.cos(aFundo) * R * 0.94, R * CHAO * 0.94);
-    c.lineTo(sinal * R * 0.26, R * 0.16);
+    c.lineTo(sinal * R * 0.30, R * 0.30);
     c.stroke();
   }
 
-  // ---- marca do topo: e' ela que diz para que lado rodou --------------
-  const corMarca = v < -0.02 ? '#23CF16' : v > 0.02 ? '#F58020' : '#FFD700';
+  // ---- marca do topo: um chevron, nao um rectangulo -------------------
+  // E' ela que diz para que lado rodou. Um triangulo le-se mais depressa
+  // que um bloco (aponta na direccao), e e' o que os volantes reais tem
+  // pintado no topo do aro.
   c.fillStyle = corMarca;
-  c.fillRect(-largura * 0.55, -R + largura * 0.12, largura * 1.1, largura * 0.8);
-  // um traço fino a prolongar a marca para o centro
-  c.fillRect(-largura * 0.12, -R + largura * 0.9, largura * 0.24, R * 0.34);
+  c.beginPath();
+  c.moveTo(0, -R + largura * 1.05);
+  c.lineTo(-largura * 0.62, -R + largura * 0.15);
+  c.lineTo(largura * 0.62, -R + largura * 0.15);
+  c.closePath();
+  c.fill();
 
-  // ---- cubo com ecra --------------------------------------------------
+  c.restore();
+
+  // ---- cubo com ecra, SEM rodar ----------------------------------------
+  // Fica fora do save/restore de proposito (ver nota grande acima): o
+  // numero tem de se ler sempre direito, seja qual for o angulo do
+  // volante. Quem mostra o ANGULO e' o aro a rodar por baixo dele, mais
+  // o brilho a volta do cubo, que fica mais forte quanto mais se roda.
+  const glow = Math.abs(v);
+  if (glow > 0.03) {
+    const gradGlow = c.createRadialGradient(cx, cy, R * 0.22, cx, cy, R * 0.5);
+    gradGlow.addColorStop(0, corMarca + Math.round(glow * 110).toString(16).padStart(2, '0'));
+    gradGlow.addColorStop(1, corMarca + '00');
+    c.fillStyle = gradGlow;
+    c.beginPath();
+    c.arc(cx, cy, R * 0.5, 0, Math.PI * 2);
+    c.fill();
+  }
+
   c.fillStyle = '#14191a';
   c.strokeStyle = '#3c4445';
   c.lineWidth = 1.4;
   c.beginPath();
-  if (c.roundRect) c.roundRect(-R * 0.34, -R * 0.20, R * 0.68, R * 0.40, 4);
-  else c.rect(-R * 0.34, -R * 0.20, R * 0.68, R * 0.40);
+  if (c.roundRect) c.roundRect(cx - R * 0.36, cy - R * 0.21, R * 0.72, R * 0.42, 4);
+  else c.rect(cx - R * 0.36, cy - R * 0.21, R * 0.72, R * 0.42);
   c.fill();
   c.stroke();
 
   // ecra aceso, com o valor
   c.fillStyle = '#0a2b1a';
-  c.fillRect(-R * 0.28, -R * 0.15, R * 0.56, R * 0.22);
+  c.fillRect(cx - R * 0.30, cy - R * 0.155, R * 0.60, R * 0.23);
   c.fillStyle = corMarca;
-  c.font = '900 ' + Math.max(7, Math.round(R * 0.20)) + 'px Titillium, sans-serif';
+  c.font = '900 ' + Math.max(7, Math.round(R * 0.21)) + 'px Titillium, sans-serif';
   c.textAlign = 'center';
   c.textBaseline = 'middle';
-  c.fillText((v >= 0 ? '+' : '-') + Math.abs(v * 100).toFixed(0), 0, -R * 0.04);
-
-  c.restore();
+  c.fillText((v >= 0 ? '+' : '-') + Math.abs(v * 100).toFixed(0), cx, cy - R * 0.035);
 
   // eixo vertical, para se ver o desvio face ao volante
   c.strokeStyle = 'rgba(255,215,0,0.18)';
@@ -1551,55 +1584,63 @@ const DANOS_ORDEM = ['F', 'T', 'E', 'D'];
 const DANO_MAX = 60;
 
 /* Generico: desenha N barras de dano (0..1 cada) numa linha .kv, e
- * esconde a linha toda quando nenhuma tem dano -- mesma regra em todo
- * o lado, para nao aparecerem paineis vazios a fazer ruido.
- * `fracoes` ja vem em 0..1 (quem chama e' que sabe converter a escala
- * bruta de cada campo). */
-function renderBarraDanos(rowId, hostId, labels, fracoes) {
+ * esconde a linha toda quando nenhuma tem dano -- um painel vazio e'
+ * ruido. `itens` e' [{label, frac, title?}, ...]. */
+function renderBarraDanos(rowId, hostId, itens) {
   const row = $(rowId);
   const host = $(hostId);
   if (!row || !host) return;
-  const vals = Array.isArray(fracoes)
-    ? fracoes.map((x) => (typeof x === 'number' && isFinite(x) ? clamp(x, 0, 1) : 0))
-    : [];
-  if (vals.length !== labels.length) { row.classList.add('hidden'); return; }
-  const algum = vals.some((x) => x > 0.01);
+  const algum = itens.some((it) => it.frac > 0.01);
   row.classList.toggle('hidden', !algum);
   if (!algum) return;
-  if (host.childElementCount !== labels.length) {
+  if (host.childElementCount !== itens.length) {
     host.innerHTML = '';
-    for (let i = 0; i < labels.length; i++) {
+    for (const it of itens) {
       const s = document.createElement('span');
       s.className = 'dmg';
-      s.innerHTML = '<i class="dmg-t">' + labels[i] + '</i>'
+      s.innerHTML = '<i class="dmg-t">' + it.label + '</i>'
         + '<i class="dmg-bar"><b></b></i>';
       host.appendChild(s);
     }
   }
-  for (let i = 0; i < vals.length; i++) {
-    const f = vals[i];
-    const b = host.children[i].querySelector('b');
+  itens.forEach((it, i) => {
+    const el = host.children[i];
+    const f = clamp(typeof it.frac === 'number' && isFinite(it.frac) ? it.frac : 0, 0, 1);
+    const b = el.querySelector('b');
     if (b) b.style.width = (f * 100).toFixed(0) + '%';
-    host.children[i].className = 'dmg' + (f > 0.6 ? ' bad' : f > 0.2 ? ' warn' : '');
-  }
+    el.className = 'dmg' + (f > 0.6 ? ' bad' : f > 0.2 ? ' warn' : '');
+    if (it.title) el.title = it.title; else el.removeAttribute('title');
+  });
 }
 
 function renderDanos(d) {
   // carroçaria: vem da propria telemetria (0..60 por lado)
   const v = d.carDamage;
   const corpo = Array.isArray(v) ? v.slice(0, 4).map((x) => (typeof x === 'number' ? x / DANO_MAX : 0)) : [];
-  renderBarraDanos('damage-row', 'damage-bars', DANOS_ORDEM, corpo);
+  const itens = DANOS_ORDEM.map((lbl, i) => ({ label: lbl, frac: corpo[i] || 0 }));
 
   // suspensao e motor: NAO vem da telemetria propria, vem da pagina do
   // SimHub (Opponents) -- so' existe quando o proprio carro aparece
   // nessa lista (ver S.localCarId, calculado em renderOpponents()).
+  // Entram na MESMA fila em vez de terem a sua propria linha: o cartao
+  // tem altura fixa, sem scroll, e nao ha' folga para mais duas linhas
+  // (foi tentado -- os travoes ficaram empilhados em cima dos pneus).
+  // 'S' e' o pior dos 4 cantos da suspensao, com o detalhe dos quatro
+  // na dica; 'M' e' o motor.
   const meu = (S.opponents && Array.isArray(S.opponents.cars) && S.localCarId != null)
     ? S.opponents.cars.find((c) => c.id === S.localCarId)
     : null;
-  const susp = meu && Array.isArray(meu.suspDamage) ? meu.suspDamage : [];
-  renderBarraDanos('susp-damage-row', 'susp-damage-bars', DANOS_ORDEM, susp);
-  const motor = meu && typeof meu.engineDamage === 'number' ? [meu.engineDamage] : [];
-  renderBarraDanos('engine-damage-row', 'engine-damage-bars', ['M'], motor);
+  if (meu && Array.isArray(meu.suspDamage) && meu.suspDamage.length === 4) {
+    const susp = meu.suspDamage;
+    const pior = Math.max(susp[0], susp[1], susp[2], susp[3]);
+    const dica = t('tyres.suspDamage') + ': ' + DANOS_ORDEM
+      .map((l, i) => l + ' ' + Math.round(clamp(susp[i], 0, 1) * 100) + '%').join('  ');
+    itens.push({ label: 'S', frac: pior, title: dica });
+  }
+  if (meu && typeof meu.engineDamage === 'number') {
+    itens.push({ label: 'M', frac: meu.engineDamage, title: t('tyres.engineDamage') });
+  }
+  renderBarraDanos('damage-row', 'damage-bars', itens);
 }
 
 /* ------------------------------------------------------------ linguas */

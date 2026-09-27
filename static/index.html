@@ -332,24 +332,16 @@
         </div>
         <!-- Danos. So aparece quando ha' dano: um painel de danos vazio
              e' ruido, e o HUD do jogo tambem so o mostra quando algo
-             parte. A ordem dos quatro valores vem do desenho do painel
-             dele: frente, tras, lado esquerdo, lado direito. -->
+             parte. A ordem dos quatro primeiros valores vem do desenho
+             do painel dele: frente, tras, lado esquerdo, lado direito.
+             Suspensao ('S', o pior dos 4 cantos, com o detalhe na dica)
+             e motor ('M') entram NA MESMA fila, no fim -- o cartao tem
+             altura fixa (nao ha' scroll) e nao ha' folga para mais uma
+             linha: a ultima vez que se tentou isso, os travoes ficaram
+             empilhados em cima dos pneus. -->
         <div class="kv damage-row hidden" id="damage-row">
           <span data-i18n="tyres.damage">DANOS</span>
           <span class="damage-bars" id="damage-bars"></span>
-        </div>
-        <!-- Suspensao e motor: mesmo esquema do dano de carroçaria acima
-             (so aparece quando ha' dano), mas vem da pagina do SimHub
-             (Opponents), nao da telemetria propria -- por isso so existe
-             quando o proprio carro aparece nessa lista (ver S.localCarId
-             no app.js). -->
-        <div class="kv damage-row hidden" id="susp-damage-row">
-          <span data-i18n="tyres.suspDamage">SUSPENSÃO</span>
-          <span class="damage-bars" id="susp-damage-bars"></span>
-        </div>
-        <div class="kv damage-row hidden" id="engine-damage-row">
-          <span data-i18n="tyres.engineDamage">MOTOR</span>
-          <span class="damage-bars" id="engine-damage-bars"></span>
         </div>
         <div class="kv grip-row">
           <span data-i18n="wx.grip">ADERÊNCIA</span>
