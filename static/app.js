@@ -43,7 +43,7 @@ const I18N = {
     'set.drsAMedir': 'A medir o drsAvailable numa volta inteira...',
     'set.fps': 'Envio de dados', 'set.about': 'Sobre',
     'set.aboutBody': 'Telemetria lida directamente da memória do Assetto Corsa, e a nossa própria app Python para os adversários.',
-    'drs.short': 'DRS', 'gear.label': 'CAIXA', 'unit.kmh': 'km/h',
+    'drs.short': 'DRS', 'gear.label': 'CAIXA', 'unit.kmh': 'km/h', 'unit.ms': 'm/s',
     'unit.mph': 'mph', 'unit.rpm': 'rpm',
     'ers.short': 'ERS', 'pit.short': 'PIT',
     'state.lim': 'LIM',
@@ -129,7 +129,7 @@ const I18N = {
     'set.drsAMedir': 'Medindo o drsAvailable numa volta inteira...',
     'set.fps': 'Envio de dados', 'set.about': 'Sobre',
     'set.aboutBody': 'Telemetria lida direto da memória do Assetto Corsa, e o nosso próprio app Python para os adversários.',
-    'drs.short': 'DRS', 'gear.label': 'MARCHA', 'unit.kmh': 'km/h',
+    'drs.short': 'DRS', 'gear.label': 'MARCHA', 'unit.kmh': 'km/h', 'unit.ms': 'm/s',
     'unit.mph': 'mph', 'unit.rpm': 'rpm', 'ers.short': 'ERS', 'pit.short': 'BOX',
     'state.lim': 'LIM',
     'map.title': 'MAPA DA PISTA', 'pedals.title': 'PEDAIS',
@@ -213,7 +213,7 @@ const I18N = {
     'set.drsAMedir': 'Midiendo el drsAvailable en una vuelta entera...',
     'set.fps': 'Envío de datos', 'set.about': 'Acerca de',
     'set.aboutBody': 'Telemetría leída directamente de la memoria del Assetto Corsa, y es nuestra propia app de Python para los rivales.',
-    'drs.short': 'DRS', 'gear.label': 'MARCHA', 'unit.kmh': 'km/h',
+    'drs.short': 'DRS', 'gear.label': 'MARCHA', 'unit.kmh': 'km/h', 'unit.ms': 'm/s',
     'unit.mph': 'mph', 'unit.rpm': 'rpm', 'ers.short': 'ERS', 'pit.short': 'PIT',
     'state.lim': 'LIM',
     'map.title': 'MAPA DE LA PISTA', 'pedals.title': 'PEDALES',
@@ -300,7 +300,7 @@ const I18N = {
     'set.drsAMedir': 'Measuring drsAvailable over a full lap...',
     'set.fps': 'Data rate', 'set.about': 'About',
     'set.aboutBody': 'Telemetry read straight from Assetto Corsa memory, and our own Python app for the opponents.',
-    'drs.short': 'DRS', 'gear.label': 'GEAR', 'unit.kmh': 'km/h',
+    'drs.short': 'DRS', 'gear.label': 'GEAR', 'unit.kmh': 'km/h', 'unit.ms': 'm/s',
     'unit.mph': 'mph', 'unit.rpm': 'rpm', 'ers.short': 'ERS', 'pit.short': 'PIT',
     'state.lim': 'LIM',
     'map.title': 'TRACK MAP', 'pedals.title': 'PEDALS',
@@ -2111,7 +2111,15 @@ function pintarClima(d) {
   for (const pfx of ['', 'b-']) {
     setTxt(pfx + 'wx-air', d.airTemp != null ? fmtTemp(d.airTemp) : '—');
     setTxt(pfx + 'wx-road', d.roadTemp != null ? fmtTemp(d.roadTemp) : '—');
-    setTxt(pfx + 'wx-wind', d.windSpeed != null ? d.windSpeed.toFixed(0) : '—');
+    // m/s, a unidade que o jogo publica ("Wind speed in m/s", na
+    // documentacao). Com km/h, o valor chegava 3,6 vezes maior e o
+    // numero do painel nao correspondia ao que o jogo escrevia.
+    //
+    // UMA CASA DECIMAL, e nao nenhuma. Em m/s o vento e' um numero
+    // pequeno -- tipicamente 0 a 8 -- e arredondar 3,7 a 4 e' um terco
+    // de erro. Com km/h a mesma perda passava despercebida, porque
+    // 12,5 arredondado a 13 nao se nota.
+    setTxt(pfx + 'wx-wind', d.windSpeed != null ? d.windSpeed.toFixed(1) : '—');
     pintarGrip(pfx + 'wx-grip', d.surfaceGrip);
     pintarChuva(pfx + 'wx-rain', d);
   }

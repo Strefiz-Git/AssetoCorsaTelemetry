@@ -795,7 +795,16 @@ class ACTelemetry:
             # e por isso e' o 'surfaceGrip' que diz mais sobre a chuva do
             # que um flag que nao existe. Verificado a andar com o carro.
             "airDensity": round(ph.airDensity, 4),      # kg/m3 (1.225 ao nivel do mar)
-            "windSpeed": round(gr.windSpeed, 2),        # km/h
+            # m/s, e NAO km/h: a documentacao oficial (ACC v1.8.12) diz
+        # "Wind speed in m/s". O comentario dizia km/h e o painel
+        # mostrava km/h -- o numero certo com a unidade errada, um
+        # factor de 3,6. Ninguem da por isso porque 10 m/s escreve-se
+        # 10, qualquer que seja a unidade: e' a unidade que mente.
+        #
+        # E o `windDirection` sao RADIANOS, nao graus. Nao ha'
+        # ninguem a mostrar a direccao, e e' isso que mantem o erro
+        # quieto: um campo que ninguem le nao se repara.
+        "windSpeed": round(gr.windSpeed, 2),        # m/s
             "windDirection": round(gr.windDirection, 1),
             "trackLength": round(st.trackSPlineLength, 1),   # metros
         }
