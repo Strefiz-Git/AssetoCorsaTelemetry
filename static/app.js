@@ -78,6 +78,7 @@ const I18N = {
     'fuel.oneLapWhy': 'Media de uma so' + '\u2019' + ' volta. Com duas ou mais deixa de ser uma amostra de uma e passa a ser um ritmo.',
     'fuel.avisoWhy': 'Abaixo de 1,5 voltas: ja' + '\u2019' + ' nao da' + '\u2019' + ' para sair do box, fazer a volta e voltar com folga.',
     'fuel.criticoWhy': 'Abaixo de 1 volta: nao ha' + '\u2019' + ' margem nenhuma. Ao ritmo medio, o que resta acaba antes de a volta acabar.',
+    'fuel.avisoWhyPct': 'Abaixo ou igual a 15% do depósito. A percentagem não depende de nenhuma medição, ao contrário das voltas, que só existem depois de uma volta fechada.',
     'lb.title': 'CLASSIFICAÇÃO', 'lb.telTitle': 'TEU CARRO',
     'lb.pos': 'P', 'lb.name': 'PILOTO', 'lb.lap': 'VOLTA',
     "lb.posTitle": "Posi\u00e7\u00e3o oficial do Assetto Corsa. A lista mostra a posi\u00e7\u00e3o ao vivo, que conta as voltas por fechar; a oficial so' conta voltas completas e por isso vai atrasada no in\u00edcio de uma corrida.",
@@ -152,6 +153,7 @@ const I18N = {
     'fuel.lapsWhy': 'Voltas que o combustivel restante deve alcancar, no ritmo medio medido. O jogo nao diz quantos litros sao usados por volta, por isso mede-se a diferenca entre o inicio e o fim de cada volta.',
     'fuel.oneLapWhy': 'Media de uma so' + '\u2019' + ' volta. Com duas ou mais deixa de ser uma amostra de uma e passa a ser um ritmo.',
     'fuel.avisoWhy': 'Abaixo de 1,5 voltas: ja' + '\u2019' + ' nao da' + '\u2019' + ' para sair do box, fazer a volta e voltar com folga.',
+    'fuel.avisoWhyPct': 'Abaixo ou igual a 15% do tanque. A porcentagem não depende de nenhuma medição, ao contrário das voltas, que só existem depois de uma volta fechada.',
     'fuel.criticoWhy': 'Abaixo de 1 volta: nao ha' + '\u2019' + ' margem nenhuma. No ritmo medio, o que resta acaba antes de a volta terminar.',
     'fuel.title': 'COMBUSTÍVEL',
     'wx.air': 'AR', 'wx.road': 'PISTA', 'wx.wind': 'VENTO', 'wx.density': 'DENSIDADE', 'wx.grip': 'ADERENCIA', 'unit.c': '°C',
@@ -225,6 +227,7 @@ const I18N = {
     'fuel.measuring': 'midiendo',
     'fuel.lapsWhy': 'Vueltas que deberia alcanzar el combustible que queda, al ritmo medio medido. El juego no dice quantos litros se gastan por vuelta, asi que se mide la diferencia entre el principio y el final de cada vuelta.',
     'fuel.oneLapWhy': 'Media de una sola vuelta. Con dos o mas deja de ser una muestra de una y pasa a ser un ritmo.',
+    'fuel.avisoWhyPct': 'Igual o por debajo del 15% del depósito. El porcentaje no depende de ninguna medición, al contrario que las vueltas, que solo existen después de una vuelta cerrada.',
     'fuel.avisoWhy': 'Por debajo de 1,5 vueltas: ya' + '\u2019' + ' no da' + '\u2019' + ' para salir de boxes, hacer la vuelta y volver con margen.',
     'fuel.criticoWhy': 'Por debajo de 1 vuelta: no queda margen ninguno. Al ritmo medio, lo que queda se acaba antes de terminar la vuelta.',
     'tyres.lifeNote': 'Estimación a partir del desgaste que ya ha ocurrido en este stint, no de una tabla del juego: Assetto Corsa no publica la vida del compuesto. Tras dos vueltas medidas el número ya significa algo; antes es una suposición.',
@@ -301,6 +304,7 @@ const I18N = {
     'tyres.life': 'Tyre life',
     'fuel.measuring': 'measuring',
     'fuel.lapsWhy': 'Laps the remaining fuel should reach, at the measured average rate. The game does not say how many litres a lap uses, so it is measured from the difference between the start and the end of each lap.',
+    'fuel.avisoWhyPct': '15% of the tank or less. The percentage depends on no measurement at all, unlike laps, which only exist after a lap has been closed.',
     'fuel.oneLapWhy': 'Average of a single lap. With two or more it stops being a sample of one and becomes a rate.',
     'fuel.avisoWhy': 'Below 1.5 laps: not enough to leave the pits, do the lap and come back with margin.',
     'fuel.criticoWhy': 'Below 1 lap: no margin at all. At the average rate, what is left runs out before the lap ends.',
@@ -425,6 +429,7 @@ const S = {
   // a mudanca de pista: so' quando o pneu e' que troca, ou a sessao.
   pneuStint: null,
   combustivel: null,
+  posLista: null,       // a posicao, lida da lista
   // onde cada carro estava no inicio, para as setas de posicao
   posicoes: novoRastreadorPosicoes(40),
   // traco da volta em curso de cada adversario, para o intervalo exacto
@@ -1584,7 +1589,7 @@ function renderCombustivel(d) {
     litros: d.fuelL,
     voltas: d.lap,
     connected: !!d.connected
-  });
+  }, typeof d.fuelPct === 'number' && isFinite(d.fuelPct) ? d.fuelPct : null);
   S.combustivel = r.estado;
 
   if (el) {
@@ -1613,7 +1618,13 @@ function renderCombustivel(d) {
     cartao.classList.add('fuel-medindo');
   }
   const pctEl = $('fuel-pct');
-  if (pctEl) pctEl.title = nivel === 'normal' ? '' : t('fuel.' + nivel + 'Why');
+  if (pctEl) {
+    // diz qual dos DOIS limiares disparou. Um alerta que nao diz porque
+    // e' um alarme, e um alarme a que se habitua-se deixa de avisar.
+    pctEl.title = nivel === 'normal' ? '' : (r.porPct === nivel
+      ? t('fuel.avisoWhyPct')
+      : t('fuel.' + nivel + 'Why'));
+  }
 }
 
 /* ------------------------------------------------------ travões por canto */
@@ -2244,7 +2255,15 @@ function render(d) {
   setTxt('car', d.car || '—');
   setTxt('session', d.session || '—');
   setTxt('compound', (d.compound || '').replace(/_/g, ' '));
-  setTxt('pos', d.position > 0 ? 'P' + d.position : '—');
+  // A posicao vem da LISTA (S.posLista), que e' a mesma que a linha do
+  // jogador mostra. O d.position da fisica e' o recurso para quando a
+  // lista ainda nao chegou -- nao a fonte normal.
+  //
+  // Antes eram dois campos diferentes para o mesmo facto: o cabecalho
+  // usava a fisica e a lista a pagina dos adversarios. Por isso
+  // discordavam, e porque mexer numa ponta nao resolvia a outra.
+  const posCabecalho = (S.posLista > 0) ? S.posLista : d.position;
+  setTxt('pos', posCabecalho > 0 ? 'P' + posCabecalho : '-');
   setTxt('lap', t('lapCount') + ' ' + (num(d.lap) + 1) +
     (d.totalLaps ? '/' + d.totalLaps : ''));
   const fl = $('flag');
@@ -2559,6 +2578,11 @@ function renderOpponents(o) {
     }
   }
   const me = o.cars.find((c) => c.id === myCarId) || null;
+
+  /* A posicao do jogador, lida da MESMA lista que a linha dele mostra.
+   * Ver o comentario do cabeçalho: dois campos para o mesmo facto e'
+   * o que fazia as duas metades do ecrã discordarem. */
+  S.posLista = me ? me.pos : null;
   const tl = (lastD && lastD.trackLength) || 0;
 
   /* Flash de "nova melhor volta", inspirado no aviso que o CMRT mostra
