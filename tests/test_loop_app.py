@@ -172,6 +172,31 @@ def fazer_ac(acoes):
     mod.getCarRealTimeLeaderboardPosition = getCarRealTimeLeaderboardPosition
     mod.getLastSplits = getLastSplits
     mod.log = lambda m: None
+
+    # --- o clima, se o teste pedir ---
+    csp = acoes.get('csp', True)
+    if csp:
+        def ext_rainParams():
+            return [float(acoes.get("rain", 0.0)), 0.0]
+        def ext_weatherFxActive():
+            return bool(acoes.get("rain", 0.0) > 0.0)
+        def ext_weatherDebugText():
+            return "current day: 2026-09-27 12:00:00"
+        def ext_getWeatherTimeMult():
+            return 1.0
+        def ext_patchVersionCode():
+            return 4123
+        mod.ext_rainParams = ext_rainParams
+        mod.ext_weatherFxActive = ext_weatherFxActive
+        mod.ext_weatherDebugText = ext_weatherDebugText
+        mod.ext_getWeatherTimeMult = ext_getWeatherTimeMult
+        mod.ext_patchVersionCode = ext_patchVersionCode
+
+    # o vento e' do JOGO BASE, nao do CSP: tem de existir nos dois
+    # cenarios. E' o que prova que a sondagem nao esta' a inventar
+    # ausencias.
+    mod.getWindSpeed = lambda: float(acoes.get("wind", 0.0))
+    mod.getWindDirection = lambda: float(acoes.get("windDir", 0.0))
     mod.console = lambda m: None
     mod.newApp = lambda nome: "janela"
     mod.setTitle = lambda *a: None
@@ -240,7 +265,7 @@ def correr_loop(acoes):
         "erros": 0,
     }
     # As tres funcoes de que o loop precisa, mais os apoio.
-    for nome in ("_seguro", "_tentar", "_anotaErro", "_texto", "_num",
+    for nome in ("_leClima", "_sondaClima", "_seguro", "_tentar", "_anotaErro", "_texto", "_num",
                  "_tempPorPneu", "escreverCarro", "_publicaErros",
                  "actualizar"):
         bloco = re.search(r"^def %s\(.*?(?=^\S|\Z)" % nome, src, re.S | re.M)
@@ -250,12 +275,20 @@ def correr_loop(acoes):
     # o 'erros' e' global no codigo copiado: mete-se no ambiente e le-se
     # de la
     corpo = "".join(ambiente.pop(n) for n in
-                    ("_seguro", "_tentar", "_anotaErro", "_texto", "_num",
+                    ("_leClima", "_sondaClima", "_seguro", "_tentar", "_anotaErro", "_texto", "_num",
                      "_tempPorPneu", "escreverCarro", "_publicaErros",
                      "actualizar"))
     ambiente["erros"] = 0
     ambiente["_ultimoErro"] = ''
+    # _EXT e' uma global do MODULO, nao uma funcao -- a extracao so'
+    # traz funcoes, portanto semeia-se aqui. E' o dicionario onde a
+    # sondagem guarda as funcoes de clima, e sem ele a _leClima rebenta
+    # com um NameError que nao diz nada sobre o codigo.
+    ambiente["_EXT"] = {}
     exec(compile(corpo, "app_loop", "exec"), ambiente)
+    # a sondagem corre no arranque da app, uma vez. Aqui corre uma vez
+    # porcenario de teste, que e o que se quer.
+    ambiente["_sondaClima"]()
     # Varios ciclos, porque o jogo chama isto a cada frame e uma falha
     # num ciclo nao pode contaminar o seguinte
     for _ in range(acoes.get("ciclos", 1)):
@@ -269,6 +302,19 @@ def correr_loop(acoes):
             escritos += 1
     return page.numVehicles, escritos, ambiente.get("erros", 0), page
 
+
+
+def leClima(page):
+    """O clima, tal e qual a pagina o publica. Para os testes do clima."""
+    return {
+        "rainAmount": round(float(page.rainAmount), 4),
+        "rainFxActive": int(page.rainFxActive),
+        "windSpeedApi": round(float(page.windSpeedApi), 4),
+        "windDirApi": round(float(page.windDirApi), 4),
+        "weatherTimeMult": round(float(page.weatherTimeMult), 4),
+        "cspVersionCode": int(page.cspVersionCode),
+        "weatherDebug": page.weatherDebug,
+    }
 
 # ---------------------------------------------------------------------------
 print("=== 1. com tudo a funcionar ===")
@@ -394,6 +440,82 @@ if e1 < 3:
         "no segundo ciclo so' ficaram %d carros. Uma falha no primeiro "
         "cycle contaminou o seguinte -- e era por isso que a pagina "
         "mostrava o cabecalho certo e a lista vazia." % e1)
+
+print()
+print()
+print("=== 7. o clima: com e sem Custom Shaders Patch ===")
+# O caso que deu 1 001 704 de erros da ultima vez foi um float() sobre
+# um valor que nao era numero. A versao nova do mesmo modo de falha
+# seria CHAMAR ac.ext_rainParams() a cada ciclo sem o Custom Shaders
+# Patch a expor: 40 erros por segundo por funcao, 160 com quatro.
+#
+# E' por isso que a sondagem existe: um getattr no arranque, e a partir
+# dai ou a funcao esta' na mao ou vale None.
+
+
+def climaComCsp():
+    """O clima quando o CSP expoe as funcoes."""
+    n, esc, err, page = correr_loop({"getCarName": "normal",
+                                     "nomes": ["ts040"], "csp": True,
+                                     "rain": 0.4, "ciclos": 5})
+    print("  com CSP, 5 ciclos:  erros=%d" % err)
+    if err != 0:
+        problemas.append("com o CSP presente houve %d erros" % err)
+    c = leClima(page)
+    print("     rainAmount=%r  rainFxActive=%r  cspVersionCode=%r"
+          % (c["rainAmount"], c["rainFxActive"], c["cspVersionCode"]))
+    if abs(c["rainAmount"] - 0.4) > 0.001:
+        problemas.append("a chuva nao chegou ao cabecalho: %r"
+                         % c["rainAmount"])
+    if c["rainFxActive"] != 1:
+        problemas.append("com chuva, rainFxActive devia ser 1, veio %r"
+                         % c["rainFxActive"])
+    if c["cspVersionCode"] <= 0:
+        problemas.append("a versao do CSP devia ser > 0, veio %r"
+                         % c["cspVersionCode"])
+
+
+def climaSemCsp():
+    """O clima quando o CSP NAO expoe as funcoes. E' o caso que nao
+    pode gerar um unico erro -- e o -1 em vez de 0."""
+    n, esc, err, page = correr_loop({"getCarName": "normal",
+                                     "nomes": ["ts040"], "csp": False,
+                                     "ciclos": 5, "wind": 3.5})
+    print("  SEM CSP, 5 ciclos:  erros=%d" % err)
+    if err != 0:
+        problemas.append(
+            "SEM o CSP houve %d erros em 5 ciclos. Cada ciclo a perguntar por "
+            "uma funcao que nao existe e' um erro por ciclo -- e a 40 por "
+            "segundo dava 160. A sondagem tem de responder ANTES." % err)
+    c = leClima(page)
+    print("     rainAmount=%r  rainFxActive=%r  cspVersionCode=%r"
+          % (c["rainAmount"], c["rainFxActive"], c["cspVersionCode"]))
+    print("     o vento da API, sem CSP: %r" % c["windSpeedApi"])
+    if c["rainAmount"] != -1.0:
+        problemas.append(
+            "sem CSP, a chuva devia ser -1 (nao se sabe) e nao %r. Zero "
+            "seria mentira: diria que nao chove quando nao sabemos."
+            % c["rainAmount"])
+    if c["rainFxActive"] != -1:
+        problemas.append("sem CSP, rainFxActive devia ser -1, veio %r"
+                         % c["rainFxActive"])
+    if c["cspVersionCode"] != -1:
+        problemas.append("sem CSP, cspVersionCode devia ser -1, veio %r"
+                         % c["cspVersionCode"])
+    # ac.getWindSpeed e' do JOGO BASE. Se tambem der -1, a sondagem esta'
+    # a inventar ausencias.
+    if c["windSpeedApi"] == -1.0:
+        problemas.append(
+            "o vento da API devia estar disponivel SEM o CSP: "
+            "ac.getWindSpeed e' do jogo base. Se der -1, a sondagem "
+            "esta' a marcar como ausente o que existe.")
+    elif abs(c["windSpeedApi"] - 3.5) > 0.001:
+        problemas.append("o vento da API nao chegou certo: %r em vez de 3.5"
+                         % c["windSpeedApi"])
+
+
+climaComCsp()
+climaSemCsp()
 
 print()
 print("=" * 60)

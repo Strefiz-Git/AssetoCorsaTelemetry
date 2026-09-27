@@ -28,6 +28,10 @@ MUTACOES = [
      "        if deuCerto and str(nome) == '-1':",
      "        nome, deuCerto = _seguro(lambda: ac.getCarName(carId), '-1'), True\n"
      "        if str(nome) == '-1':"),
+    ("a sondagem do clima passa a chamar em vez de perguntar antes",
+     "        _EXT[nome] = getattr(ac, nome, None)",
+     "        _EXT[nome] = (lambda f: (lambda: f(ac, nome)))(getattr)"),
+
     ("o _num volta a recusar sequencias (os 4 campos a zero)",
      "    if isinstance(v, (list, tuple)):",
      "    if isinstance(v, str) and len(v) == 99:"),
