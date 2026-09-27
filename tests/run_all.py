@@ -42,6 +42,7 @@ SUITE = [
     ("o loop da app morde mesmo", "py", "mutacao_loop.py"),
     ("as cenas do tempo sao as do jogo", "node", "test_tempo.js"),
     ("a medicao do pneu morde", "py", "test_medir_tyrewear.py"),
+    ("o README bate com o codigo", "py", "verificar_readme.py"),
     ("texto sem caracteres estranhos", "py", "verificar_texto.py"),
     ("mensagens de commit limpas", "py", "verificar_commits.py"),
 ]

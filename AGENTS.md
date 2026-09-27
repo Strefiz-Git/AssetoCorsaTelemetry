@@ -951,7 +951,7 @@ certo, não uma falha. Os testes de memória escrevem em páginas
 
 Corre com `python tests\run_all.py`. Sai com codigo diferente de zero se
 algo falhar, e com codigo 2 (que nao e' falha) se o AC
-estiver a correr e os testes de memoria forem saltados. Sao 23 grupos.
+estiver a correr e os testes de memoria forem saltados. Sao 24 grupos.
 
 | Ficheiro | O que prova |
 |---|---|
@@ -976,6 +976,7 @@ estiver a correr e os testes de memoria forem saltados. Sao 23 grupos.
 | `mutacao_loop.py` | que esse teste morde, partindo o loop |
 | `test_tempo.js` | 104 casos de clima, com os limiares das 37 cenas do Pure Planner e o eixo do vento (node) |
 | `test_medir_tyrewear.py` | que a medicao do desgaste por volta faz sentido |
+| `verificar_readme.py` | que cada facto do README bate certo com o codigo -- versao, porta, cadencia, nomes, escalas |
 | `verificar_texto.py` | que nao entrou texto torto nem caracteres estranhos |
 | `verificar_commits.py` | que as mensagens de commit nao tem BOM nem caracteres estranhos |
 

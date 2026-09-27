@@ -1,7 +1,7 @@
 # Assetto Corsa Telemetry
 
-Dashboard de telemetria do **Assetto Corsa** em HTML, que lê a memória
-partilhada do jogo e mostra-a no browser a **60 fps**.
+Painel de telemetria do **Assetto Corsa** no browser, a ler a memória
+partilhada do jogo e a mostrá-la a **60 fps**.
 
 Não usa o SimHub. Sem limite de 10 fps, sem licença, sem plugin.
 
@@ -9,131 +9,221 @@ Não usa o SimHub. Sem limite de 10 fps, sem licença, sem plugin.
 
 ---
 
-## Porque é que isto existe
+## Começar
 
-O SimHub gratuito serve o dashboard no browser a **10 fps**. Isto lê
-exatamente a mesma telemetria, saltando o SimHub, e envia-a ao browser a
-60 fps via Server-Sent Events.
+São três coisas: ligar a app ao jogo, arrancar o servidor, abrir o
+browser. A primeira é a única que é fácil de fazer mal e difícil de
+depurar, por isso está aqui em detalhe.
 
-## Os adversários (e a app que os traz)
-
-As três páginas que o próprio jogo escreve — `acpmf_physics`,
-`acpmf_graphics`, `acpmf_static` — são **só do carro de quem está a
-conduzir**. Para os outros carros é preciso uma app a correr **dentro**
-do jogo, porque só lá dentro a API existe.
-
-Essa app é **nossa**, e está em [`python_app/`](python_app/):
-
-```
-assettocorsa/apps/python/actelemetry_strefiz/
-    actelemetry_strefiz.py     o plugin
-    actelemetry_shm.py     a struct e o nome da página
-    stdlib/stdlib64/       os .pyd do ctypes (obrigatórios)
-```
-
-Copia a pasta `python_app` para `assettocorsa/apps/python/actelemetry_strefiz/`
-e liga-a em **Content Manager → Settings → Python Apps**. Confirma que
-arrancou pelo log do AC: `AssettoCorsaTelemetry 1.1.0 a escrever`.
-
-A pasta `stdlib64/` tem de vir com a app. Corre
-`python instalar_app.py`, que copia o `_ctypes.pyd` certo a partir de
-outra app do Content Manager — sem ele a app arranca, avisa no log, e a
-struct fica com os tamanhos errados.
-
-Sem a app, o dashboard não dá erro — simplesmente não há adversários, e
-`/api/opponents` responde `available: false`. É o comportamento certo.
-
-O que ela publica, e porquê o que publica, está em
-[`ideia.md`](ideia.md) e na Regra nº 19 do `AGENTS.md`.
-
-## Como usar
-
-### Requisitos
+### O que precisas
 
 | | |
 |---|---|
-| Sistema | Windows (o AC é só Windows) |
-| Python | 3.8 ou superior — [python.org](https://python.org) |
-| Dependências | **nenhuma** — só a biblioteca standard |
+| Sistema | Windows — o Assetto Corsa é só Windows |
+| Python | 3.8 ou superior — [python.org](https://www.python.org/downloads/) |
+| Dependências | **nenhuma** — só a biblioteca standard, não há `pip install` |
+| Node | só para correr os testes. O dashboard funciona sem ele |
 
-O `ctypes` e o `http.server` já vêm com o Python. Não há `pip install`
-a fazer.
+O `ctypes` e o `http.server` já vêm com o Python.
 
-### Arrancar
+### Passo 1 — instalar a app no jogo
+
+O AC escreve três páginas de memória partilhada, e nelas só está **o
+carro de quem conduz**. Para os adversários é preciso uma app a correr
+**dentro** do jogo, porque só lá dentro a API existe. Essa app é nossa e
+está em [`python_app/`](python_app/).
+
+Copia-a e liga-a num comando:
 
 ```
-git clone <este-repo>
-cd AssettoCorsaTelemetry
-INICIAR.bat
+python instalar_app.py
 ```
 
-Ou à mão:
+O que ele faz:
+
+1. encontra o Assetto Corsa (pergunta à pasta Steam, e se não
+   encontrar aceita `--ac "C:\...\assettocorsa"`);
+2. copia os dois `.py` para
+   `assettocorsa/apps/python/actelemetry_strefiz/`;
+3. copia o `_ctypes.pyd` certo para `stdlib/` e `stdlib64/`.
+
+Depois liga-a no **Content Manager → Settings → Python Apps → actelemetry_strefiz → Start**.
+
+Confirma que arrancou pelo log do AC: `AssettoCorsaTelemetry 1.1.0 a escrever`.
+
+#### Porquê que o passo 3 é obrigatório
+
+A app carrega o `ctypes` que vem **com o jogo**, e não o do sistema.
+São extensões diferentes, compiladas contra interpretadores diferentes, e
+as definições de `c_float` e `c_int32` podem não ter o mesmo tamanho. A
+página de memória é escrita com um e lida com o outro, e um
+desalinhamento de 4 bytes não dá erro nenhum: dá valores plausíveis a
+partir do sítio errado.
+
+O `_ctypes.pyd` **não está neste repositório** — é binário do Assetto
+Corsa, e não se distribui aqui. Cada app do Content Manager traz o seu
+exemplar, e o instalador copia de lá. Ele também não vai pelo primeiro
+que encontra: **vota**. Nesta máquina há seis apps com `_ctypes.pyd`, e
+elas não são iguais — cinco concordam e uma (`RacelabLib`) traz uma
+compilação diferente, com 60% dos bytes distintos. A que está em
+minoria fica de fora, e o instalador diz qual ficou de fora.
+
+Sem este ficheiro a app arranca na mesma, avisa no log do AC que o
+`ctypes` do sistema ficou a entrar, e a telemetria sai errada sem dar
+erro. Para conferir o estado:
+
+```
+python instalar_app.py --verificar
+```
+
+#### Se não tiver Content Manager
+
+Dá para na mão: copia `python_app\actelemetry_strefiz\*` para
+`assettocorsa\apps\python\actelemetry_strefiz\` e copia um
+`_ctypes.pyd` de outra app qualquer para `stdlib64\` (a de 32 bits vai
+para `stdlib\`). O `instalar_app.py` faz exactamente isto.
+
+Sem a app, o dashboard **não dá erro** — simplesmente não há adversários
+e `/api/opponents` responde `available: false`. É o comportamento certo.
+Tudo o resto funciona.
+
+### Passo 2 — arrancar o servidor
+
+Dá um duplo clique no **`INICIAR.bat`**.
+
+Fica a correr em segundo plano, sem janela. Pode fechar a janela. A
+primeira vez o Windows Firewall pergunta se aceita em redes privadas —
+aceite, ou o telemóvel e os outros PC não chegam lá.
+
+Depois abre **http://localhost:8765**.
+
+Sem duplo clique:
 
 ```
 python server.py --abrir
 ```
 
-Depois abre **http://localhost:8765**. `--abrir` faz o próprio servidor
-abrir o browser assim que a porta aceita ligações.
-
-### Parar e reiniciar
-
-| Ficheiro | O que faz |
+| | |
 |---|---|
-| `INICIAR.bat` | arranca o servidor **em segundo plano** e abre o browser |
-| `PARAR.bat` | **para o servidor** |
+| `INICIAR.bat` | arranca em segundo plano e abre o browser |
+| `PARAR.bat` | para o servidor |
 | `REINICIAR.bat` | para e arranca de novo |
 
-**O servidor fica a correr em segundo plano.** Pode fechar a janela do
-`INICIAR.bat` (ou do `REINICIAR.bat`) que o dashboard continua a
-funcionar. Para o parar, é o `PARAR.bat`.
+O `PARAR.bat` mata pelo **número da porta**, não por "todos os processos
+python" — porque o Python do Content Manager, o do SimHub e o de outras
+ferramentas também se chama `python.exe`. Antes de matar confirma pela
+linha de comando que o processo é mesmo o servidor; se for outra coisa
+na mesma porta, diz e não toca.
 
-O `REINICIAR.bat` é o que se usa **depois de mexer no `acshm.py` ou no
-`server.py`**: o servidor lê o código uma vez só, no arranque, e por isso
-uma alteração a esses ficheiros não aparece sem um reinício. Mudar
-apenas ficheiros em `static/` não precisa — o browser vai buscá-los de
-novo a cada recarregamento.
-
-O `PARAR.bat` mata pelo **número da porta**, não por "todos os
-processos python". Isto importa porque o Python do Content Manager, o do
-SimHub e o de outras ferramentas também se chama `python.exe`. Antes de
-matar, confirma pela linha de comando que o processo é mesmo o
-servidor; se for outra coisa na mesma porta, diz e não toca.
-
-Se o `INICIAR.bat` for aberto com o servidor já a correr, ele avisa e
+Se abrires o `INICIAR.bat` com o servidor já a correr, ele avisa e
 limita-se a abrir o browser — não arranca uma segunda cópia.
 
-### Quando algo corre mal
+### Passo 3 — escolher a vista
+
+Na primeira abertura pergunta qual das três queres:
+
+| Vista | Para quê |
+|---|---|
+| **Telemetria** | o painel completo |
+| **Leaderboard** | a classificação de todos os carros |
+| **Misto** | os dois ao mesmo tempo |
+
+Podes mudar quando quiseres, no menu. A escolha fica guardada.
+
+---
+
+## Abrir noutro PC
+
+O servidor é uma página web. Qualquer dispositivo na **mesma rede** pode
+vê-la, e um PC pode servir de painel para outro.
+
+### No telemóvel, ou noutro PC da mesma rede
+
+No arranque o servidor imprime o endereço:
+
+```
+  Neste PC : http://localhost:8765/
+  Rede     : http://192.168.1.42:8765/
+```
+
+Abre esse endereço no outro dispositivo. Não precisa de instalar nada —
+é só o browser.
+
+Se não funcionar à primeira, é o Windows Firewall. Na primeira execução
+o Python pergunta se aceita em redes privadas; se Respondeste "não", é
+sempre aqui:
+
+*Definições → Rede e Internet → Propriedades da rede → Permitir a
+aplicação através da Firewall* → marca **Redes privadas**.
+
+### Se o outro dispositivo não estiver na mesma rede
+
+O URL `192.168.x.x` só funciona dentro da tua rede. Fora dela há três
+caminhos, por ordem de simplicidade:
+
+1. **VPN** — Tailscale, WireGuard ou ZeroTier. As duas máquinas ficam
+   na mesma rede virtual e o endereço do passo anterior funciona tal e
+   qual. É a solução que recomendo: não expõe nada para a internet e
+   não precisa de configuração no router.
+2. **O dashboard como serviço** — abrir no telemóvel a partir do
+   computador. Não involves a rede do computador.
+3. **Encaminhamento de portas** — não é recomendado. Expõe a telemetria
+   à internet aberta.
+
+### O aviso que tem de ficar escrito
+
+**Não há palavra-passe.** Qualquer pessoa que chegue ao endereço vê os
+teus dados de telemetria e pode mudar a pasta do jogo em
+`/api/settings`.
+
+Numa rede de casa isso é aceitável. Numa rede de hotel, de café ou de
+faculdade, não — e o endereço do servidor é adivinhável.
+
+Para fechar:
+
+```
+python server.py --bind 127.0.0.1 --port 8765
+```
+
+Com `--bind 127.0.0.1` só este PC responde; o endereço de rede deixa de
+ser servido. O `0.0.0.0` é a predefição para não mudar o comportamento
+de quem já tem isto instalado, e o servidor avisa no arranque quando
+está aberto à rede toda.
+
+---
+
+## Quando algo corre mal
 
 O servidor corre sem janela, por isso não há consola onde ver erros. O
 que sai dele vai para **`servidor.log`** e **`servidor.log.err`**, no
 directório do projecto. É o primeiro sítio a olhar se o dashboard não
 actualizar.
 
-### Opções
+| Sintoma | Onde está a causa |
+|---|---|
+| Não há adversários | a app não arrancou. Log do AC, procurar `AssettoCorsaTelemetry` |
+| Os valores parecem errados por 4 bytes | falta o `stdlib64`. `python instalar_app.py --verificar` |
+| O clima mostra `—` | a app não tem o Custom Shaders Patch a expor as funções de clima. O resto funciona |
+| O mapa vem vazio | a pasta do AC não está configurada nas definições |
+| O painel não abre | o Windows Firewall. Ver acima |
+| A página abriu mas não actualiza | o AC não está a correr. O rodapé diz `JOGO ENCERRADO` |
+
+O `servidor.log.err` é o ficheiro a mandar quando a página dá erro de
+ligação.
+
+### Opções do servidor
 
 ```
-python server.py --port 9000     # mudar a porta
-python server.py --rate 400      # amostrar mais depressa (predefinição: 200)
-python server.py --abrir         # abre o browser assim que a porta aceita ligações
+python server.py --port 9000        # mudar a porta
+python server.py --rate 400         # amostrar mais depressa (predefinição: 200)
+python server.py --bind 127.0.0.1   # só este PC
+python server.py --abrir            # abre o browser assim que a porta aceita ligações
 ```
 
 O `--abrir` existe porque o servidor é o único que sabe quando está
 pronto. Abrir o browser a partir de um script que adivinha o tempo de
 arranque dá uma corrida: ou a página é pedida cedo demais e aparece um
-erro de ligação, ou espera-se sem necessidade. É o que o `INICIAR.bat`
-usa.
-
-### Aceder do telemóvel
-
-O IP da máquina aparece no arranque. Com o telemóvel na mesma rede:
-
-```
-http://192.168.x.x:8765
-```
-
-Se não funcionar à primeira, o Windows Firewall está a bloquear — na
-primeira execução o Python pergunta se aceita em redes privadas.
+erro de ligação, ou espera-se sem necessidade.
 
 ---
 
@@ -141,26 +231,59 @@ primeira execução o Python pergunta se aceita em redes privadas.
 
 | | |
 |---|---|
-| **Velocidade · rpm · caixa** | com barra de rpm com zona vermelha |
-| **Pedais** | travão e acelerador em tempo real |
-| **Mapa da pista** | desenha-se sozinho a partir da posição real do carro |
-| **Tempos de volta** | actual, melhor, anterior e **delta** contra a melhor volta |
-| **Pneus** | temperatura interior / meio / exterior, desgaste, pressão |
-| **Travões** | temperatura dos quatro |
-| **Combustível** | %, litros, capacidade, temperatura do ar e da pista |
-| **Clima** | ar, pista, vento, densidade do ar, aderência |
-| **Pneus** | código do pneu (C3, H, …), nome completo, pressão em psi, aderência |
+| **Velocidade · rpm · caixa** | barra de rpm com zona vermelha |
+| **Pedais** | travão, acelerador e embraiagem em tempo real |
+| **Mapa da pista** | desenha-se a partir da posição real do carro |
+| **Tempos de volta** | actual, melhor, anterior e **delta** contra a melhor |
+| **Pneus** | temperatura, aderência e pressão, por pneu |
+| **Vida do pneu** | estimativa a partir do desgaste medido neste stint |
+| **Travões** | temperatura dos quatro, e o imbalance da travagem |
+| **Combustível** | %, litros na reserva, voltas que faltam, ar e pista |
+| **Clima** | ar, pista, vento, densidade e a **cena** — ver abaixo |
 | **DRS · ERS · ABS · TC** | estado e percentagens |
 | **Penalidade · bandeira · posição** | |
 
-Layout responsivo: em ecrã largo usa uma grelha 3×2; em telemóvel passa
-a uma coluna.
+### As três cenas que piscam
+
+Só três coisas piscam, e todas as três estão ligadas por uma razão: são
+avisos que mudam de cor, e quem não olha de relance não os vê.
+
+- **Combustível** — a moldura engrossa e o número a piscar, com a cor a
+  subir com a percentagem: amarelo aos 15%, laranja aos 7%, vermelho ao
+  fim.
+- **DRS** — a carta **inteira** pisca, não só a caixa do DRS. A caixa é
+  um rectângulo pequeno dentro de um painel cheio de números; o que se
+  perde sem dar por isso não é um número, é uma ultrapassagem.
+- **Posição no mapa** — o botão que marca a tua posição pulsa.
+
+Quem pediu menos movimento não os vê. É a regra 2.3.3, e a auditoria
+verifica que nenhuma animação infinita fica fora disso.
+
+### A cena do tempo
+
+O painel diz **SECO**, **CHIADA**, **CHUVA**, **TROVOADA**, **FURACÃO**,
+e também **VENTOSO**, **AGUACEIRO** e **TORNADO**.
+
+As palavras e as cores não são inventadas: são as 37 cenas do Pure
+Planner, com os limiares tirados das quantidades que o próprio jogo
+reconhece. `0,001` é chcada, `0,125` é chuva, `0,6` é chuva forte. E o
+que estava a ser lido e deitado fora era o **vento**, que separa duas
+cenas que a chuva sozinha não separa:
+
+| cena | chuva | vento |
+|---|---|---|
+| `tornado` | 0,300 | 100 |
+| `heavy_sleet` | 0,300 | 0 |
+
+Com só a chuva as duas diziam CHUVA FORTE. Com vento, uma é um tornado e
+a outra é grão. Na secura é ainda mais limpo: `windy` tem chuva zero e
+vento 50, e dizer "seco" aí é mentira.
 
 ---
 
 ## Como funciona
 
-O Assetto Corsa publica três páginas de memória partilhada com nome:
+O AC publica três páginas de memória partilhada com nome:
 
 | Página | Conteúdo |
 |---|---|
@@ -173,23 +296,40 @@ Assetto Corsa
       │  escreve continuamente
       ▼
 acpmf_physics / acpmf_graphics / acpmf_static
-      │  lido por ctypes, só leitura
+      │  só o carro de quem conduz
       ▼
-server.py  ──── Server-Sent Events, 60 Hz ────▶  browser
+actelemetry_strefiz  ──►  acpmf_actelemetry_v2  ──►  acshm.py
+   (dentro do jogo)        (a nossa, com 128     (fora do jogo)
+                             carros)
+                                          │  200 Hz, só leitura
+                                          ▼
+                                      server.py ──── SSE, 60 Hz ────▶ browser
 ```
 
-O servidor lê a 200 Hz (para não perder frames do jogo) e empurra para o
-browser a 60 Hz. O desenho é feito num `<canvas>`.
+O nome da página é o contrato entre a app e o leitor. É
+`acpmf_actelemetry_v2` nos dois lados, e `test_contrato.py` falha se
+alg um mudar sozinho.
+
+Isto não é cautela. Se a struct crescer e o nome não mudar, o leitor
+novo com um mapeamento antigo vai buscar os bytes novos a seguir ao fim
+real da página — e recebe **zeros**. Zeros são o pior resultado
+possível, porque são plausíveis: `rainAmount = 0` lê-se como "não
+chove", e é um número que ninguém questiona. Daí a regra: **a struct
+mudou de tamanho, logo o nome muda. Sempre.** O `v2` é um nome que nunca
+existiu, de propósito.
 
 O mapa não precisa de "aprender": usa `carCoordinates`, que é a posição
-real do carro no mundo. Vai desenhando à medida que conduz.
+real do carro no mundo, e vai desenhando à medida que conduz.
 
 ### O delta
 
-O AC não dá delta. O `app.js` guarda os pontos `[trackPct, tempo]` de
-cada volta; quando uma volta acaba, se foi a melhor fica de referência, e
-o delta passa a ser a diferença entre o tempo actual e o tempo da
-referência no mesmo ponto da pista, interpolado.
+O AC não dá delta. O `app.js` guarda os pontos `[percentagem da pista,
+tempo]` de cada volta; quando uma volta acaba, se foi a melhor fica de
+referência, e o delta passa a ser a diferença entre o tempo actual e o
+tempo da referência no mesmo ponto, interpolado.
+
+Perto de zero (menos de 50 ms) o número fica sem cor, para não piscar a
+vermelho enquanto se está na linha.
 
 ---
 
@@ -201,28 +341,26 @@ AssettoCorsaTelemetry/
 ├── PARAR.bat                para o servidor
 ├── REINICIAR.bat            para e arranca de novo
 ├── arrancar.ps1             a lógica do INICIAR (o .bat chama esta)
-├── parar.ps1                a lógica do PARAR (o .bat chama esta)
+├── parar.ps1                a lógica do PARAR
+├── instalar_app.py          copia a app e o ctypes do jogo para lá
 ├── server.py                servidor HTTP + SSE
-├── acshm.py                 leitura da memória partilhada e structs do AC
+├── acshm.py                 structs do AC e leitura da memória partilhada
+├── AGENTS.md                as armadilhas deste projecto, uma por regra
 ├── static/
 │   ├── index.html           estrutura
-│   ├── style.css            cores e layout
-│   ├── tempos.js            matemática das voltas e do delta (pura)
+│   ├── style.css            cores, layout e movimento
 │   ├── app.js               desenho, mapa, idiomas, definições
-│   └── fonts/               Titillium Web (OFL incluída)
-└── tests/
-    ├── run_all.py           corre a suite toda
-    ├── test_layout.py       valida as structs campo a campo
-    ├── test_acshm.py        testa a leitura com memória fictícia
-    ├── test_opponents.py    testa a leitura dos 128 carros
-    ├── test_tempos.js       tempos e delta, sem browser
-    ├── test_tempos.html     os mesmos casos, no browser
-    ├── test_mutation.py     confirma que os testes falham quando devem
-    ├── check_layout.js      layout nos 3 modos × 13 larguras (colar na consola)
-    ├── verify_real.py       confere a leitura contra o jogo a correr
-    ├── diag_drs.py          agrupa o que encontra no canal SSE
-    ├── probe_layout.py      sonda os valores reais
-    └── diff_offsets.py      compara offsets calculados vs. reais
+│   ├── tempos.js            matemática das voltas e do delta (pura)
+│   ├── tempo.js             as 37 cenas do tempo, vindas do jogo (pura)
+│   ├── tyres.js             aderência e vida do pneu
+│   ├── combustivel.js       consumos e autonomia
+│   └── fonts/               Titillium Web e Roboto Mono (OFL incluída)
+├── python_app/
+│   └── actelemetry_strefiz/
+│       ├── actelemetry_strefiz.py    a app, dentro do jogo
+│       └── actelemetry_shm.py        a struct e o nome da página
+├── tests/                   44 ficheiros — ver AGENTS.md
+└── docs de desenho          ideia.md, chuva2.md, acessibilidade.md, ...
 ```
 
 ---
@@ -230,50 +368,58 @@ AssettoCorsaTelemetry/
 ## Testes
 
 ```
-python tests\run_all.py        # a suite toda, por ordem
+python tests\run_all.py
 ```
 
-Ou um a um:
+23 grupos, por ordem. Com o AC a correr os testes de memória são
+saltados — é o comportamento certo, não uma falha: escrevem em páginas
+`ac_test_*`, criadas e destruídas pelo próprio teste, e nunca tocam nas
+páginas reais do jogo.
 
-```
-python tests\test_layout.py    # não precisa do jogo
-python tests\test_acshm.py     # não pode correr com o jogo aberto
-node    tests\test_tempos.js   # não precisa do jogo nem de browser
-python tests\verify_real.py    # precisa do jogo a correr
-```
+O que **cada** um prova está na tabela do
+[AGENTS.md](AGENTS.md#a-suite), com a razão de cada um dos que correm à
+mão.
 
-**Com o AC a correr, os testes de memória são saltados** — é o
-comportamento certo, não uma falha. Escrevem em páginas `ac_test_*`, que
-são criadas e destruídas pelo próprio teste, e nunca tocam nas páginas
-reais do jogo.
-
-> **Atenção:** `test_acshm.py` cria páginas de memória partilhada para
-> injectar valores conhecidos. Usa nomes fictícios (`ac_test_*`) e tem uma
-> guarda que aborta se detectar o jogo em execução — porque se usasse os
-> nomes reais, as escritas do teste iam para dentro do AC a correr.
-> Ver [AGENTS.md](AGENTS.md) para a história completa.
+> **Atenção:** um teste de mutação **mexe no código do disco** para
+> confirmar que o teste ao lado morde. Todos restauram no fim, e
+> confirmam que restauraram — correr a suite não deixa o projecto
+> diferente. Se algum dia ficar com `MUTACAO DE TESTE` num ficheiro,
+> é porque um deles foi interrompido a meio:
+> `git checkout -- <ficheiro>` resolve.
 
 ---
 
 ## Tipos e escalas
 
-Confirmados contra o AC em execução, não só por leitura da documentação:
+Confirmados contra o AC em execução, não por leitura da documentação:
 
 | Campo | Escala |
 |---|---|
 | `kersCharge` (ERS) | fracção `0..1` |
-| `tyreWear` | **`0..100`, 100 = pneu novo** — não é fracção |
-| `kersMaxJ`, `kersCurrentKJ` | ver nota abaixo |
-| `tyreTempI / M / O` | °C, três zonas por pneu || `brakeTemp` | °C |
-| `wheelsPressure` | unidade do jogo (~26) |
+| `kersMaxJ` | **joules** (num F1 dá ~4 500 000) |
+| `kersCurrentKJ` | **kilojoules** — trocar as duas é erro de factor 1000 |
+| `tyreWear` | **`0..100`, 100 = melhor aderência.** Despite o nome, **não é desgaste** — mede aderência. Ver a nota abaixo |
+| `wheelsPressure` | **psi** (medido 28,7 a 32,3 num F1) |
+| `tyreTempI / M / O` | °C, três zonas por pneu, ordem `[FL, FR, RL, RR]` |
+| `clutch` | `1.0` = encaixada. A interface mostra o inverso |
+| `abs`, `tc` | **o nível de ajuste, `0..1`** — não são "está a actuar" |
 | `iCurrentTime`, `iBestTime` | milissegundos |
-| `carCoordinates` | xyz do mundo, em metros |
+| `carCoordinates` | x, y, z do mundo. O plano da pista é **X-Z**; o Y é a altitude |
 | `normalizedCarPosition` | `0..1` ao longo da volta |
-| `packetId` | incrementa a cada frame — diz se o jogo está vivo |
+| `packetId` | incrementa a cada frame — é ele que diz se o jogo está vivo |
 
-> **Unidades de ERS — atenção.** `ersMaxJ` e `kersMaxJ` vêm em **joules**
-> (num F1 dá ~4 500 000, ou seja 4,5 MJ). `kersCurrentKJ` vem em
-> **kilojoules** (centenas por volta). Trocá-las é um erro de factor 1000.
+### Sobre o `tyreWear`
+
+O campo chama-se `tyreWear` e **não é desgaste**. É um sinal de
+aderência e saúde, de `0..100`, onde 100 é o máximo: começa perto de
+`0,995` num pneu novo, sobe durante o aquecimento e depois desce
+ligeiramente à medida que o pneu se gasta. A interface mostra-o com o
+nome **ADERÊNCIA** por isso.
+
+E o desgaste verdadeiro, o que o HUD do Content Manager mostra, vem de
+outra interface — a do objecto carro, `ac.getCar(0).wheels[i]`, que o
+Python não expõe. A app sonda-o no arranque e deixa o resultado no log
+do AC. Ver a Regra nº 18 do [AGENTS.md](AGENTS.md).
 
 ---
 
@@ -284,9 +430,13 @@ Confirmados contra o AC em execução, não só por leitura da documentação:
   significa "o jogo está a correr" — quem diz isso é o `packetId`.
 - O mapa guarda-se no `localStorage`: recarregar a página não o apaga.
   O botão **limpar** apaga.
-- Em pausa ou no menu o `packetId` para. O site mostra o último estado,
+- Em pausa ou no menu o `packetId` para. O painel mostra o último estado,
   esbatido, com "EM PAUSA" ou "JOGO ENCERRADO" em vez de fingir que está
   vivo.
+- Quatro idiomas: **pt-PT**, **pt-BR**, **es**, **en**. Muda-se nas
+  definições.
+- Verificar que o texto não entrou torto depois de uma edição:
+  `python tests\verificar_texto.py`.
 
 ---
 
@@ -294,6 +444,6 @@ Confirmados contra o AC em execução, não só por leitura da documentação:
 
 MIT — ver [LICENSE](LICENSE).
 
-A fonte **Titillium Web** (fonte oficial da F1) está incluída em
-`static/fonts/` sob a licença SIL Open Font License — ver
+A fonte **Titillium Web** (a oficial da F1) e a **Roboto Mono** estão
+incluídas em `static/fonts/` sob a licença SIL Open Font License — ver
 `static/fonts/OFL.txt`.

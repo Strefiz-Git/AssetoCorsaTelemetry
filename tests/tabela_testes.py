@@ -55,6 +55,8 @@ DESCRICAO = {
     "test_tempo.js": ("104 casos de clima, com os limiares das 37 cenas do "
                       "Pure Planner e o eixo do vento"),
     "test_medir_tyrewear.py": "que a medicao do desgaste por volta faz sentido",
+    "verificar_readme.py": ("que cada facto do README bate certo com o "
+                              "codigo -- versao, porta, cadencia, nomes, escalas"),
     "verificar_texto.py": "que nao entrou texto torto nem caracteres estranhos",
     "verificar_commits.py": "que as mensagens de commit nao tem BOM nem caracteres estranhos",
 }
