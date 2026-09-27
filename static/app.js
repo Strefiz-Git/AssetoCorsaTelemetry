@@ -2120,8 +2120,15 @@ function pintarChuva(id, d) {
 function pintarGrip(id, v) {
   const g = $(id);
   if (!g) return;
-  g.textContent = v != null ? v.toFixed(2) : '—';
-  g.style.color = v == null ? '' : v >= 0.98 ? '' : v >= 0.85 ? 'var(--orange)' : 'var(--red-txt)';
+  // Negativo e' "nao disponivel", a mesma convencao da posicao: o leitor
+  // so' o usa quando o jogo nao esta a simular o carro. Sem isto, o 0
+  // chegava aqui e era pintado a VERMELHO -- e um '0.00' a vermelho diz
+  // ao piloto que o carro esta' sobre gelo, quando na verdade nao havia
+  // nada para saber. Medido: 'ADERENCIA 0.00' a vermelho com o carro no
+  // Nordschleife, a tracado, com os pneus a 39-42 graus.
+  const saber = v == null || v < 0;
+  g.textContent = saber ? '—' : v.toFixed(2);
+  g.style.color = saber ? '' : v >= 0.98 ? '' : v >= 0.85 ? 'var(--orange)' : 'var(--red-txt)';
 }
 
 /* O nome do pneu vem do jogo em varios formatos. Nos carros de 2025 e'
