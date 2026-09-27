@@ -121,6 +121,19 @@ class CarInfo(ctypes.Structure):
         # sobram sao lixo, nao tempo -- o leitor tem de cortar por este
         # numero.
         ('lastSplitsCount', c_int32),
+
+        # ------------------------------------------------------------------
+        # CAIXA, pela API -- para comparar com o 'gear' da pagina de
+        # fisica, que e' um campo DIFERENTE com o mesmo nome (Regra no 18).
+        # Ha' um bug em que a caixa aparece com +1, e ha' duas hipoteses
+        # que so' se separam com os dois valores no mesmo instante:
+        #   - a API da -1 e a shm da 0  -> o ecrã e a shm discordam
+        #   - a API da 1 e a shm da 2  -> a shm vale +1 a API
+        # Ler um no ecra e o outro num print e' cronometragem humana, e
+        # erra-se. Aqui os dois ficam gravados no MESMO ciclo.
+        # Ver caixa.md.
+        # ------------------------------------------------------------------
+        ('gearApi', c_int32),
     ]
 
 

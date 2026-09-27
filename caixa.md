@@ -72,10 +72,70 @@ converter a string `"R"` em `NaN`. É a Regra nº 14 pelo caminho
 inverso: verifiquei o que a função faz com o que recebe, e ela faz o
 mínimo.
 
+## Medição de 2026-09-27, com o jogo a correr
+
+Duas leituras **no mesmo instante** (o `snapshot()` e o `int32` cru lidos
+dentro do mesmo ciclo — antes tinham sido comandos separados, que não
+são uma medição):
+
+| instante | `snapshot()` | `int32` no offset 16 | como float | offset 20 | offset 24 |
+|---|---|---|---|---|---|
+| t=0 … t=9 | `2` | `2` | 0,0000 | 0 | 0 |
+
+Duas coisas saem daqui:
+
+1. **O `snapshot()` não inventa nada.** Lê mesmo o offset 16, e o que lá
+   está é `2`. Os 736 valores de `2` na leitura de 15 s anteriores são
+   reais, não um erro de leitura.
+2. **Com o carro parado, o campo vale 2** — e não 0, que era o que a
+   captura com o jogo fechado tinha dado.
+
+O ponto 2 é o que torna a hipótese do "+1" plausível e ao mesmo tempo
+**não a prova**: um carro parado em 2.ª sem acceleration é exactamente o
+que o AC faz, porque mantém a caixa engatada. Se o ecra do jogo também
+disser "2", está tudo certo e o relato do bug é que precisa de ser
+reobservado com o carro a andar.
+
+## A hipótese que falta testar: dois sítios diferentes para a mesma caixa
+
+O CMRT tira a caixa da **API Lua** (`ac.getCarState(0).gear`). Nós
+tiramos da **memória partilhada** (`gear`, offset 16). São as duas
+interfaces distintas da Regra nº 18, e a Regra nº 18 diz que campos com
+o mesmo nome **não são o mesmo campo**.
+
+A hipótese passa a ser: **o AC mostra a caixa no ecrã a partir da API, e
+a memória partilhada tem outro valor.** Não é um offset errado — é um
+sítio errado. As duas previsões são diferentes:
+
+| se acontecer | o que significa |
+|---|---|
+| API = −1, shm = 0, no mesmo instante | o ecrã e a shm discordam. A shm é que está errada para mostrar |
+| API = 1, shm = 2, no mesmo instante | a shm vale o valor +1 à API |
+| API = shm, sempre | o bug não é aqui, e o relato tem de ser reobservado a conduzir |
+
+**Isto decide-se por medição, não a olho.** E medir exige os dois valores
+**no mesmo instante** — comparar o ecrã do jogo com um `print` é
+cronometragem humana, e erra-se.
+
+Por isso a app passa a publicar também a caixa da API. É um campo novo
+nos dois lados do contrato (Regra nº 19), e a partir daí o `caixa.py`
+compara os dois valores dentro do mesmo ciclo de leitura, sem ninguém
+a olhar para o ecrã.
+
+### O que fica por confirmar antes de mandar isto
+
+- [ ] A API dentro do jogo chama-se mesmo `ac.getCarState(0).gear` no
+      Python. O CMRT usa isso em **Lua**; a Python pode ter outro nome.
+      **A confirmar no `acsys.py` antes de escrever uma linha.**
+- [ ] Se `gear` na API também for 0/−1/positivo, ou se a API devolve
+      outra coisa (a Lua pode dar o índice da caixa directamente).
+- [ ] Se o campo novo cabe. A struct tem 276 B/carro e não há folga sem
+      mudar o tamanho da página; se não couber, o campo novo é o
+      `tyreCoreTemp[0]` que já ninguém usa.
+
 ## O que falta, e por isso não concluo
 
-**O jogo não está a correr** (packetId congelado). Sem execução não há
-forma de distinguir:
+Sem o carro a andar não há forma de distinguir:
 
 - o valor que chega está mesmo errado (aí o suspecto passa a ser a
  leitura, não o offset), **ou**

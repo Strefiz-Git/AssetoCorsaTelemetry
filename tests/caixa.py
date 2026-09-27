@@ -81,29 +81,51 @@ def capturar(segundos, hz=200):
     t.snapshot()
     _, _, ph = t._views['acpmf_physics']
 
+    # A caixa pela API. Sem isto so' se pode comparar o valor com o que
+    # se ve no ecra a olho -- e comparar "um print" com "o que o ecra
+    # mostra" e' cronometragem humana, que erra. Aqui os dois valores
+    # sao lidos no MESMO ciclo, e a app escreve-os os dois no mesmo
+    # acUpdate, portanto nao ha' nem tempo nem olhos no meio.
+    #
+    # Se a app nao estiver a correr, a pagina nao existe e nao ha' o que
+    # comparar. Diz-se isso em vez de fingir que a captura serve.
+    opp = acshm.Opponents()
+    temApi = bool(opp.available)
+    if temApi:
+        print('A app esta a correr: a caixa vai ser lida das DUAS fontes.')
+    else:
+        print("A app NAO esta a correr: so' vai sair a caixa da memoria")
+        print("partilhada, e nao ha' com que comparar. Para a comparacao")
+        print("completa, liga a AssettoCorsaTelemetry no Content Manager e")
+        print("reinicia o jogo -- a pagina so' existe quando a app escreve.")
+
     intervalo = 1.0 / hz
     amostras = []
-    mudanças = []
+    mudancas = []
     anterior = None
+    anterior_api = None
     fim = time.time() + segundos
     while time.time() < fim:
         # uma so leitura, coerente: o struct e' lido inteiro de seguida
         g = ph.gear
         r = ph.rpms
         v = ph.speedKmh
+        # logo a seguir, sem sair do ciclo
+        api = int(opp._view.vehicleInfo[0].gearApi) if temApi else None
         agora = time.time()
         reg = {'t': round(agora - (fim - segundos), 3),
-               'gearCru': g, 'gear': acshm._gear(g),
+               'gearCru': g, 'gear': acshm._gear(g), 'gearApi': api,
                'rpm': int(r), 'kmh': round(v, 1)}
         amostras.append(reg)
-        if g != anterior:
+        if g != anterior or (api is not None and api != anterior_api):
             mudancas.append(reg)
-            anterior = g
+        anterior = g
+        anterior_api = api
         tempo = intervalo - ((time.time() - agora) % intervalo)
         if tempo > 0:
             time.sleep(tempo)
 
-    dados = {'segundos': segundos, 'hz': hz,
+    dados = {'segundos': segundos, 'hz': hz, 'temApi': temApi,
              'pista': (t.snapshot() or {}).get('track'),
              'carro': (t.snapshot() or {}).get('car'),
              'amostras': amostras, 'mudancas': mudancas}
@@ -122,7 +144,15 @@ def ver():
     print('pista %s | carro %s | %d s a %d Hz'
           % (d.get('pista'), d.get('carro'), d['segundos'], d['hz']))
     print()
-    print('--- valores crus que apareceram ---')
+
+    temApi = d.get('temApi', False)
+    if not temApi:
+        print("*** A captura e' SO' da memoria partilhada. ***")
+        print("*** A app nao estava a correr, portanto nao ha' comparacao. ***")
+        print('*** Liga a AssettoCorsaTelemetry e repete a captura.      ***')
+        print()
+
+    print('--- valores crus que apareceram (memoria partilhada) ---')
     vistos = {}
     for a in d['amostras']:
         vistos[a['gearCru']] = vistos.get(a['gearCru'], 0) + 1
@@ -130,6 +160,46 @@ def ver():
         print('   gearCru = %-4s  (%-2s no ecra)  %6d amostras  %5.1f%%'
               % (g, acshm._gear(g), n, 100.0 * n / len(d['amostras'])))
     print()
+
+    if temApi:
+        print('--- OS DOIS, no mesmo instante: shm = memoria, api = o que o ecra mostra ---')
+        print('   %-6s %-6s %-6s %-8s %s' % ('t', 'shm', 'api', 'dif', 'o que diria o ecra'))
+        difs = {}
+        for m in d['mudancas'][:80]:
+            s, a = m['gearCru'], m.get('gearApi')
+            if a is None or a == -99:
+                marca = 'api nao leu'
+                dif = None
+            else:
+                dif = s - a
+                difs[dif] = difs.get(dif, 0) + 1
+                marca = 'IGUAIS' if dif == 0 else 'shm = api %+d' % dif
+            print('   %-6.3f %-6s %-6s %-8s %s'
+                  % (m['t'], s, a, '' if dif is None else dif, marca))
+        if len(d['mudancas']) > 80:
+            print('   ... mais %d' % (len(d['mudancas']) - 80))
+        print()
+        if difs:
+            print('--- resumo das diferencas (shm - api) ---')
+            for k in sorted(difs):
+                v = difs[k]
+                quem = ('iguais' if k == 0
+                        else 'a shm vale %+d a API' % k)
+                print('   %+3d  %6d amostras   %s' % (k, v, quem))
+            print()
+            iguais = difs.get(0, 0)
+            total = sum(difs.values())
+            if iguais == total:
+                print('VEREDICTO: as duas fontes concordam sempre. A caixa da')
+                print("memoria partilhada e' a que o jogo mostra. O bug nao e")
+                print('aqui, e o relato tem de ser reobservado com o carro')
+                print('a andar -- pode ser o que o HUD ecrã mostra.')
+            else:
+                print('VEREDICTO: as duas fontes NAO concordam. A memoria')
+                print('partilhada e o ecra do jogo dizem coisas diferentes, e')
+                print('a diferenca acima diz quanto. Isto decide-se sem olho.')
+        print()
+
     print('--- mudancas de caixa (as transicoes) ---')
     print('   %-8s %-6s %-6s %-8s %s' % ('t', 'cru', 'mostra', 'rpm', 'km/h'))
     for m in d['mudancas'][:80]:
@@ -138,11 +208,11 @@ def ver():
     if len(d['mudancas']) > 80:
         print('   ... mais %d' % (len(d['mudancas']) - 80))
     print()
-    print('AGORA: compara cada transicao com o que o JOGO mostra no ecra.')
-    print('Se o jogo mostrar -1/R e aqui der 0/N no mesmo instante, o valor')
-    print('chega err -- e entao o suspecto passa a ser a leitura, nao o offset.')
-    print('Se o jogo tambem mostrar 0, entao o jogo e a memoria concordam e')
-    print('o problema e de outro sitio.')
+    if not temApi:
+        print("Sem a API nao ha' conclusao possivel. Ver a nota em caixa.md.")
+    else:
+        print("O veredito acima e' medido. O que falta e' so' conduzir:")
+        print('faz 2 ou 3 mudanças em cada caixa, incluindo para reveso.')
 
 
 if __name__ == '__main__':

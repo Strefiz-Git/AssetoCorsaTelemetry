@@ -1,7 +1,8 @@
 """
 AssettoCorsaTelemetry -- app Python para o Assetto Corsa.
 
-Corre DENTRO do jogo, em assettocorsa/apps/python/actelemetry/.
+Corre DENTRO do jogo, em
+assettocorsa/apps/python/actelemetry_strefiz/.
 Escreve a pagina de memoria partilhada "acpmf_actelemetry_v1", que e'
 depois lida pelo acshm.py do outro lado, no dashboard. Sem SimHub, sem
 Content Manager: e' esta app que escreve, e o acshm.py que le.
@@ -122,6 +123,16 @@ def escreverCarro(carId, info, tempNuclear, tempBanda):
         lambda: int(ac.getCarState(carId, acsys.CS.DrsAvailable)))
     info.drsEnabled = _seguro(
         lambda: int(ac.getCarState(carId, acsys.CS.DrsEnabled)))
+    # A caixa pela API. O HUD do Content Manager tira a caixa daqui, e
+    # nos tiramos do 'gear' da pagina de fisica -- campos com o mesmo
+    # nome em interfaces diferentes (Regra no 18). Ha' um bug em que
+    # aparece +1, e a unica forma de o decidir e' ter os dois valores no
+    # mesmo instante.
+    #
+    # A sentinela e' -99 e NAO -1, porque -1 e' o reveso: um valor que
+    # e' valido seria lido como "caixa invalida", que e' exactamente o
+    # bug que se quer ver. Nenhuma caixa chega a -99.
+    info.gearApi = _seguro(lambda: int(ac.getCarState(carId, acsys.CS.Gear)), -99)
 
     # --- tempos de setor da ultima volta completa ------------------------
     # A documentacao oficial diz "returns -1 on failure", portanto nao e'

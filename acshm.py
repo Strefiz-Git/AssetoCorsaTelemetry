@@ -222,6 +222,14 @@ class acsVehicleInfo(ctypes.Structure):
         # sentido os primeiros 'lastSplitsCount' valores -- ver snapshot().
         ("lastSplitsMS", c_int32 * MAX_SECTORS),
         ("lastSplitsCount", c_int32),
+        # CAIXA, pela API do jogo -- e' a MESMA coisa que o HUD do Content
+        # Manager mostra no ecra, lida de outra interface (Regra no 18).
+        # Existe para comparar com o 'gear' da pagina de fisica, que e'
+        # outro campo com o mesmo nome. Ha' um bug em que a caixa aparece
+        # com +1; a unica forma de o decidir e' ter os dois valores no
+        # MESMO instante, e nenhum humano le as duas coisas ao mesmo
+        # tempo. Ver caixa.md.
+        ("gearApi", c_int32),
     ]
 
 

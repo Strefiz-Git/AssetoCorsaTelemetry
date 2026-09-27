@@ -78,17 +78,24 @@ def tamanho_esperado(struct):
 # recalcula-se a partir da propria lista de campos, portanto dava
 # qualquer coisa se essa lista mudar. Duas verificacoes que nunca
 # coincidem: a soma e o numero congelado.
-# 276 = 4+64+64+4+4+4+4+4+4+12+4+4+4+4+4+4        (ate' isConnected)
+# 280 = 4+64+64+4+4+4+4+4+4+12+4+4+4+4+4+4        (ate' isConnected)
 #       + 16+4+4+4+4+16                             (tyreCoreTemp, turbo,
 #                                                    kersCharge, drs x2,
 #                                                    tyreSurfaceTemp)
 #       + 32+4                                    (splits)
+#       + 4                                       (gearApi)
 # Antes eram 228. A diferenca de 48 bytes nao e' um campo novo: e' o
 # mesmo espaco, com os tres campos que nunca eram preenchidos
 # (suspensionDamage, engineLifeLeft, tyreInflation) trocados por dados
 # que a API do AC devolve mesmo. Ver python_app/actelemetry_shm.py.
-VEHICLE_FIXO = 276
-PAGINA_FIXA = 4 + 4 + 512 + 276 * 128 + 512 + 4 + 32   # 36396
+#
+# O gearApi sao' os 4 bytes a mais: e' a caixa pela API, ao lado da
+# caixa da pagina de fisica, para se poderem comparar no mesmo instante
+# (ver caixa.md). Foi posto no FIM de proposito -- acrescentar no fim
+# nao move nenhum offset, e o test_contrato falha se um dos lados o
+# puser no meio.
+VEHICLE_FIXO = 280
+PAGINA_FIXA = 4 + 4 + 512 + 280 * 128 + 512 + 4 + 32   # 36908
 
 ESPERADO_VEHICLE = tamanho_esperado(acshm.acsVehicleInfo)
 ESPERADO_PAGINA = tamanho_esperado(acshm.SPageFileSimHub)
