@@ -282,6 +282,86 @@ console.log("=== 13. sem percentagem, o aviso das voltas continua a funcionar ==
 }
 
 console.log("");
+console.log("=== 14. o aviso funciona SEM nenhuma volta medida ===");
+// Este e' o caso que me foi dito: comeca-se a corrida com 7,4% e nada
+// pisca. A causa era o frontend fazer `r.valido && r.aviso`, e `valido`
+// so' ser verdadeiro depois de uma volta fechada -- ou seja, o aviso
+// estava preso ao limiar das voltas, que e' o unico dos dois que
+// precisa de medicao.
+{
+  const r = C.estimarCombustivel(null,
+    { litros: 9.65, voltas: 0, connected: true }, 7.4);
+  eq(r.valido, false, "'a medir' para o texto: nao sabemos as voltas");
+  eq(r.aviso, true, "MAS o aviso esta' ligado");
+  eq(r.nivel, "aviso", "e o nivel e' aviso");
+  eq(r.porPct, "aviso", "foi o limiar da percentagem");
+  eq(r.porVoltas, "normal", "as voltas nao mandaram: nao ha' media");
+  eq(r.msg, "a medir", "e a linha Voltas continua a dizer 'a medir'");
+}
+
+console.log("");
+console.log("=== 15. o critico tambem, e sem voltas medidas ===");
+{
+  const r = C.estimarCombustivel(null,
+    { litros: 4, voltas: 0, connected: true }, 3);
+  eq(r.nivel, "critico", "3% sem voltas medidas: critico");
+  eq(r.aviso, true, "com aviso ligado");
+}
+
+console.log("");
+console.log("=== 16. a MEIRA volta medida, e nao so' a primeira ===");
+// A segunda volta e' onde a media deixa de ser uma amostra de uma. O
+// aviso tem de continuar a funcionar em todas.
+{
+  let estado = null, ultimo = null;
+  const ler = (litros, voltas, pct) => {
+    ultimo = C.estimarCombustivel(estado,
+      { litros, voltas, connected: true }, pct);
+    estado = ultimo.estado;
+    return ultimo;
+  };
+  ler(60, 0, 46);                 // abertura
+  const v1 = ler(40, 1, 31);       // gastou 20 L
+  eq(v1.voltasMedidas, 1, "primeira volta medida");
+  const v2 = ler(20, 2, 15);       // gastou 20 L
+  eq(v2.voltasMedidas, 2, "segunda volta medida");
+  eq(v2.soUmaVolta, false, "ja' nao e' so' uma");
+  eq(v2.nivel, "aviso", "15% ainda da' aviso");
+  eq(v2.porPct, "aviso", "pela percentagem");
+}
+
+console.log("");
+console.log("=== 17. o alarme falso: sem NENHUM dado, nao ha' aviso ===");
+// A razao que me levou a prender o aviso era o alarme falso. Essa
+// razao e' valida -- mas so' no caso em que nao ha' nenhum dado, e nao
+// no caso em que falta uma medicao. Com 7% o combustivel esta' a 7%:
+// avisar e' dizer a verdade.
+{
+  // sem percentagem e sem voltas medidas
+  const r = C.estimarCombustivel(null,
+    { litros: 9.65, voltas: 0, connected: true }, null);
+  eq(r.aviso, false, "sem nenhum dado, sem aviso");
+  eq(r.nivel, "desconhecido", "e o nivel e' desconhecido, nao normal");
+
+  // com percentagem boa: normal, e isso e' uma RESPOSTA
+  const bom = C.estimarCombustivel(null,
+    { litros: 100, voltas: 0, connected: true }, 77);
+  eq(bom.aviso, false, "77% sem voltas medidas: sem aviso");
+  eq(bom.nivel, "normal", "e o nivel e' normal, porque sabemos que esta' bem");
+}
+
+console.log("");
+console.log("=== 18. nivelDe: o mais alarmente dos dois ===");
+{
+  eq(C.nivelDe("normal", "normal"), "normal", "normal + normal");
+  eq(C.nivelDe("aviso", "normal"), "aviso", "aviso + normal");
+  eq(C.nivelDe("normal", "aviso"), "aviso", "normal + aviso");
+  eq(C.nivelDe("critico", "aviso"), "critico", "critico ganha ao aviso");
+  eq(C.nivelDe("aviso", "critico"), "critico",
+     "critico ganha, e a ordem dos argumentos nao importa");
+}
+
+console.log("");
 console.log("=".repeat(60));
 if (falhou) {
   console.log("!!! " + falhou + " FALHA(S) de " + (passou + falhou));

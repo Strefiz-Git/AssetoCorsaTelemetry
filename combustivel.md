@@ -145,17 +145,64 @@ descarta-se, em vez de dar litros por volta negativos.
 
 ### O piscar
 
-`lapsLeft = fuelL / litrosPorVolta`
+São **dois limiares independentes**, e o alerta dispara com qualquer um
+deles:
 
-| `lapsLeft` | estado |
+| limiar | quando | porquê |
+|---|---|---|
+| **1,5 voltas** | `lapsLeft = fuelL / litrosPorVolta` | o ritmo medido |
+| **15%** | `fuelPct`, o valor que o jogo dá | não depende de medição nenhuma |
+| **5%** | idem | o crítico por percentagem |
+
+Um **ou**, não um **e**: nenhum dos dois tem razão para calar o outro. As
+voltas só existem depois de uma volta fechada; a percentagem existe
+desde a primeira leitura. Num limite muito longo, «voltas» é um número
+grande e «percentagem» é pequeno — e vice-versa num limite curto.
+
+O nível é o **mais alarmanente** dos dois, não o primeiro que dispara.
+
+### O aviso NÃO depende de haver uma volta medida
+
+Isto está aqui porque eu escrevi o contrário, e o resultado foi um aviso
+que não aparecia quando mais fazia falta.
+
+O que eu tinha escrito: *«o aviso só existe depois de haver uma volta
+medida»*. Verdade para o limiar das voltas. **Falsa para o da
+percentagem** — e a razão de o ter acrescentado era precisamente não
+depender de nenhuma medição. Amarrei os dois com o mesmo `valido`, e o
+frontend fez `r.valido && r.aviso`.
+
+Medido, a abrir a corrida: `fuelPct = 7,4`, `fuelL = 9,65`, `lap = 0` →
+`aviso = false`. Nada piscava. **A primeira volta é quando mais se
+precisa do alerta, e era a única em que nunca aparecia.**
+
+São duas coisas que estavam atadas e não têm relação:
+
+| | quer dizer | depende de |
+|---|---|---|
+| `valido` | «sei quantas voltas restam» | uma volta fechada |
+| `aviso` | «há aviso de combustível» | a percentagem, que é sempre |
+
+A preocupação com o alarme falso é válida — mas o caso que a justifica
+é **não ter nenhum dado**, não faltar uma medição. Com 7% o combustível
+está mesmo a 7%: avisar é dizer a verdade. Sem percentagem *e* sem
+voltas medidas, o nível é `desconhecido` e a interface pinta de neutro.
+
+### A tabela de níveis
+
+| o que manda | o que aparece |
 |---|---|
-| ≥ 1,5 | normal |
-| 1,0 – 1,5 | **laranja**, a piscar |
-| < 1,0 | **vermelho**, a piscar |
+| nada | normal |
+| 1,5 voltas **ou** ≤ 15% | **laranja**, a piscar |
+| < 1,0 volta **ou** ≤ 5% | **vermelho**, a piscar |
+| não há percentagem nem voltas medidas | neutro, a dizer `a medir` |
 
-Com `prefers-reduced-motion`, o piscar vira cor fixa — a distinção
-laranja/vermelho continua a fazer o trabalho sem movimento, que é o
-mesmo que se fez com o DRS.
+A pisca é a **moldura** do cartão. O número grande fica fixo e muda de
+cor — um número a piscar deixa de se ler, e o número é o que interessa.
+
+Com `prefers-reduced-motion`, o piscar vira cor fixa e **forma** — contorno
+tracejado no aviso, inteiro no crítico. Quem não distingue uma cor ainda
+distingue a outra forma, que é o mesmo que se fez com o DRS.
 
 E a linha `Voltas` passa a mostrar o número em vez de `-`, que é o que
 faz a linha existir.
