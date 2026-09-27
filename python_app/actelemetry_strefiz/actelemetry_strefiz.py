@@ -53,20 +53,89 @@ stop_thread = False
 erros = 0
 
 
-def _seguro(ler, alt=0.0):
+def _seguro(ler, alt=0):
     """Le um valor do AC sem deixar uma excepcao matar a thread.
 
     A versao anterior nao tinha isto. Uma unica leitura que levantasse
     excepcao matava o thread, e o dashboard ficava congelado no ultimo
     estado sem explicar nada -- o pior defeito possivel, porque parece
     que o jogo parou. Ler e' sempre melhor do que morrer.
+
+    O `alt` por omissao e' 0, INTEIRO, e nao 0.0. Isto nao e' um
+    detalhe: a struct tem campos c_int32 (bestLapMS, lapCount,
+    isConnected, drsAvailable, ...) e o ctypes recusa um float num
+    campo inteiro --
+
+        TypeError: 'float' object cannot be interpreted as an integer
+
+    -- em ATRIBUICAO, que e' depois de o _seguro ja ter devolvido. Ou
+    seja: o _seguro impedia a excepcao de matar o fio, e a excecao
+    reaparecia um instante depois, na mesma linha, dentro do
+    actualizar(). Com o omissao a 0.0, qualquer leitura Integer que
+    falhasse matava o ciclo todo, e a leaderboard esvaziava sem dizer
+    nada -- o mesmo sintoma, outra causa.
+
+    O 0 funciona nos dois: o ctypes converte int para c_float sem
+    problema. O 0.0 so' funciona em campos float.
+
+    O `alt` e' o valor devolvido quando a leitura falha. ESCOLHE-O COM
+    CUIDADO: se o `alt` for um valor que o AC usa para dizer uma coisa
+    (o '-1' de getCarName, por exemplo), entao uma excepcao passa a
+    significar essa coisa, e nenhum sitio da app consegue mais distinguir
+    "o jogo disse que nao ha' carro" de "a leitura rebentou". Foi
+    exactamente o que aconteceu: o _seguro escondia a falha tao bem que
+    a leaderboard ficava vazia e o dashboard culpava a app nao estar
+    ligada -- que era a instrucao errada.
+
+    Quando precisares de distinguir, usa _tentar(), que devolve um
+    (valor, deu_certo) em vez de esconder a falha dentro do valor.
+
+    Tambem anota o TEXTO do erro, e nao so' o contador. Sem isso o
+    contador subia e o lastError ficava vazio -- porque quase todas as
+    leituras passam pelo _seguro, e e' _tentar que anotava. Um contador
+    que sobe sem dizer o que falhou e' metade do problema: obriga a ir
+    ao log do AC, que ninguem tem aberto.
     """
     global erros
     try:
         return ler()
-    except Exception:
+    except Exception as e:
         erros += 1
+        _anotaErro(e)
         return alt
+
+
+def _tentar(ler, alt=None):
+    """(valor, deu_certo) -- e' o _seguro que nao esconde a falha.
+
+    Existe porque o _seguro e' bom para valores onde um valor
+    significa "isto e' mesmo o que o jogo disse", e mau para valores
+    onde um valor tambem significa "isto falhou". Com os dois
+    separadas, uma excepcia deixa de parecer uma resposta do jogo.
+    """
+    global erros
+    try:
+        return ler(), True
+    except Exception as e:
+        erros += 1
+        _anotaErro(e)
+        return alt, False
+
+
+# O ultimo erro, para publicar. Um contador sozinho diz que alguma
+# coisa falhou; o texto diz o quê -- e sem o texto, a unica pista que
+# o dashboard tem para dar e' a instrucao errada.
+_ultimoErro = ''
+
+
+def _anotaErro(e):
+    global _ultimoErro
+    msg = '%s: %s' % (type(e).__name__, e)
+    _ultimoErro = msg[:120]
+    try:
+        ac.log('AssettoCorsaTelemetry: %s' % _ultimoErro)
+    except Exception:
+        pass
 
 
 def _tempPorPneu(carro, estado):
@@ -83,15 +152,51 @@ def _tempPorPneu(carro, estado):
     devolver sempre a roda da frente. Nesse caso tira-se o terceiro
     argumento. E' um teste de um minuto, e o resultado vale a pena ficar
     escrito porque nao ha' como probar isto fora do jogo.
+
+    USA-SE range(4) E NAO acsys.WHEELS. O acsys.py define
+
+        class WHEELS:FL,FR,RL,RR=range(4)
+
+    que e' uma CLASSE, nao uma lista nem um enumerado. Percorrer uma
+    classe levanta TypeError: 'type' object is not iterable -- e esse
+    TypeError nascia na LISTA COMPREENSIVA, ou seja FORA do _seguro, e
+    portanto subia ate ao actualizar() e matava o ciclo inteiro.
+
+    Era este o bug da leaderboard. O _tempPorPneu e' um ARGUMENTO de
+    escreverCarro, logo e' avaliado ANTES da chamada. O numVehicles ja'
+    tinha sido escrito (vem antes no loop), e por isso o cabecalho da
+    pagina mostrava 11 carros enquanto os 128 slots ficavam a zero: uma
+    lista vazia, sem erro na consola e sem nada no log.
     """
     return [_seguro(lambda: float(ac.getCarState(carro, estado, roda)))
-            for roda in acsys.WHEELS]
+            for roda in range(4)]
 
 
-def escreverCarro(carId, info, tempNuclear, tempBanda):
+def _texto(v, n=63):
+    """str/bytes -> bytes de ate' n, para um campo c_char * (n+1).
+
+    O campo tem de ser bytes: o ctypes aceita uma str num c_char*64
+    apenas se tiver exactamente 64 caracteres, e o que o jogo dá tem
+    comprimento variavel -- o que rebentaria a app em vez de a ler.
+    """
+    if v is None:
+        return b''
+    if not isinstance(v, bytes):
+        try:
+            v = str(v).encode('utf-8')
+        except Exception:
+            return b''
+    return v[:n]
+
+
+def escreverCarro(carId, info, nome, tempNuclear, tempBanda):
     info.carId = carId
-    info.driverName = _seguro(lambda: ac.getDriverName(carId).encode('utf-8'), b'')
-    info.carModel = _seguro(lambda: ac.getCarName(carId).encode('utf-8'), b'')
+    # O nome do carro ja' foi lido no loop, e veio de _tentar -- ou seja,
+    # ou e' o que o jogo disse, ou a leitura falhou. Nao se volta a
+    # perguntar: uma segunda leitura da mesma coisa que falhou volta a
+    # falhar, e engole a falha outra vez.
+    info.driverName = _texto(_seguro(lambda: ac.getDriverName(carId), ''))
+    info.carModel = _texto(nome)
     info.speedMS = _seguro(lambda: ac.getCarState(carId, acsys.CS.SpeedMS))
     info.bestLapMS = _seguro(lambda: ac.getCarState(carId, acsys.CS.BestLap), -1)
     info.lapCount = _seguro(lambda: ac.getCarState(carId, acsys.CS.LapCount))
@@ -155,17 +260,46 @@ def escreverCarro(carId, info, tempNuclear, tempBanda):
 def actualizar():
     page = shared.get()
 
-    page.numVehicles = _seguro(ac.getCarsCount)
+    n, ok = _tentar(ac.getCarsCount, 0)
+    page.numVehicles = n
     page.focusVehicle = _seguro(ac.getFocusedCar)
+    _publicaErros(page)
 
-    for carId in range(0, min(page.numVehicles, 128)):
-        # O AC devolve '-1' a partir do primeiro carro livre. E' assim
-        # que se sabe onde acaba a lista.
-        if str(_seguro(lambda: ac.getCarName(carId), '-1')) == '-1':
+    # O fim da lista e' o getCarsCount(), que e' a contagem que o jogo
+    # deu. Antes o loop terminava quando getCarName devolvia '-1', e era
+    # ESSA a linha que matava tudo: o _seguro devolvia '-1' tambem
+    # quando a leitura rebentava, portanto qualquer excepcao -- uma API
+    # renomeada, um argumento errado, o que fosse -- punha a app a
+    # concluir que a pista estava vazia, para sempre, sem dar erro.
+    #
+    # Medido com o jogo a correr: numVehicles chegava a 11 e os 128
+    # carros ficavam todos a zero, ao mesmo tempo, durante toda a
+    # corrida.
+    #
+    # Agora o nome so' serve para mostrar. Se a leitura falhar, o carro
+    # e' escrito na mesma (sem nome) e o erro fica publicado no cabecalho
+    # -- em vez de a lista parecer vazia e o dashboard culpar a app nao
+    # estar ligada, que era a instrucao errada.
+    for carId in range(0, min(n, 128)):
+        nome, deuCerto = _tentar(lambda: ac.getCarName(carId), '')
+        if deuCerto and str(nome) == '-1':
+            # o jogo diz mesmo que este slot esta' livre
             break
-        escreverCarro(carId, page.carInfo[carId],
+        escreverCarro(carId, page.carInfo[carId], nome,
                       _tempPorPneu(carId, acsys.CS.CurrentTyresCoreTemp),
                       _tempPorPneu(carId, acsys.CS.LastTyresTemp))
+
+    # Publica-se tambem no fim do ciclo. No inicio, so' diria o que ja'
+    # tinha acontecido no ciclo ANTERIOR -- e um erro que acontece uma
+    # vez so' (uma API que mudou de nome) aparecia 25 ms mais tarde, o
+    # que parece ser "nao ha' nada". No fim do ciclo, o erro em que
+    # estamos ja' esta' publicado.
+    _publicaErros(page)
+
+
+def _publicaErros(page):
+    page.errorCount = erros
+    page.lastError = _ultimoErro.encode('utf-8')
 
 
 def _loop():
