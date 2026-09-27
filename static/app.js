@@ -724,14 +724,46 @@ function desenhaAdversarios(c, q, paraEspaco, pxPorM) {
   const minimo = q.relativa ? 9 : 7;
   const r = clamp(3.4 * pxPorM, minimo, 16);
   const suave = opponentsSuaves(performance.now() - OPP_ATRASO_MS);
-  c.textAlign = 'center';
-  c.textBaseline = 'middle';
+
+  // Posicoes no ecra, calculadas ANTES de desenhar. Varios carros perto
+  // uns dos outros no mundo (grelha de partida, fila nas boxes) caem no
+  // mesmo pixel quando o mapa esta' afastado, e os numeros empilham-se
+  // num borrao ilegivel -- era exactamente isto que se via na grelha.
+  // Por isso separam-se aqui: perde-se um bocadinho de precisao ao
+  // centimetro, mas o numero volta a ler-se, que e' o que importa a
+  // conduzir.
+  const pts = [];
   for (const car of suave) {
     if (car.id != null && car.id === S.localCarId) continue;
     const [ex, ey] = paraEspaco(car.x, car.z);
     const x = q.px(ex), y = q.py(ey);
     if (x < -20 || y < -20 || x > 1e5 || y > 1e5) continue;
+    pts.push({ car, x, y });
+  }
+  const minDist = r * 2.15;
+  for (let pass = 0; pass < 6; pass++) {
+    let moved = false;
+    for (let i = 0; i < pts.length; i++) {
+      for (let j = i + 1; j < pts.length; j++) {
+        const a = pts[i], b = pts[j];
+        let dx = b.x - a.x, dy = b.y - a.y;
+        let dist = Math.hypot(dx, dy);
+        if (dist < minDist) {
+          moved = true;
+          if (dist < 0.01) { dx = 1; dy = 0; dist = 1; }   // sobrepostos ao pixel: empurra numa direccao qualquer
+          const push = (minDist - dist) / 2;
+          const ux = dx / dist, uy = dy / dist;
+          a.x -= ux * push; a.y -= uy * push;
+          b.x += ux * push; b.y += uy * push;
+        }
+      }
+    }
+    if (!moved) break;
+  }
 
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  for (const { car, x, y } of pts) {
     if (car.inPit) {
       // vazado: só o anel, para distinguir sem gastar uma cor
       c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2);
