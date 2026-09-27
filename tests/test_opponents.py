@@ -1,5 +1,5 @@
 """
-Teste do leitor de adversarios (acpmf_actelemetry_v1) sem o AC a correr.
+Teste do leitor de adversarios (acpmf_actelemetry_v2) sem o AC a correr.
 
 A pagina e' escrita pela NOSSA app, que corre dentro do jogo
 (python_app/actelemetry.py). Antes era a app do SimHub.
@@ -95,11 +95,13 @@ def tamanho_esperado(struct):
 # nao move nenhum offset, e o test_contrato falha se um dos lados o
 # puser no meio.
 VEHICLE_FIXO = 280
-# 37040 = cabecalho (4+4+512 + 280*128 + 512 + 4 + 32) + 4 + 128
-# os dois ultimos sao o errorCount e o lastError, acrescentados no fim do
-# cabecalho para a app poder publicar as falhas em vez de as esconder
-# (foi assim que a leaderboard ficou vazia sem ninguem saber porquê)
-PAGINA_FIXA = 4 + 4 + 512 + 280 * 128 + 512 + 4 + 32 + 4 + 128   # 37040
+# 37192 = cabecalho (4+4+512 + 280*128 + 512 + 4 + 32) + 4 + 128
+#            + 4*5 + 4 + 128
+# os dois primeiros (4 + 128) sao o errorCount e o lastError, para a app
+# poder publicar as falhas em vez de as esconder. Os ultimos sao o clima:
+# cinco floats, o cspVersionCode e 128 bytes do texto cru. Ver chuva.md.
+PAGINA_FIXA = (4 + 4 + 512 + 280 * 128 + 512 + 4 + 32
+               + 4 + 128 + 4 * 5 + 4 + 128)   # 37192
 
 ESPERADO_VEHICLE = tamanho_esperado(acshm.acsVehicleInfo)
 ESPERADO_PAGINA = tamanho_esperado(acshm.SPageFileSimHub)
@@ -110,7 +112,8 @@ ESPERADO_PAGINA = tamanho_esperado(acshm.SPageFileSimHub)
 # ficar errada, o aviso e' o do proprio teste: e' a unica verificacao
 # que diz que o _fields_ ainda fecha com o que o codigo espera.
 assert ESPERADO_PAGINA == (4 + 4 + 512 + ESPERADO_VEHICLE * 128
-                          + 512 + 4 + 32 + 4 + 128), \
+                          + 512 + 4 + 32 + 4 + 128
+                          + 4 * 5 + 4 + 128), \
     "a pagina nao e' a soma dos seus campos - reve o _fields_"
 assert ESPERADO_VEHICLE == VEHICLE_FIXO, \
     "acsVehicleInfo mudou de tamanho: %d, e o _fields_ diz %d. " \

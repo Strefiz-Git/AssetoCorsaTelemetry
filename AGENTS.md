@@ -587,7 +587,7 @@ página.
 ```
 $ python tests\test_contrato.py
 ok: a app e o acshm.py falam a mesma linguagem.
-    pagina acpmf_actelemetry_v1, 36396 bytes, 128 carros, 276 bytes por carro
+    pagina acpmf_actelemetry_v2, 37192 bytes, 128 carros, 280 bytes por carro
 
 $ python tests\mutacao_contrato.py      # o turboBoost passa a c_float*2
 $ python tests\test_contrato.py
@@ -598,9 +598,36 @@ Os outros testes **não apanham isto**. O `test_opponents.py` valida a
 struct do `acshm.py` contra si próprio — que é exactamente o que a
 Regra nº 4 avisa que não prova nada sobre o mundo.
 
+### O segundo caso: os zeros são piores do que o erro
+
+A regra acima é abstracta. A segunda vez que o nome mudou, a struct
+ganhou 20 bytes (o bloco do clima) e a **v1 continuou a correr**. O
+leitor novo, a ler `acpmf_actelemetry_v1`, foi buscar 20 bytes a
+seguir ao fim real da página — e deu **zeros**.
+
+Zeros são o pior resultado possível, e a razão é serem **plausíveis**.
+No caso do clima, `rainAmount = 0` lê-se como "não chove", e é um número
+que ninguém questiona. Um erro, um `available: false` ou um `NaN` seriam
+melhores: dizem logo que alguma coisa está errada.
+
+Foi o que aconteceu, medido: a app a corria com `pluginVersion 1.0.0`, o
+leitor esperava a struct nova, e os campos do clima davam 0 sem que nada
+indicasse que estavam fora da página. **Foi preciso ir ler o
+`pluginVersion` para dar conta.**
+
+A regra não muda, aperfeita-se:
+
+> **A struct mudou de tamanho, logo o nome muda. Sempre, sem excepção.**
+> E não por cautela — porque a cautela aqui é deixar o desalinhamento
+> passar em silêncio.
+
+Por isso o `pluginVersion` está no cabeçalho e é lido pelo leitor: é o
+que permite descobrir qual dos dois lados está a correr, que é a
+pergunta que um desalinhamento não responde sozinho.
+
 ### O nome da página é a garantia de versão
 
-`acpmf_actelemetry_v1` é um nome que **nunca existiu**, de propósito.
+`acpmf_actelemetry_v2` é um nome que **nunca existiu**, de propósito.
 Um mapeamento antigo (struct pequena) combinado com um leitor novo
 (struct grande) faz o leitor ir buscar bytes a seguir ao fim real da
 página. Com um nome novo só há duas possibilidades: está tudo actualizado
