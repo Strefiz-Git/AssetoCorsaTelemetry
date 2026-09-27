@@ -562,6 +562,72 @@ quando algo parte. Por isso a linha só aparece com dano > 0.
 
 ---
 
+## Regra nº 19 — o contrato entre a app e o leitor é binário e ninguém o verifica
+
+A app em `python_app/` corre **dentro** do jogo e escreve uma struct
+numa página de memória partilhada. O `acshm.py` corre **fora** e lê
+essa mesma struct. São dois ficheiros, dois processos, dois
+interpretadores — e nada os liga a não ser o **nome da página** e a
+**ordem dos campos**.
+
+Se um dos dois mudar sozinho, **não dá erro nenhum**. O leitor mapeia
+a página, lê os bytes, e devolve números plausíveis a partir do sítio
+errado. A única forma de isso aparecer no ecrã é um carro com os tempos
+todos trocados, e isso descobre-se a conduzir — nunca num teste.
+
+É a Regra nº 16 aplicada a um contrato binário em vez de a um eixo: duas
+coisas escritas em dois sítios divergem sem ninguém dar por isso.
+
+### `tests/test_contrato.py` — e ele morde
+
+Compara as duas structs campo a campo: nome, offset em bytes, tipo e
+tamanho total. Também compara `MAX_SECTORS`, `MAX_CARS` e o nome da
+página.
+
+```
+$ python tests\test_contrato.py
+ok: a app e o acshm.py falam a mesma linguagem.
+    pagina acpmf_actelemetry_v1, 36396 bytes, 128 carros, 276 bytes por carro
+
+$ python tests\mutacao_contrato.py      # o turboBoost passa a c_float*2
+$ python tests\test_contrato.py
+13 PROBLEMA(S) no contrato.
+```
+
+Os outros testes **não apanham isto**. O `test_opponents.py` valida a
+struct do `acshm.py` contra si próprio — que é exactamente o que a
+Regra nº 4 avisa que não prova nada sobre o mundo.
+
+### O nome da página é a garantia de versão
+
+`acpmf_actelemetry_v1` é um nome que **nunca existiu**, de propósito.
+Um mapeamento antigo (struct pequena) combinado com um leitor novo
+(struct grande) faz o leitor ir buscar bytes a seguir ao fim real da
+página. Com um nome novo só há duas possibilidades: está tudo actualizado
+e funciona, ou a página não existe e o `acshm.py` responde
+`available: false`. **O falhar é explícito; o desalinhado é silencioso.**
+
+### Os campos que estavam lá e nunca eram preenchidos
+
+A struct antiga tinha `suspensionDamage`, `engineLifeLeft` e
+`tyreInflation` — 36 bytes por carro, 4,6 KB na página, **sempre a
+zero**. Nenhum deles existe no enum `CS` do `acsys.py`, que é o que o
+`ac.getCarState()` aceita. Logo não era a app que estava mal: era que se
+tentava escrever campos que o Python não sabe ler. A HUD em Lua lê-os,
+mas pela API do objecto carro, que é outra interface (Regra nº 18).
+
+No lugar deles, o mesmo espaço passou a ter coisas que o `CS` devolve
+mesmo: temperatura do núcleo e da banda dos 4 pneus, turbo, ERS, e os
+dois flags de DRS.
+
+### Regra prática
+
+**Ao acrescentar um campo, acrescente-o aos dois lados e corra
+`test_contrato.py`.** Se o teste não o utilizar, o campo existe num
+documento e não no dashboard — e não há nada que o diga.
+
+---
+
 ## Regra nº 6 — ctypes em Windows: armadilhas
 
 Todas as quatro happened durante a construção deste projecto:

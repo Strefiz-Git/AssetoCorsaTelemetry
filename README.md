@@ -15,6 +15,32 @@ O SimHub gratuito serve o dashboard no browser a **10 fps**. Isto lê
 exatamente a mesma telemetria, saltando o SimHub, e envia-a ao browser a
 60 fps via Server-Sent Events.
 
+## Os adversários (e a app que os traz)
+
+As três páginas que o próprio jogo escreve — `acpmf_physics`,
+`acpmf_graphics`, `acpmf_static` — são **só do carro de quem está a
+conduzir**. Para os outros carros é preciso uma app a correr **dentro**
+do jogo, porque só lá dentro a API existe.
+
+Essa app é **nossa**, e está em [`python_app/`](python_app/):
+
+```
+assettocorsa/apps/python/actelemetry/
+    actelemetry.py         o plugin
+    actelemetry_shm.py     a struct e o nome da página
+    stdlib/stdlib64/       os .pyd do ctypes (obrigatórios)
+```
+
+Copia a pasta `python_app` para `assettocorsa/apps/python/actelemetry/`
+e liga-a em **Content Manager → Settings → Python Apps**. Confirma que
+arrancou pelo log do AC: `AssettoCorsaTelemetry 1.0.0 a escrever`.
+
+Sem a app, o dashboard não dá erro — simplesmente não há adversários, e
+`/api/opponents` responde `available: false`. É o comportamento certo.
+
+O que ela publica, e porquê o que publica, está em
+[`ideia.md`](ideia.md) e na Regra nº 19 do `AGENTS.md`.
+
 ## Como usar
 
 ### Requisitos
