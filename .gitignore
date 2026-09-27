@@ -13,6 +13,7 @@ venv/
 # ficheiros soltos de diagnostico
 dump_*.bin
 *.tmp
+ac_info/
 
 # o dashboard v14 do SimHub foi copiado aqui apenas como referencia
 # durante o desenvolvimento - nao faz parte do codigo
