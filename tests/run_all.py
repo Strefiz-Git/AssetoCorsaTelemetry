@@ -30,6 +30,8 @@ SUITE = [
     ("vida do pneu", "node", "test_tyres.js"),
     ("valores nao finitos", "py", "verificar_finitos.py"),
     ("os testes mordem mesmo", "py", "test_mutation.py"),
+    ("o loop da app nao engole falhas", "py", "test_loop_app.py"),
+    ("o loop da app morde mesmo", "py", "mutacao_loop.py"),
     ("texto sem caracteres estranhos", "py", "verificar_texto.py"),
 ]
 
