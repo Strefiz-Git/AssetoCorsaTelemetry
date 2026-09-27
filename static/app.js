@@ -73,8 +73,14 @@ const I18N = {
     'fuel.inTank': 'Na reserva', 'fuel.lapsLeft': 'Voltas',
     'fuel.ambient': 'Ar / pista', 'fuel.penalty': 'Penalidade',
     'fuel.ersUsed': 'ERS na volta', 'fuel.none': 'nenhuma',
+    'fuel.measuring': 'a medir',
+    'fuel.lapsWhy': 'Voltas que o combustivel que resta deve chegar, ao ritmo medio medido. O jogo nao diz quantos litros se gasta por volta, por isso mede-se a diferenca entre o inicio e o fim de cada volta.',
+    'fuel.oneLapWhy': 'Media de uma so' + '\u2019' + ' volta. Com duas ou mais deixa de ser uma amostra de uma e passa a ser um ritmo.',
+    'fuel.avisoWhy': 'Abaixo de 1,5 voltas: ja' + '\u2019' + ' nao da' + '\u2019' + ' para sair do box, fazer a volta e voltar com folga.',
+    'fuel.criticoWhy': 'Abaixo de 1 volta: nao ha' + '\u2019' + ' margem nenhuma. Ao ritmo medio, o que resta acaba antes de a volta acabar.',
     'lb.title': 'CLASSIFICAÇÃO', 'lb.telTitle': 'TEU CARRO',
     'lb.pos': 'P', 'lb.name': 'PILOTO', 'lb.lap': 'VOLTA',
+    "lb.posTitle": "Posi\u00e7\u00e3o oficial do Assetto Corsa. A lista mostra a posi\u00e7\u00e3o ao vivo, que conta as voltas por fechar; a oficial so' conta voltas completas e por isso vai atrasada no in\u00edcio de uma corrida.",
     'lb.time': 'TEMPO', 'lb.best': 'MELHOR', 'lb.gap': 'INT.',
     'lb.intTitle': 'Tempo até ao carro da frente. Na mesma volta é o tempo exacto que ele levou a passar pelo mesmo ponto da pista; fora isso é uma estimativa pelo ritmo da última volta dele.',
     'lb.penalty': 'Penalidade', 'lb.drs': 'DRS',
@@ -142,12 +148,18 @@ const I18N = {
     'brakes.biasTitle': 'Distribuição da frenagem, em porcentagem do freio total. Medido 0,58 num TS040 sem nada mexido. O HUD do Content Manager mostra o mesmo campo e ajusta de 0,5 em 0,5.',
     'tyres.damage': 'AVARIAS',
     'tyres.suspDamage': 'SUSPENSÃO', 'tyres.engineDamage': 'MOTOR',
+    'fuel.measuring': 'a medir',
+    'fuel.lapsWhy': 'Voltas que o combustivel restante deve alcancar, no ritmo medio medido. O jogo nao diz quantos litros sao usados por volta, por isso mede-se a diferenca entre o inicio e o fim de cada volta.',
+    'fuel.oneLapWhy': 'Media de uma so' + '\u2019' + ' volta. Com duas ou mais deixa de ser uma amostra de uma e passa a ser um ritmo.',
+    'fuel.avisoWhy': 'Abaixo de 1,5 voltas: ja' + '\u2019' + ' nao da' + '\u2019' + ' para sair do box, fazer a volta e voltar com folga.',
+    'fuel.criticoWhy': 'Abaixo de 1 volta: nao ha' + '\u2019' + ' margem nenhuma. No ritmo medio, o que resta acaba antes de a volta terminar.',
     'fuel.title': 'COMBUSTÍVEL',
     'wx.air': 'AR', 'wx.road': 'PISTA', 'wx.wind': 'VENTO', 'wx.density': 'DENSIDADE', 'wx.grip': 'ADERENCIA', 'unit.c': '°C',
     'fuel.inTank': 'No tanque', 'fuel.lapsLeft': 'Voltas',
     'fuel.ambient': 'Ar / pista', 'fuel.penalty': 'Penalty',
     'fuel.ersUsed': 'ERS na volta', 'fuel.none': 'nenhuma',
     'lb.title': 'CLASSIFICAÇÃO', 'lb.telTitle': 'SEU CARRO',
+    "lb.posTitle": "Posi\u00e7\u00e3o oficial do Assetto Corsa. A lista mostra a posi\u00e7\u00e3o ao vivo, que conta as voltas por fechar; a oficial s\u00f3 conta voltas completas e por isso fica atrasada no come\u00e7o de uma corrida.",
     'lb.pos': 'P', 'lb.name': 'PILOTO', 'lb.lap': 'VOLTA',
     'lb.time': 'TEMPO', 'lb.best': 'MELHOR', 'lb.gap': 'INT.',
     'lb.intTitle': 'Tempo até ao carro da frente. Na mesma volta é o tempo exacto que ele levou a passar pelo mesmo ponto da pista; fora isso é uma estimativa pelo ritmo da última volta dele.',
@@ -210,6 +222,11 @@ const I18N = {
     'tyres.wornTitle': 'Desgaste, gastado', 'tyres.pressTitle': 'Presión real, en psi. El juego muestra la desviación respecto a una nominal que no se publica.',
     'tyres.notWear': 'no se puede',
     'tyres.notWearWhy': 'El desgaste que publica el juego no acompaña un stint real: da 0,17% tras dos vueltas, o que serían 588 vueltas de vida. No se puede predecir a partir de ahí.',
+    'fuel.measuring': 'midiendo',
+    'fuel.lapsWhy': 'Vueltas que deberia alcanzar el combustible que queda, al ritmo medio medido. El juego no dice quantos litros se gastan por vuelta, asi que se mide la diferencia entre el principio y el final de cada vuelta.',
+    'fuel.oneLapWhy': 'Media de una sola vuelta. Con dos o mas deja de ser una muestra de una y pasa a ser un ritmo.',
+    'fuel.avisoWhy': 'Por debajo de 1,5 vueltas: ya' + '\u2019' + ' no da' + '\u2019' + ' para salir de boxes, hacer la vuelta y volver con margen.',
+    'fuel.criticoWhy': 'Por debajo de 1 vuelta: no queda margen ninguno. Al ritmo medio, lo que queda se acaba antes de terminar la vuelta.',
     'tyres.lifeNote': 'Estimación a partir del desgaste que ya ha ocurrido en este stint, no de una tabla del juego: Assetto Corsa no publica la vida del compuesto. Tras dos vueltas medidas el número ya significa algo; antes es una suposición.',
     'brakes.title': 'FRENOS', 'brakes.bias': 'B. FRENO',
     'brakes.biasTitle': 'Distribución de la frenada, en porcentaje del freno total. Medido 0,58 en un TS040 sin tocar nada. El HUD de Content Manager muestra el mismo campo y lo ajusta de 0,5 en 0,5.',
@@ -220,6 +237,7 @@ const I18N = {
     'fuel.inTank': 'En el depósito', 'fuel.lapsLeft': 'Vueltas',
     'fuel.ambient': 'Aire / pista', 'fuel.penalty': 'Penalización',
     'fuel.ersUsed': 'ERS en la vuelta', 'fuel.none': 'ninguna',
+    "lb.posTitle": "Posici\u00f3n oficial del Assetto Corsa. La lista muestra la posici\u00f3n en vivo, que cuenta las vueltas por cerrar; la oficial solo cuenta vueltas completas y por eso va atrasada al principio de una carrera.",
     'lb.title': 'CLASIFICACIÓN', 'lb.telTitle': 'TU COCHE',
     'lb.pos': 'P', 'lb.name': 'PILOTO', 'lb.lap': 'VUELTA',
     'lb.time': 'TIEMPO', 'lb.best': 'MEJOR', 'lb.gap': 'INT.',
@@ -281,6 +299,11 @@ const I18N = {
     'laps.last': 'LAST', 'laps.delta': 'DELTA',
     'tyres.title': 'TYRES AND BRAKES',
     'tyres.life': 'Tyre life',
+    'fuel.measuring': 'measuring',
+    'fuel.lapsWhy': 'Laps the remaining fuel should reach, at the measured average rate. The game does not say how many litres a lap uses, so it is measured from the difference between the start and the end of each lap.',
+    'fuel.oneLapWhy': 'Average of a single lap. With two or more it stops being a sample of one and becomes a rate.',
+    'fuel.avisoWhy': 'Below 1.5 laps: not enough to leave the pits, do the lap and come back with margin.',
+    'fuel.criticoWhy': 'Below 1 lap: no margin at all. At the average rate, what is left runs out before the lap ends.',
     'tyres.measuring': 'measuring', 'tyres.perLap': 'per lap', 'tyres.needTwoLaps': 'Needs 2 laps before it can estimate', 'tyres.lapsOnThisSet': 'laps on this set',
     'tyres.surface': 'Tread temperature. The big number is the core, which is what the game shows.',
     'tyres.wornTitle': 'Wear, used', 'tyres.pressTitle': 'Real pressure, in psi. The game shows the deviation from a nominal that is not published.',
@@ -295,6 +318,7 @@ const I18N = {
     'wx.air': 'AIR', 'wx.road': 'TRACK', 'wx.wind': 'WIND', 'wx.density': 'DENSITY', 'wx.grip': 'GRIP', 'unit.c': '°C',
     'fuel.inTank': 'In tank', 'fuel.lapsLeft': 'Laps',
     'fuel.ambient': 'Air / track', 'fuel.penalty': 'Penalty',
+    "lb.posTitle": "Official Assetto Corsa position. The list shows the live position, which counts laps not yet completed; the official one only counts finished laps, which is why it lags at the start of a race.",
     'fuel.ersUsed': 'ERS this lap', 'fuel.none': 'none',
     'lb.title': 'STANDINGS', 'lb.telTitle': 'YOUR CAR',
     'lb.pos': 'P', 'lb.name': 'DRIVER', 'lb.lap': 'LAP',
@@ -400,6 +424,7 @@ const S = {
   // estado da medicao da vida do pneu (ver tyres.js). Nao e' reiniciado
   // a mudanca de pista: so' quando o pneu e' que troca, ou a sessao.
   pneuStint: null,
+  combustivel: null,
   // onde cada carro estava no inicio, para as setas de posicao
   posicoes: novoRastreadorPosicoes(40),
   // traco da volta em curso de cada adversario, para o intervalo exacto
@@ -1539,6 +1564,58 @@ function renderTyreLife(d) {
   el.title = t('tyres.lifeNote');
 }
 
+/* ------------------------------------------------------------- combustível
+   A linha "Voltas" mostrava um travessão para sempre, porque não havia
+   nada por trás dela: o AC dá `fuelL` e `fuelPct` mas NÃO dá litros por
+   volta, e `Fuel_LastLapConsumption` não existe na memória partilhada
+   (AGENTS.md Regra nº 7).
+
+   Portanto mede-se, como o pneu mede o desgaste. A matemática está em
+   static/combustivel.js, pura e testada no node -- é o `d.fuelLaps` que
+   se usava e que nunca chegou a existir.
+
+   O aviso: laranja abaixo de 1,5 voltas, vermelho abaixo de 1,0. Com
+   prefers-reduced-motion o piscar vira cor fixa, e a distinção entre as
+   duas cores continua a fazer o trabalho sem movimento. */
+function renderCombustivel(d) {
+  const el = $('fuel-laps');
+  const cartao = document.querySelector('.c-fuel');
+  const r = Combustivel.estimarCombustivel(S.combustivel, {
+    litros: d.fuelL,
+    voltas: d.lap,
+    connected: !!d.connected
+  });
+  S.combustivel = r.estado;
+
+  if (el) {
+    if (r.valido) {
+      const v = Math.max(0, r.voltasRestantes);
+      el.textContent = (v >= 99 ? '99+' : v.toFixed(1))
+        + (r.soUmaVolta ? ' ~' : '');
+      el.title = r.soUnaMedida !== false && r.soUmaVolta
+        ? t('fuel.oneLapWhy')
+        : t('fuel.lapsWhy');
+    } else {
+      el.textContent = t('fuel.measuring');
+      el.title = t('fuel.lapsWhy');
+    }
+  }
+  if (!cartao) return;
+
+  // Sem medida nao ha' nada que avisar. Um "0 L = critico" seria um
+  // alarme falso no início de cada sessão.
+  const nivel = (r.valido && r.aviso) ? r.nivel : 'normal';
+  cartao.classList.toggle('fuel-aviso', nivel === 'aviso');
+  cartao.classList.toggle('fuel-critico', nivel === 'critico');
+  if (nivel === 'normal') {
+    cartao.classList.remove('fuel-medindo');
+  } else {
+    cartao.classList.add('fuel-medindo');
+  }
+  const pctEl = $('fuel-pct');
+  if (pctEl) pctEl.title = nivel === 'normal' ? '' : t('fuel.' + nivel + 'Why');
+}
+
 /* ------------------------------------------------------ travões por canto */
 function renderBrakes(hostId, d) {
   const host = $(hostId);
@@ -2254,7 +2331,7 @@ function render(d) {
   setTxt('fuel-pct', Math.round(d.fuelPct || 0));
   $('fuel-bar').style.width = clamp(d.fuelPct || 0, 0, 100) + '%';
   setTxt('fuel-l', (d.fuelL || 0).toFixed(1) + ' L');
-  setTxt('fuel-laps', d.fuelLaps != null ? d.fuelLaps.toFixed(1) : '—');
+  renderCombustivel(d);
   setTxt('temps', fmtTemp(d.airTemp || 0) + ' / ' + fmtTemp(d.roadTemp || 0) + ' ' + tUnit());
   const pe = $('pen-time');
   if (pe) {
@@ -2519,7 +2596,12 @@ function renderOpponents(o) {
      a frente dele na pista -- que nem sempre e' o de cima na lista, se
      alguem tiver largado mais atras e ja estiver a passar. */
   const intervaloDe = (c) => {
-    if (c.id === myCarId) return { txt: '-', atrasado: false };
+    // O jogador tambem tem intervalo. Antes devolvia '-' a cena, por
+    // desenho, com a ideia de que o que interessa ao jogador e' o delta
+    // para a referencia e nao o intervalo. Mas esse e' exactamente o
+    // numero que responde a "quanto tempo falta para o apanhar", que e'
+    // uma pergunta normal a meio de uma corrida. Calculado como o dos
+    // outros, sem caso especial.
     let melhor = null, melhorD = Infinity;
     for (const o2 of o.cars) {
       if (o2.id === c.id) continue;
@@ -2572,7 +2654,7 @@ function renderOpponents(o) {
     S.oppTracos = novoRastreadorTracos();
   }
   const agora = performance.now() / 1000;
-  for (const c of o.cars) registarPosicoes(S.posicoes, c.id, c.livePos || c.pos, agora);
+  for (const c of o.cars) registarPosicoes(S.posicoes, c.id, c.pos, agora);
 
   // traco da volta em curso de cada carro (ver intervaloPreciso). O canal
   // dos adversarios vai a 10 Hz, que chega perfeitamente para isto - nao
@@ -2585,7 +2667,7 @@ function renderOpponents(o) {
   const html = o.cars.map((c) => {
     const best = toSec(c.best);
     const int = intervaloDe(c);
-    const dPos = diferencaPosicao(S.posicoes, c.id, c.livePos || c.pos);
+    const dPos = diferencaPosicao(S.posicoes, c.id, c.pos);
     const isMe = c.id === myCarId;
     const seta = dPos > 0 ? '<i class="lb-up" title="+' + dPos + '">▲</i>'
       : dPos < 0 ? '<i class="lb-down" title="' + dPos + '">▼</i>' : '';
@@ -2595,15 +2677,18 @@ function renderOpponents(o) {
     const melhorSessao = best != null && sessaoMelhor > 0 && best <= sessaoMelhor;
     const flashAqui = aFlash && c.id === S.novoMelhorId;
     const cols = compact
-      ? '<span class="lb-pos">' + (c.pos || '-') + seta + '</span>' +
+      ? '<span class="lb-pos" title="' + t('lb.posTitle')
+          + ' ' + (c.posOficial || '-') + '">' + (c.pos || '-') + seta + '</span>' +
         '<span class="lb-name">' + esc(c.name) + '<small>' + esc(c.car) + '</small></span>' +
         '<span class="lb-lap">' + (c.lap + 1) + estado + '</span>' +
         '<span class="lb-gap' + (int.atrasado ? ' pos' : '') + '">' + int.txt + '</span>'
-      : '<span class="lb-pos">' + (c.pos || '-') + seta + '</span>' +
+      : '<span class="lb-pos" title="' + t('lb.posTitle')
+          + ' ' + (c.posOficial || '-') + '">' + (c.pos || '-') + seta + '</span>' +
         '<span class="lb-name">' + esc(c.name) + '<small>' + esc(c.car) + '</small></span>' +
         '<span class="lb-lap">' + (c.lap + 1) + estado + '</span>' +
         '<span class="lb-gap' + (int.atrasado ? ' pos' : '') + '" title="' + t('lb.intTitle') + '">' + int.txt + '</span>' +
-        '<span class="lb-time"' + splitsTitle(c) + '>' + (c.last || '--') + '</span>' +
+        '<span class="lb-time"' + splitsTitle(c) + '>'
+        + (isMe && c.cur ? c.cur : (c.last || '--')) + '</span>' +
         '<span class="lb-best' + (melhorSessao ? ' top' : '') + (flashAqui ? ' newbest' : '') + '">' + (c.best || '--') + '</span>';
     return '<div class="lb-row' + (isMe ? ' me' : '') + (c.inPit ? ' pit' : '') + '">' + cols + '</div>';
   }).join('');
