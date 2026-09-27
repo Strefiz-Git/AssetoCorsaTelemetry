@@ -771,7 +771,23 @@ class ACTelemetry:
             "brakeBias": round(ph.brakeBias, 4),
             "airTemp": round(ph.airTemp, 1),
             "roadTemp": round(ph.roadTemp, 1),
-            "surfaceGrip": round(gr.surfaceGrip, 2),
+            # A aderencia so' e' zero quando o jogo NAO esta a simular o
+            # carro -- no menu, ou numa pagina que ninguem escreve. A
+            # aderencia real nunca e' exactamente 0: molhado desce, mas
+            # nao a zero.
+            #
+            # E o 0 e' o pior resultado possivel, porque e' plausivel: o
+            # 'pintarGrip' pinta a vermelho abaixo de 0,85, e um '0.00'
+            # a vermelho diz ao piloto que o carro esta' sobre gelo. Medido
+            # numa sessao parada: 'surfaceGrip 0' com o carro no
+            # Nordschleife, a tracado, com os pneus a 39-42 graus. Nao era
+            # gelo -- era o jogo parado.
+            #
+            # E' a mesma regra da posicao, acima: so' um NEGATIVO e' "nao
+            # disponivel". Ver Regra nº 19, "os zeros sao piores do que o
+            # erro".
+            "surfaceGrip": (round(gr.surfaceGrip, 2)
+                            if gr.surfaceGrip > 0 else -1),
 
             # Clima. O AC NAO publica chuva nem estado do tempo em
             # nenhuma das tres paginas - nao ha campo para isso. O que ha
