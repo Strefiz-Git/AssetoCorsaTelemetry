@@ -38,9 +38,14 @@ MUTACOES = [
      '("isCarInPit", c_int32),',
      '("isCarInPit", c_int32),\n        ("isConnected", c_int32),'),
 
-    ("campo novo no fim (tyreWearAdded)",
-     '("tyreInflation", c_float * 4),',
-     '("tyreInflation", c_float * 4),\n        ("tyreWearAdded", c_float * 4),'),
+    # o alvo era 'tyreInflation', que deixou de existir -- foi trocado
+    # por 'tyreSurfaceTemp' quando a app deixou de escrever os tres
+    # campos que nunca chegou a preencher. A mutação continua a fazer a
+    # mesma coisa (acrescentar um campo no fim), que é a segunda forma
+    # de um struct passar a ler a partir do sítio errado.
+    ("campo novo no fim (tyreSurfaceAdded)",
+     '("tyreSurfaceTemp", c_float * 4),',
+     '("tyreSurfaceTemp", c_float * 4),\n        ("tyreSurfaceAdded", c_float * 4),'),
 
     ("m/s esquecidos na conversao para km/h",
      '"speed": round(c.speedMS * 3.6, 1),',

@@ -1,19 +1,24 @@
 """
-Teste do leitor de adversarios (acpmf_simhub_v2) sem o AC a correr.
+Teste do leitor de adversarios (acpmf_actelemetry_v1) sem o AC a correr.
 
-AVISO IMPORTANTE (Regra n.1 do AGENTS.md): esta pagina e' mantida mapeada
-pelo SimHub MESMO com o jogo fechado. Se um teste criar uma pagina com o
-nome real, o CreateFileMappingW devolve o objeto JA EXISTENTE e TODAS as
-escritas vao parar a memoria de uma sessao real. Por isso o teste cria
-"ac_test_simhub" e passa-o ao construtor.
+A pagina e' escrita pela NOSSA app, que corre dentro do jogo
+(python_app/actelemetry.py). Antes era a app do SimHub.
+
+AVISO IMPORTANTE (Regra n.o 1 do AGENTS.md): esta pagina e' mantida
+mapeada pela app MESMO com o jogo fechado. Se um teste criar uma pagina
+com o nome real, o CreateFileMappingW devolve o objeto JA EXISTENTE e
+TODAS as escritas vao parar a memoria de uma sessao real. Por isso o
+teste cria "ac_test_actelemetry" e passa-o ao construtor.
 
 O que este teste cobre, e o que nao cobre:
   - COBRE: o tamanho e a ordem dos campos de acsVehicleInfo, a conversao
     de m/s para km/h, os tempos em ms, o filtro de carros sem nome.
-  - NAO COBRE: se os offsets batem certo com a app Python do SimHub. Isso
-    so se prova com o jogo a correr (Regra n.4). O que se sabe ate agora
-    veio de ler dados reais: 19 carros com nomes, posicoes e tempos
-    plausiveis.
+  - NAO COBRE: se a app e o acshm.py falam a mesma linguagem. Isso e' o
+    tests/test_contrato.py, que compara as DUAS structs campo a campo --
+    porque este teste so' compara o acshm.py CONTRA SI PROPRIO, o que a
+    Regra n.o 4 avisa que nao prova nada sobre o mundo.
+  - NAO COBRE: se os offsets batem certo com o AC. Isso so' se prova com
+    o jogo a correr (Regra n.o 4).
 """
 import ctypes
 import os
@@ -24,7 +29,7 @@ from ctypes import wintypes
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import acshm
 
-FICTICIA = "ac_test_simhub"
+FICTICIA = "ac_test_actelemetry"
 
 
 # ---- guarda: se o AC estiver VIVO, abortar antes de tocar em nada ----
@@ -73,8 +78,17 @@ def tamanho_esperado(struct):
 # recalcula-se a partir da propria lista de campos, portanto dava
 # qualquer coisa se essa lista mudar. Duas verificacoes que nunca
 # coincidem: a soma e o numero congelado.
-VEHICLE_FIXO = 228      # 4+64+64+4+4+4+4+4+4+12+4+4+4+4+4+4+16+4+16
-PAGINA_FIXA = 30252     # 4+4+512 + 228*128 + 512 + 4 + 32
+# 276 = 4+64+64+4+4+4+4+4+4+12+4+4+4+4+4+4        (ate' isConnected)
+#       + 16+4+4+4+4+16                             (tyreCoreTemp, turbo,
+#                                                    kersCharge, drs x2,
+#                                                    tyreSurfaceTemp)
+#       + 32+4                                    (splits)
+# Antes eram 228. A diferenca de 48 bytes nao e' um campo novo: e' o
+# mesmo espaco, com os tres campos que nunca eram preenchidos
+# (suspensionDamage, engineLifeLeft, tyreInflation) trocados por dados
+# que a API do AC devolve mesmo. Ver python_app/actelemetry_shm.py.
+VEHICLE_FIXO = 276
+PAGINA_FIXA = 4 + 4 + 512 + 276 * 128 + 512 + 4 + 32   # 36396
 
 ESPERADO_VEHICLE = tamanho_esperado(acshm.acsVehicleInfo)
 ESPERADO_PAGINA = tamanho_esperado(acshm.SPageFileSimHub)
