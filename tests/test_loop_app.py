@@ -110,6 +110,22 @@ def fazer_ac(acoes):
             alvos = alvo if isinstance(alvo, (list, tuple, set)) else [alvo]
             if estado in alvos:
                 raise RuntimeError("este campo nao existe nesta versao")
+        # O jogo NAO devolve um numero para todos os campos. Para as
+        # temperaturas dos pneus e para o turbo/ERS devolve uma
+        # SEQUENCIA -- medido em 1 001 704 chamadas que rebentaram com
+        # "float() argument must be a string or a number", e os quatro
+        # campos a zero sem nada dizer.
+        #
+        # 'seqEm' diz para que estados isso acontece, e 'seqN' se a
+        # sequencia tem 4 (um valor por pneu) ou 1. As duas leituras
+        # dao sinais diferentes e o codigo tem de sobreviver as duas.
+        if acoes.get("seqEm") is not None:
+            alvos = acoes["seqEm"]
+            alvos = alvos if isinstance(alvos, (list, tuple, set)) else [alvos]
+            if estado in alvos:
+                n = acoes.get("seqN", 4)
+                return [float(10 + estado + i) for i in range(n)]
+
         # O tipo devolvido tem de bater certo com o campo da struct, como
         # o jogo faz. ctypes recusa um float num c_int32, e recusa um int
         # num vec3 -- dois erros que aqui seriam do DUPLO, nao do
@@ -224,7 +240,7 @@ def correr_loop(acoes):
         "erros": 0,
     }
     # As tres funcoes de que o loop precisa, mais os apoio.
-    for nome in ("_seguro", "_tentar", "_anotaErro", "_texto",
+    for nome in ("_seguro", "_tentar", "_anotaErro", "_texto", "_num",
                  "_tempPorPneu", "escreverCarro", "_publicaErros",
                  "actualizar"):
         bloco = re.search(r"^def %s\(.*?(?=^\S|\Z)" % nome, src, re.S | re.M)
@@ -234,7 +250,7 @@ def correr_loop(acoes):
     # o 'erros' e' global no codigo copiado: mete-se no ambiente e le-se
     # de la
     corpo = "".join(ambiente.pop(n) for n in
-                    ("_seguro", "_tentar", "_anotaErro", "_texto",
+                    ("_seguro", "_tentar", "_anotaErro", "_texto", "_num",
                      "_tempPorPneu", "escreverCarro", "_publicaErros",
                      "actualizar"))
     ambiente["erros"] = 0
@@ -274,7 +290,45 @@ if err != 0:
         "contador tem de servir para isso." % err)
 
 print()
-print("=== 2. com o getCarName a REBENTAR ===")
+print("=== 2. o jogo devolve uma SEQUENCIA, nao um numero ===")
+# Este e' o bug encontrado a conduzir: 1 001 704 chamadas com
+# "float() argument must be a string or a number", e os quatro campos a
+# zero sem nada dizer. A sequencia e' o que o jogo devolve mesmo para
+# as temperaturas dos pneus e para o turbo/ERS.
+for tam in (4, 1):
+    n, esc, err, page = correr_loop({
+        "getCarName": "normal", "nomes": ["ts040"],
+        "seqEm": [CS.CurrentTyresCoreTemp, CS.LastTyresTemp,
+                  CS.TurboBoost, CS.KersCharge],
+        "seqN": tam
+    })
+    print("  sequencia de %d:  carros=%d  erros=%d" % (tam, esc, err))
+    if err != 0:
+        problemas.append(
+            "com uma sequencia de %d, %d erros. O _num devia aceitar as "
+            "duas formas sem falhar." % (tam, err))
+    c = page.carInfo[0]
+    temps = [round(float(t), 1) for t in c.tyreCoreTemp]
+    if tam == 4:
+        # as 4 temperaturas tem de ser DIFERENTES. Se sairem as quatro
+        # iguais, o indice da roda esta' a ser ignorado -- que e'
+        # exactamente o sintoma que a docstring de _tempPorPneu
+        # descreve, e que aqui seria a leitura errada e nao o jogo.
+        if len(set(temps)) == 1:
+            problemas.append(
+                "as 4 temperaturas do nucleo ficaram iguais (%r). Com uma "
+                "sequencia de 4 e' preciso tirar o elemento da roda "
+                "pedida, senao le-se sempre o primeiro." % temps)
+        else:
+            print("     as 4 temperaturas: %r (diferentes, como deve ser)"
+                  % temps)
+    if float(c.turboBoost) == 0.0:
+        problemas.append("o turboBoost ficou a zero com a sequencia")
+    if float(c.kersCharge) == 0.0:
+        problemas.append("o kersCharge ficou a zero com a sequencia")
+
+print()
+print("=== 3. com o getCarName a REBENTAR ===")
 n, esc, err, page = correr_loop({"getCarName": "rebenta", "n": 3})
 print("  numVehicles=%r  carros escritos=%d  erros=%d" % (n, esc, err))
 print("  lastError publicado = %r" % page.lastError)
@@ -292,7 +346,7 @@ if not page.lastError:
     problemas.append("o lastError ficou vazio -- a falha ainda nao e' visivel")
 
 print()
-print("=== 3. com o jogo a dizer mesmo que o slot esta' livre ===")
+print("=== 4. com o jogo a dizer mesmo que o slot esta' livre ===")
 n, esc, err, page = correr_loop({"getCarName": "normal",
                                  "nomes": ["ts040"], "n": 1})
 print("  numVehicles=%r  carros escritos=%d" % (n, esc))
@@ -301,7 +355,7 @@ if esc > 1:
                       % esc)
 
 print()
-print("=== 4. com uma leitura de um campo INTEIRO a falhar ===")
+print("=== 5. com uma leitura de um campo INTEIRO a falhar ===")
 # Este e' o caso que esconde o outro bug. O _seguro devolvia 0.0 por
 # omissao, e 0.0 num campo c_int32 levanta TypeError na ATRIBUICAO --
 # ou seja, a excepcao reaparecia depois do _seguro, na mesma linha, e
@@ -330,7 +384,7 @@ if not page.lastError:
 # ciclo nao escreve nada. Foi assim que o cabecalho mostrava 11 carros
 # e a lista ficava vazia durante toda a corrida.
 print()
-print("=== 5. um ciclo que falha a meio, no seguinte ===")
+print("=== 6. um ciclo que falha a meio, no seguinte ===")
 n1, e1, _, _ = correr_loop({"getCarName": "normal",
                             "nomes": ["ts040", "kTM", "csr"],
                             "rebentaEm": CS.LapCount, "ciclos": 2})

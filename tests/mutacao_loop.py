@@ -28,6 +28,10 @@ MUTACOES = [
      "        if deuCerto and str(nome) == '-1':",
      "        nome, deuCerto = _seguro(lambda: ac.getCarName(carId), '-1'), True\n"
      "        if str(nome) == '-1':"),
+    ("o _num volta a recusar sequencias (os 4 campos a zero)",
+     "    if isinstance(v, (list, tuple)):",
+     "    if isinstance(v, str) and len(v) == 99:"),
+
 ]
 
 ENV = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", PYTHONIOENCODING="utf-8")
