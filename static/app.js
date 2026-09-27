@@ -85,6 +85,8 @@ const I18N = {
     'drs.off': 'OFF', 'drs.avail': 'LIVRE', 'drs.open': 'ABERTO',
     'opp.waiting': 'A aguardar os dados dos adversários.',
     'opp.how': 'A app <b>AssettoCorsaTelemetry</b> escreve a página de memória com os carros, e é a nossa — vem na pasta <b>python_app</b> do projecto. Copia-a para <b>assettocorsa/apps/python/actelemetry_strefiz/</b> e liga-a em Content Manager (<b>Settings → Python Apps → AssettoCorsaTelemetry</b>). Confirma que arrancou pelo log do AC, e que o AC está numa sessão com outros carros.',
+    'opp.errTitle': 'A app está a correr, mas uma leitura está a falhar.',
+    'opp.err': 'Não é a app estar desligada — por isso não a desligues. A leitura acima é o que está a falhar dentro do jogo; o log do AC tem mais.',
     'opp.none': 'Nenhum carro na sessão.',
     'lb.pit': 'PIT',
   },
@@ -156,6 +158,8 @@ const I18N = {
     'sector': 'SETOR', 'lapCount': 'VOLTA',
     'drs.off': 'OFF', 'drs.avail': 'LIVRE', 'drs.open': 'ABERTO',
     'opp.waiting': 'Aguardando os dados dos adversários.',
+    'opp.errTitle': 'O app está rodando, mas uma leitura está falhando.',
+    'opp.err': 'Não é o app estar desligado — por isso não o desligue. A leitura acima é o que está falhando dentro do jogo; o log do AC tem mais.',
     'opp.how': 'O app <b>AssettoCorsaTelemetry</b> escreve a página de memória com os carros, e é o nosso — vem na pasta <b>python_app</b> do projecto. Copie-o para <b>assettocorsa/apps/python/actelemetry_strefiz/</b> e ative-o no Content Manager (<b>Settings → Python Apps → AssettoCorsaTelemetry</b>). Confirme que subiu pelo log do AC, e que o AC está numa sessão com outros carros.',
     'opp.none': 'Nenhum carro na sessão.', 'lb.pit': 'BOX',
   },
@@ -226,6 +230,8 @@ const I18N = {
     'status.closed': 'JUEGO CERRADO', 'status.stale': 'últimos valores',
     'sector': 'SECTOR', 'lapCount': 'VUELTA',
     'drs.off': 'OFF', 'drs.avail': 'LIBRE', 'drs.open': 'ABIERTO',
+    'opp.errTitle': 'La app está corriendo, pero una lectura está fallando.',
+    'opp.err': 'No es que la app esté apagada — así que no la apagues. La lectura de arriba es lo que está fallando dentro del juego; el log del AC tiene más.',
     'opp.waiting': 'Esperando los datos de los rivales.',
     'opp.how': 'La app <b>AssettoCorsaTelemetry</b> escribe la página de memoria con los coches, y es la nuestra — viene en la carpeta <b>python_app</b> del proyecto. Copiala en <b>assettocorsa/apps/python/actelemetry_strefiz/</b> y activala en Content Manager (<b>Settings → Python Apps → AssettoCorsaTelemetry</b>). Comprueba que arranco en el log del AC, y que el AC esta en una sesion con otros coches.',
     'opp.none': 'Ningún coche en la sesión.', 'lb.pit': 'PIT',
@@ -299,6 +305,8 @@ const I18N = {
     'status.live': 'LIVE', 'status.paused': 'PAUSED',
     'status.closed': 'GAME CLOSED', 'status.stale': 'last values',
     'sector': 'SECTOR', 'lapCount': 'LAP',
+    'opp.errTitle': 'The app is running, but a read is failing.',
+    'opp.err': 'This is not the app being disabled, so do not disable it. The read above is what is failing inside the game; the AC log has more.',
     'drs.off': 'OFF', 'drs.avail': 'READY', 'drs.open': 'OPEN',
     'opp.waiting': 'Waiting for opponent data.',
     'opp.how': 'The <b>AssettoCorsaTelemetry</b> app writes the memory page with the cars, and it is ours — it ships in the <b>python_app</b> folder of the project. Copy it to <b>assettocorsa/apps/python/actelemetry_strefiz/</b> and enable it in Content Manager (<b>Settings → Python Apps → AssettoCorsaTelemetry</b>). Check it started in the AC log, and that AC is in a session with other cars.',
@@ -2435,10 +2443,28 @@ function renderOpponents(o) {
   const compact = (DEF.mode || 'telemetry') === 'both';
 
   if (!o.available || !o.cars || o.cars.length === 0) {
-    const msg = '<b>' + t('opp.waiting') + '</b><br>' + t('opp.how');
+    // A app engole excepcoes de proposito, e por isso publica as falhas
+    // na pagina. Sem isto, uma falha dentro do jogo aparecia como "a
+    // aguardar os adversarios" mais a instrucao para ligar a app no
+    // Content Manager -- quando a app ESTAVA ligada, e a escrever. A
+    // instrucao era errada, e era a unica que havia.
+    const falhou = o.available && o.errorCount > 0;
+    let msg;
+    if (falhou) {
+      const oQue = o.lastError || '?';
+      msg = '<b>' + t('opp.errTitle') + '</b><br>'
+        + '<code>' + String(oQue).replace(/[<>&]/g, (c) => (
+          { '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c])) + '</code><br>'
+        + t('opp.err') + ' (' + o.errorCount + ')';
+    } else {
+      msg = '<b>' + t('opp.waiting') + '</b><br>' + t('opp.how');
+    }
     [rows1, rows2].forEach((r) => { if (r) r.innerHTML = ''; });
     [note1, note2].forEach((n) => {
-      if (n) { n.innerHTML = o.available ? t('opp.none') : msg; n.classList.remove('hidden'); }
+      if (n) {
+        n.innerHTML = o.available && !falhou ? t('opp.none') : msg;
+        n.classList.remove('hidden');
+      }
     });
     return;
   }
