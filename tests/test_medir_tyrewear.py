@@ -36,8 +36,11 @@ A taxa e' CONHECIDA -- 2,0% por volta -- de modo que o teste compara o
 que o script mediu com o que se simulou. Nao e' "o script correu": e' "o
 script mediu a taxa certa".
 """
+import contextlib
 import ctypes
+import io
 import os
+import re
 import runpy
 import sys
 import time
@@ -47,6 +50,12 @@ from ctypes import c_float, c_int32
 TXA = 2.0                 # % por volta que a pagina falsa desce
 VOLTAS_A_MEDIR = 3
 LEITURAS_POR_VOLTA = 4    # o script le de 0,5 em 0,5 s
+
+# O script agora aceita o numero de voltas na linha de comando, e e' o
+# que decide quando para. O `sys.argv` e' mexido AQUI, e nao no script:
+# e' o comando do utilizador, e um teste nao o pode mudar. Se o script
+# lesse um valor fixo, este teste passaria a medir outra coisa do que a
+# que corre.
 
 estado = {'leitura': 0}
 
@@ -135,28 +144,67 @@ def dormir(seg):
 
 time.sleep = dormir
 
-print('  paginas falsas: o pneu desce %.1f%% por volta, %d voltas.'
-      % (TXA, VOLTAS_A_MEDIR))
-print('  A resposta certa sao %d descidas de -%.1f.' % (VOLTAS_A_MEDIR, TXA))
-print('')
 ALVO = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                     'medir_tyrewear.py')
-codigo = 0
-try:
-    runpy.run_path(ALVO, run_name='__main__')
-except SystemExit as e:
-    codigo = e.code if isinstance(e.code, int) else 0
-    print('  o script saiu com o codigo %s' % codigo)
-except Exception as e:
-    print('  !!! O SCRIPT DEU ERRO: %s: %s' % (type(e).__name__, e))
-    codigo = 1
-finally:
-    time.sleep = _real_sleep
+
+# O `sys.argv[1]` e' o numero de voltas que o script mede. Aqui sao
+# testados tres valores, porque um so' nao apanha o erro que interessa:
+# um valor fixo no script faria o teste passar sem se notar que o
+# comando do utilizador tinha deixado de funcionar.
+for VOLTAS_A_MEDIR in (1, 2, 3):
+    estado['leitura'] = 0
+    _avancar()
+    print('')
+    print('  === a pedir %d volta(s) ===' % VOLTAS_A_MEDIR)
+    sys.argv = ['medir_tyrewear.py', str(VOLTAS_A_MEDIR)]
+    codigo = 0
+    # a saida do script e' capturada para a CONTAR. A primeira versao
+    # imprimia 'o script respondeu com N descidas' sem as ter contado --
+    # a frase afirmava uma coisa que o teste nao media, que e' a pior
+    # forma de um teste: parece que verifica, e nao verifica nada.
+    buf = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(buf):
+            runpy.run_path(ALVO, run_name='__main__')
+    except SystemExit as e:
+        codigo = e.code if isinstance(e.code, int) else 0
+    except Exception as e:
+        print('  !!! O SCRIPT DEU ERRO: %s: %s' % (type(e).__name__, e))
+        codigo = 1
+    if codigo:
+        raise SystemExit('  com %d volta(s) o script nao passou (codigo %d)'
+                         % (VOLTAS_A_MEDIR, codigo))
+
+    saida = buf.getvalue()
+    # A linha da descida e' a que tem QUATRO numeros com sinal. Filtrar
+    # por 'desceu' nao chega, porque a frase do resumo -- 'quanto cada
+    # roda desceu por volta' -- tem a mesma palavra, e contava como uma
+    # descida a mais. Foi o que aconteceu na primeira versao deste
+    # teste: pedia uma volta e o script 'mediava' duas.
+    LINHA_DESCIDA = re.compile(r'[+-]\d+\.\d\d.*[+-]\d+\.\d\d'
+                               r'.*[+-]\d+\.\d\d.*[+-]\d+\.\d\d')
+    descidas = [l for l in saida.split('\n')
+                if 'desceu' in l and LINHA_DESCIDA.search(l)]
+    if len(descidas) != VOLTAS_A_MEDIR:
+        raise SystemExit('  pediu %d volta(s) e o script mediu %d. Se mede '
+                         'menos, nao conta voltas; se mede mais, conta a '
+                         'mesma volta mais do que uma vez.'
+                         % (VOLTAS_A_MEDIR, len(descidas)))
+    # e cada descida tem de ser a taxa simulada, e nao zero
+    for l in descidas:
+        numeros = re.findall(r'[+-]\d+\.\d\d', l)
+        if len(numeros) != 4:
+            raise SystemExit('  a linha da descida nao tem quatro valores: %r' % l)
+        for n in numeros:
+            if abs(float(n) - (-TXA)) > 0.011:
+                raise SystemExit('  a descida mediu %s e a taxa simulada e'
+                                 ' %.1f -- o script leu outra coisa.'
+                                 % (n, -TXA))
+    print('  ok: pediu %d, mediu %d, e cada uma foi de %.2f.'
+          % (VOLTAS_A_MEDIR, len(descidas), -TXA))
 
 print('')
-print('  leituras simuladas: %d' % estado['leitura'])
-if codigo:
-    raise SystemExit('  o script nao passou limpo (codigo %d)' % codigo)
-print('  passou. As tres descidas que ele imprimiu tem de ser a taxa')
-print('  simulada: se forem 0, o loop nao conta voltas; se forem mais do')
-print('  que %d, conta a mesma volta mais do que uma vez.' % VOLTAS_A_MEDIR)
+print('  os tres valores devolveram o numero certo de descidas, cada uma de')
+print('  -%.1f, e o script e' % TXA + ' que para quando se chega a zero.')
+print('  Sem o `sys.argv`, um valor fixo no script teria passado este teste')
+print('  na mesma -- e o comando do utilizador nao faria nada.')
