@@ -147,6 +147,21 @@ class CarPage(ctypes.Structure):
         ('acInstallPath', c_char * 512),
         ('isInternalMemoryModuleLoaded', c_int32),
         ('pluginVersion', c_char * 32),
+        # ------------------------------------------------------------------
+        # As falhas, publicadas. Acrescentados no FIM do cabecalho, para
+        # nao mover nenhum offset do que ja existia.
+        #
+        # A app engole excepcoes de proposito (ver _seguro em
+        # actelemetry_strefiz.py): e' melhor ler um valor errado do que
+        # matar o fio. Mas esconder a falha tambem e' um defeito -- foi
+        # assim que a leaderboard ficou vazia sem ninguem saber porquê,
+        # e o dashboard culpar a app nao estar ligada, que era a
+        # instrucao errada.
+        #
+        # Um contador sozinho diz que algo falhou. O texto diz o quê.
+        # ------------------------------------------------------------------
+        ('errorCount', c_int32),
+        ('lastError', c_char * 128),
     ]
 
 
