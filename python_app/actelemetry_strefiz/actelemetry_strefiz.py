@@ -3,7 +3,7 @@ AssettoCorsaTelemetry -- app Python para o Assetto Corsa.
 
 Corre DENTRO do jogo, em
 assettocorsa/apps/python/actelemetry_strefiz/.
-Escreve a pagina de memoria partilhada "acpmf_actelemetry_v1", que e'
+Escreve a pagina de memoria partilhada "acpmf_actelemetry_v2", que e'
 depois lida pelo acshm.py do outro lado, no dashboard. Sem SimHub, sem
 Content Manager: e' esta app que escreve, e o acshm.py que le.
 
@@ -41,7 +41,135 @@ from actelemetry_shm import Shared, MAX_SECTORS, vec3
 
 shared = Shared()
 
-VERSION = "1.0.0"
+VERSION = "1.1.0"
+
+# ---------------------------------------------------------------------------
+# O CLIMA
+# ---------------------------------------------------------------------------
+# A memoria partilhada nao tem chuva. Confirmado campo a campo: a pagina de
+# graficos tem windSpeed e windDirection e mais nada, e a de fisica tem
+# surfaceGrip, que e' o EFEITO da pista molhada e nao a chuva. Ver chuva.md.
+#
+# Mas a API Python tem, e isso so apareceu agora que temos uma app a correr
+# DENTRO do jogo. O inventario saiu das apps Python desta instalacao --
+# sobretudo do sol_weather, que e' a app de clima e usa todas:
+#
+#   ac.ext_weatherFxActive()    -> bool   a chuva esta' a renderizar
+#   ac.ext_rainParams()         -> [0] = chuva 0..1,  [1] = limpa-para-brisas
+#   ac.ext_weatherDebugText()   -> str    "current day: 2020-05-06 16:31:25..."
+#   ac.ext_getWeatherTimeMult() -> float  quao depressa o clima avanca
+#   ac.ext_patchVersionCode()   -> int    a versao do Custom Shaders Patch
+#
+# OS QUE NAO SE CHAMAM, E PORQUE:
+#   ext_rainParamsSet, ext_rainParamsAdjust, ext_setWeatherTimeMult,
+#   ext_weatherTimeOffset, ext_applyTrackConfig, ext_takeAStepBack
+# Todas ESCREVEM no estado do jogo. Uma app de telemetria que muda o
+# clima estraga a sessao de quem a instalou, e a Regra no 1 fala de
+# memoria partilhada mas o espirito e' o mesmo. So' se le.
+#
+# SONDAR UMA VEZ, E SO' UMA
+# Se uma destas funcoes nao existir -- e nao existe se o Custom Shaders
+# Patch nao a expor ao Python -- e a chamassemos a cada frame, teriamos
+# 40 erros por segundo por funcao em falta. Com quatro, 160. E' o modo de
+# falha que o lastError passou a denunciar, e que transformou o contador
+# em ruido: 1 001 704 erros que eram uma linha errada.
+#
+# Por isso: um getattr no arranque, e a partir dai ou a funcao esta' na
+# mao ou vale None. Nao ha' hasattr dentro do laco, e nao ha' excepcao
+# possivel de uma funcao que sabemos que nao existe.
+#
+# O -1 que se publica e' "nao sei", e nao "zero". Um zero de chuva seria
+# mentira, e a diferença entre "nao chove" e "isto nao esta' disponivel"
+# e' o que separa uma leitura de uma invencao.
+
+_EXT = {}
+
+
+def _sondaClima():
+    """Procura as funcoes de clima uma vez, no arranque."""
+    for nome in ("ext_weatherFxActive", "ext_rainParams",
+                 "ext_weatherDebugText", "ext_getWeatherTimeMult",
+                 "ext_patchVersionCode",
+                 "getWindSpeed", "getWindDirection"):
+        _EXT[nome] = getattr(ac, nome, None)
+
+    emFalta = [n for n, f in _EXT.items() if f is None]
+    if emFalta:
+        ac.log('AssettoCorsaTelemetry: sem estas funcoes de clima: %s'
+               % ', '.join(emFalta))
+        ac.log('AssettoCorsaTelemetry: o painel vai dizer que o clima '
+               'esta indisponivel, e nao vai mostrar zero.')
+    else:
+        ac.log('AssettoCorsaTelemetry: clima disponivel '
+               '(%d funcoes).' % len(_EXT))
+
+
+def _leClima():
+    """O clima da sessao, para o cabecalho da pagina.
+
+    Devolve None quando a funcao nao existe ou rebentou. O -1 que vai
+    para a pagina e' o mesmo "nao sei" de sempre.
+
+    O vento e' lido DUAS VEZES DE PROPOSITO: uma pela API
+    (ac.getWindSpeed) e outra pela memoria partilhada, que ja' a
+    dashboard le. Se derem o mesmo numero -- e a razao para as ler as
+    duas e' essa -- entao a API Python ve o mesmo mundo que a memoria, e
+    isso valida a premissa de tudo o que esta app escreve. Se
+    diferirem, a diferenca fica publicada e da' para investigar. E uma
+    transformacao de suposicao em medicao, e custa dois campos. """
+    f = _EXT
+    out = {'rainAmount': -1.0, 'rainFxActive': -1, 'windSpeedApi': -1.0,
+           'windDirApi': -1.0, 'weatherTimeMult': -1.0,
+           'cspVersionCode': -1, 'weatherDebug': b''}
+
+    if f.get('ext_rainParams') is not None:
+        rp, ok = _tentar(f['ext_rainParams'], None)
+        # sol_weather: RainParams[0] e' a chuva (0..1) e [1] as
+        # limpa-para-brisas. Vem como sequencia.
+        if ok and rp is not None:
+            try:
+                out['rainAmount'] = float(rp[0])
+            except Exception as e:
+                _anotaErro(e)
+
+    if f.get('ext_weatherFxActive') is not None:
+        v, ok = _tentar(f['ext_weatherFxActive'], None)
+        if ok:
+            out['rainFxActive'] = 1 if v else 0
+
+    if f.get('getWindSpeed') is not None:
+        v, ok = _tentar(f['getWindSpeed'], None)
+        if ok and v is not None:
+            out['windSpeedApi'] = float(v)
+
+    if f.get('getWindDirection') is not None:
+        v, ok = _tentar(f['getWindDirection'], None)
+        if ok and v is not None:
+            out['windDirApi'] = float(v)
+
+    if f.get('ext_getWeatherTimeMult') is not None:
+        v, ok = _tentar(f['ext_getWeatherTimeMult'], None)
+        if ok and v is not None:
+            out['weatherTimeMult'] = float(v)
+
+    if f.get('ext_patchVersionCode') is not None:
+        v, ok = _tentar(f['ext_patchVersionCode'], None)
+        if ok and v is not None:
+            try:
+                out['cspVersionCode'] = int(v)
+            except Exception as e:
+                _anotaErro(e)
+
+    # O texto cru. Nao se sabe o que traz a nao ser o que o sol_weather
+    # extrai com uma regex -- e a forma de saber e' ler. 128 bytes dao
+    # para a data e mais umas coisas, e se nao chegar amplia-se.
+    if f.get('ext_weatherDebugText') is not None:
+        v, ok = _tentar(f['ext_weatherDebugText'], None)
+        if ok and v:
+            out['weatherDebug'] = _texto(v, 127)
+
+    return out
+
 
 timer = 0
 event = threading.Event()
@@ -301,9 +429,22 @@ def escreverCarro(carId, info, nome, tempNuclear, tempBanda):
 def actualizar():
     page = shared.get()
 
+
     n, ok = _tentar(ac.getCarsCount, 0)
     page.numVehicles = n
     page.focusVehicle = _seguro(ac.getFocusedCar)
+
+    # O clima, no cabecalho. E' clima da sessao, nao de cada carro, por
+    # isso vai aqui e nao nos 128 slots.
+    clima = _leClima()
+    page.rainAmount = clima['rainAmount']
+    page.rainFxActive = clima['rainFxActive']
+    page.windSpeedApi = clima['windSpeedApi']
+    page.windDirApi = clima['windDirApi']
+    page.weatherTimeMult = clima['weatherTimeMult']
+    page.cspVersionCode = clima['cspVersionCode']
+    page.weatherDebug = clima['weatherDebug']
+
     _publicaErros(page)
 
     # O fim da lista e' o getCarsCount(), que e' a contagem que o jogo
@@ -364,6 +505,13 @@ def acMain(ac_version):
 
     ac.log("AssettoCorsaTelemetry %s a escrever na pagina partilhada." % VERSION)
     ac.console("AssetoCorsaTelemetry %s" % VERSION)
+
+    # Sondar o clima ANTES de qualquer escrita. Ver _sondaClima(): e
+    # uma vez so, no arranque, e e o que impede 160 erros por segundo
+    # quando o Custom Shaders Patch nao expoe alguma das funcoes ao
+    # Python. Chamar isto aqui dentro, a cada ciclo, seria
+    # precisamente o erro que a funcao existe para evitar.
+    _sondaClima()
 
     page = shared.get()
     page.serverName = _seguro(lambda: ac.getServerName().encode('utf-8'), b'')
