@@ -217,6 +217,91 @@ if faltam:
 else:
     ok("todos os %d ids que o JS pede existem no HTML" % len(ids_js))
 
+# --- os ids montados com um prefixo ---------------------------------
+# O app.js desenha varias coisas NAS DUAS VISTAS, e faz isso com um
+# laco: `for (const pfx of ['', 'b-']) setTxt(pfx + 'wx-rain', ...)`. Uma
+# busca de ids literais nao ve nenhuma dessas -- e foi assim que o
+# b-wx-rain faltou no modo misto sem ninguem dar por isso, a mesma
+# classe do map-drs-key2.
+#
+# A busca e' por `prefixo + 'literal'`, e verifica-se que existem as
+# DUAS versoes. Sem o segundo, o laco desenha metade e a outra metade
+# fica vazia em silencio.
+#
+# Os prefixos sao os que aparecem no proprio laco do app.js, e nao uma
+# lista escrita aqui: se um dia mudar o prefixo, muda-se la e este
+# teste ve.
+prefijos = []
+for m in re.finditer(r"for \(const (\w+) of \[([^\]]*)\]\)", js):
+    for pref in re.findall(r"'([^']*)'", m.group(2)):
+        prefijos.append((m.group(1), pref))
+
+n_pref = 0
+for var, pref in prefijos:
+    for m in re.finditer(re.escape(var) + r" \+ '([^']*)'", js):
+        lit = m.group(1)
+        # So' interessam os que viram ID. `pfx + ' button'` e' uma
+        # classe e nao um id -- a primeira versao acusava a falta de um
+        # elemento chamado " button". E `id + '-u'` e' um SUFIXO de um id
+        # que ja'e completo, nao um id novo: a expansao de
+        # 'b-wx-rain' + '-u' e' 'b-wx-rain-u', e nao 'b-' + '-u', que da
+        # 'b--u'. Os sufixos tem a sua verificacao, em baixo.
+        if not lit or " " in lit or lit.startswith("-"):
+            continue
+        n_pref += 1
+        falta = [p + lit for p in ("", "b-") if p + lit not in ids_html]
+        if falta:
+            ko("o laco desenha o id %r nas duas vistas, mas falta(m): %s"
+               % (lit, falta))
+if n_pref:
+    ok("%d ids escritos com prefixo, todos existem nas duas vistas" % n_pref)
+else:
+    print("  nota  nao encontrei ids com prefixo -- a procura mudou?")
+
+# --- os ids DERIVADOS de um id ja prefixado --------------------------
+# `pintarChuva(id)` recebe o id JA prefixado e pede o da unidade com
+# `$(id + '-u')`. A expansao correcta de 'b-wx-rain' + '-u' e'
+# 'b-wx-rain-u' -- e nao 'b-' + '-u', que daria 'b--u'.
+#
+# A PRIMEIRA VERSAO dsta verificacao procurava `id(...)` -- ou seja, uma
+# CHAMADA a `id`, que nunca acontece: `id` e' um parametro, e quem o
+# recebe e' pintarChuva. A procurar nao encontrava origem nenhuma, o
+# laco nao corria nenhuma vez, e a verificacao passava SEM VER NADA --
+#Inclusive depois de eu apagar o id do HTML a proposito para a testar.
+# Foi a unica forma de o descobrir: fazer a mutacao e ver se accuses.
+#
+# Agora: acha-se a funcao que FAZ o id derivado, e depois os sítios onde
+# ela e' chamada.
+n_der = 0
+der_problemas = 0
+for fm in re.finditer(r"function (\w+)\(([^)]*)\)\s*\{", js):
+    nome, params = fm.group(1), fm.group(2)
+    corpo = js[fm.end():fm.end() + 2000]
+    for dm in re.finditer(r"\$\((\w+) \+ '([^']+)'\)", corpo):
+        param, sufixo = dm.group(1), dm.group(2)
+        if param not in params.split(","):
+            continue
+        # onde e' que esta funcao e' chamada com um id prefixado?
+        for cm in re.finditer(r"\b" + re.escape(nome)
+                              + r"\((\w+) \+ '([^']*)'", js):
+            lit = cm.group(2)
+            if " " in lit:
+                continue
+            n_der += 1
+            falta = [p + lit + sufixo for p in ("", "b-")
+                     if p + lit + sufixo not in ids_html]
+            if falta:
+                der_problemas += 1
+                ko("o id derivado %r+%r (de %s) falta: %s"
+                   % (lit, sufixo, nome, falta))
+# O "ok" so' quando nao houve nenhuma. Imprimir os dois ao mesmo tempo
+# -- uma FALHA e um ok logo a seguir -- e' a forma de um relatório
+# ficar ambíguo, e quem o lê depressa só vê o ultimo.
+if n_der and not der_problemas:
+    ok("%d ids derivados, todos existem nas duas vistas" % n_der)
+elif not n_der:
+    print("  nota  nao encontrei ids derivados -- a procura mudou?")
+
 # ---------------------------------------------------------------------------
 print("")
 print("=== 5. as duas posicoes nao podem vir de sitios diferentes ===")
