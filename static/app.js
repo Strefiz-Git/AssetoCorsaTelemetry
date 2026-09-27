@@ -1227,125 +1227,160 @@ function drawVolante(canvasId, steer) {
   //
   // ATENCAO aos angulos do canvas: o angulo 0 e' a DIREITA e os angulos
   // correm para BAIXO (o eixo do Y aponta para baixo), portanto o topo
-  // e' 3pi/2, nao -pi/2. A primeira versao desenhava o arco de aFundo a
-  // pi-aFundo, que em canvas e' a parte de BAIXO: o aro saia em cima de
-  // uma linha recta e nao se lia como um volante. Foi medido - faltava
-  // aro do lado esquerdo e sobrava em baixo.
+  // e' 3pi/2, nao -pi/2.
   //
-  // TUDO o que fica dentro deste save/restore roda com o volante -- e'
-  // suposto, e' o que diz o angulo. O cubo com o numero fica de FORA
-  // (mais abaixo), e nao pode entrar aqui: rodava com o aro e a mais de
-  // ~60% do curso (qualquer curva fechada, nao so' um caso extremo)
-  // aparecia de cabeca para baixo -- "-60" lia-se "09-". Um numero que
-  // se ve a conduzir nao pode ficar ilegivel logo quando mais se precisa
-  // dele numa curva apertada.
+  // Isto e' pequeno (58-86px), por isso um gradiente ao centro do aro
+  // (o que estava antes) quase nao se ve -- fica so' mais escuro, sem
+  // parecer redondo. O que da' volume a este tamanho e' luz DIRECCIONAL:
+  // uma faixa clara so' de um lado (canto superior esquerdo, como se
+  // viesse uma luz de cima) e uma sombra so' do lado oposto. E' o mesmo
+  // truque de um icone de botao com relevo.
+  //
+  // TUDO dentro deste save/restore roda com o volante. O cubo com o
+  // numero fica de FORA (mais abaixo): dentro, a mais de ~60% do curso
+  // (qualquer curva apertada, nao um caso raro) o numero saia de cabeca
+  // para baixo -- ver a nota grande junto ao cubo.
   c.save();
   c.translate(cx, cy);
   c.rotate(ang);
 
-  const CHAO = 0.70;                 // fracao do raio onde o fundo fica
-  const aFundo = Math.asin(CHAO);   // onde o circulo encontra a linha de baixo
-  const largura = Math.max(3, R * 0.24);
+  const CHAO = 0.70;
+  const aFundo = Math.asin(CHAO);
+  const largura = Math.max(4, R * 0.30);
 
-  // o arco, de um lado ao outro por cima (passa por 3pi/2, que e' o topo)
-  // gradiente radial em vez de cinzento chapado, para dar volume ao aro
-  const gradAro = c.createRadialGradient(0, 0, R - largura, 0, 0, R);
-  gradAro.addColorStop(0, '#2e3637');
-  gradAro.addColorStop(1, '#181d1e');
-  c.strokeStyle = gradAro;
+  // aro: preto fosco solido -- a base, sem gradiente (perde-se a este
+  // tamanho, ver nota acima)
+  c.strokeStyle = '#191e1f';
   c.lineWidth = largura;
   c.lineCap = 'butt';
   c.beginPath();
   c.arc(0, 0, R, Math.PI - aFundo, Math.PI * 2 + aFundo, false);
   c.stroke();
-
-  // linha de baixo, a fechar a figura
   c.beginPath();
   c.moveTo(Math.cos(aFundo) * R, R * CHAO);
   c.lineTo(-Math.cos(aFundo) * R, R * CHAO);
   c.stroke();
 
-  // brilho no aro, para dar volume
-  c.strokeStyle = 'rgba(255,255,255,0.16)';
-  c.lineWidth = Math.max(1, R * 0.055);
+  // luz de cima-esquerda, so' naquele arco -- e sombra do lado oposto
+  c.strokeStyle = 'rgba(255,255,255,0.24)';
+  c.lineWidth = Math.max(1.3, largura * 0.16);
   c.beginPath();
-  c.arc(0, 0, R - largura * 0.32, Math.PI - aFundo + 0.5, Math.PI * 2 + aFundo - 0.5, false);
+  c.arc(0, 0, R - largura * 0.14, Math.PI * 1.06, Math.PI * 1.60, false);
+  c.stroke();
+  c.strokeStyle = 'rgba(0,0,0,0.40)';
+  c.beginPath();
+  c.arc(0, 0, R - largura * 0.86, Math.PI * 1.92, Math.PI * 2.46, false);
   c.stroke();
 
   // ---- punhos, a esquerda e a direita ---------------------------------
-  // Sao as zonas mais largas. Sem isto o desenho le-se como um anel.
-  // O centro do punho e' 0 (direita) ou pi (esquerda). Com o sinal
-  // invertido, o arco esquerdo saia com inicio maior que o fim e nao
-  // desenhava nada - o volante ficava sem um dos punhos.
+  // Mais escuros que o resto do aro, com uma "costura" fina ao centro --
+  // e' a pista visual de "aqui e' para agarrar", como um volante real.
   for (const centro of [0, Math.PI]) {
-    c.strokeStyle = '#14191a';
-    c.lineWidth = largura * 1.1;
+    c.strokeStyle = '#0e1213';
+    c.lineWidth = largura * 1.08;
     c.lineCap = 'round';
     c.beginPath();
-    c.arc(0, 0, R, centro - 0.42, centro + 0.42, false);
+    c.arc(0, 0, R, centro - 0.44, centro + 0.44, false);
+    c.stroke();
+    c.strokeStyle = 'rgba(255,255,255,0.10)';
+    c.lineWidth = 1;
+    c.beginPath();
+    c.arc(0, 0, R, centro - 0.30, centro + 0.30, false);
     c.stroke();
   }
 
-  // ---- dois raios, de baixo para o cubo ------------------------------
-  c.strokeStyle = '#262d2e';
-  c.lineWidth = Math.max(2, R * 0.14);
-  c.lineCap = 'round';
+  // ---- dois raios: barra fina e chanfrada, nao um bloco ----------------
+  // Uma primeira tentativa mais larga ficava a parecer duas paletas de
+  // remo em vez de raios -- isto tem de ser fino face ao aro.
+  const largoBase = R * 0.095, largoTopo = R * 0.040;
   for (const sinal of [-1, 1]) {
+    const px = sinal * Math.cos(aFundo) * R * 0.97, py = R * CHAO * 0.97;
+    const hx = sinal * R * 0.28, hy = R * 0.30;
+    const dx = hx - px, dy = hy - py, len = Math.hypot(dx, dy) || 1;
+    const nx = -dy / len, ny = dx / len;
+    c.fillStyle = '#20272a';
     c.beginPath();
-    c.moveTo(sinal * Math.cos(aFundo) * R * 0.94, R * CHAO * 0.94);
-    c.lineTo(sinal * R * 0.30, R * 0.30);
+    c.moveTo(px + nx * largoBase, py + ny * largoBase);
+    c.lineTo(px - nx * largoBase, py - ny * largoBase);
+    c.lineTo(hx - nx * largoTopo, hy - ny * largoTopo);
+    c.lineTo(hx + nx * largoTopo, hy + ny * largoTopo);
+    c.closePath();
+    c.fill();
+    c.strokeStyle = 'rgba(255,255,255,0.10)';
+    c.lineWidth = 1;
     c.stroke();
   }
 
   // ---- marca do topo: um chevron, nao um rectangulo -------------------
-  // E' ela que diz para que lado rodou. Um triangulo le-se mais depressa
-  // que um bloco (aponta na direccao), e e' o que os volantes reais tem
-  // pintado no topo do aro.
+  // E' ela que diz para que lado rodou. Um contorno escuro destaca-o do
+  // fundo preto quando a cor e' o amarelo do centro.
   c.fillStyle = corMarca;
+  c.strokeStyle = 'rgba(0,0,0,0.55)';
+  c.lineWidth = 1;
   c.beginPath();
   c.moveTo(0, -R + largura * 1.05);
-  c.lineTo(-largura * 0.62, -R + largura * 0.15);
-  c.lineTo(largura * 0.62, -R + largura * 0.15);
+  c.lineTo(-largura * 0.60, -R + largura * 0.14);
+  c.lineTo(largura * 0.60, -R + largura * 0.14);
   c.closePath();
   c.fill();
+  c.stroke();
 
   c.restore();
 
   // ---- cubo com ecra, SEM rodar ----------------------------------------
-  // Fica fora do save/restore de proposito (ver nota grande acima): o
-  // numero tem de se ler sempre direito, seja qual for o angulo do
-  // volante. Quem mostra o ANGULO e' o aro a rodar por baixo dele, mais
-  // o brilho a volta do cubo, que fica mais forte quanto mais se roda.
+  // Fica fora do save/restore de proposito: o numero tem de se ler
+  // sempre direito, seja qual for o angulo do volante. Um volante real
+  // roda tudo, incluindo o mostrador -- mas isto e' um indicador para
+  // se ler a conduzir, e um numero de cabeca para baixo bem no meio de
+  // uma curva apertada e' o oposto de util. Quem mostra o ANGULO e' o
+  // aro a rodar por baixo, mais o brilho a volta do cubo, mais forte
+  // quanto mais se roda.
   const glow = Math.abs(v);
   if (glow > 0.03) {
-    const gradGlow = c.createRadialGradient(cx, cy, R * 0.22, cx, cy, R * 0.5);
-    gradGlow.addColorStop(0, corMarca + Math.round(glow * 110).toString(16).padStart(2, '0'));
+    const gradGlow = c.createRadialGradient(cx, cy, R * 0.20, cx, cy, R * 0.52);
+    gradGlow.addColorStop(0, corMarca + Math.round(glow * 120).toString(16).padStart(2, '0'));
     gradGlow.addColorStop(1, corMarca + '00');
     c.fillStyle = gradGlow;
     c.beginPath();
-    c.arc(cx, cy, R * 0.5, 0, Math.PI * 2);
+    c.arc(cx, cy, R * 0.52, 0, Math.PI * 2);
     c.fill();
   }
 
-  c.fillStyle = '#14191a';
-  c.strokeStyle = '#3c4445';
-  c.lineWidth = 1.4;
+  // bisel duplo (aro claro por fora, aro escuro por dentro) + dois
+  // "parafusos" nos cantos -- e' o pormenor que faz parecer um pod de
+  // botoes montado no volante, e nao um rotulo colado por cima
+  const bx = R * 0.36, by = R * 0.22;
+  c.fillStyle = '#0e1112';
+  c.strokeStyle = '#454e4f';
+  c.lineWidth = 1.2;
   c.beginPath();
-  if (c.roundRect) c.roundRect(cx - R * 0.36, cy - R * 0.21, R * 0.72, R * 0.42, 4);
-  else c.rect(cx - R * 0.36, cy - R * 0.21, R * 0.72, R * 0.42);
+  if (c.roundRect) c.roundRect(cx - bx, cy - by, bx * 2, by * 2, 4);
+  else c.rect(cx - bx, cy - by, bx * 2, by * 2);
   c.fill();
   c.stroke();
+  c.fillStyle = '#050708';
+  c.beginPath();
+  if (c.roundRect) c.roundRect(cx - bx + 2.2, cy - by + 2.2, bx * 2 - 4.4, by * 2 - 4.4, 3);
+  else c.rect(cx - bx + 2.2, cy - by + 2.2, bx * 2 - 4.4, by * 2 - 4.4);
+  c.fill();
+  c.fillStyle = 'rgba(150,160,162,0.55)';
+  for (const px of [cx - bx + 3, cx + bx - 3]) {
+    c.beginPath(); c.arc(px, cy - by + 3, 1.1, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.arc(px, cy + by - 3, 1.1, 0, Math.PI * 2); c.fill();
+  }
 
-  // ecra aceso, com o valor
+  // ecra aceso, com o valor -- RobotoMono, a mesma letra de todos os
+  // outros numeros do HUD (temperaturas, pressoes, tempos). Era
+  // Titillium so' aqui, o que destoava do resto do mostrador.
   c.fillStyle = '#0a2b1a';
   c.fillRect(cx - R * 0.30, cy - R * 0.155, R * 0.60, R * 0.23);
   c.fillStyle = corMarca;
-  c.font = '900 ' + Math.max(7, Math.round(R * 0.21)) + 'px Titillium, sans-serif';
+  c.font = '700 ' + Math.max(7, Math.round(R * 0.20)) + 'px RobotoMono, monospace';
   c.textAlign = 'center';
   c.textBaseline = 'middle';
-  c.fillText((v >= 0 ? '+' : '-') + Math.abs(v * 100).toFixed(0), cx, cy - R * 0.035);
+  c.fillText((v >= 0 ? '+' : '-') + Math.abs(v * 100).toFixed(0), cx, cy - R * 0.03);
 
-  // eixo vertical, para se ver o desvio face ao volante
+  // eixo vertical, para se ver o desvio face ao centro do volante
   c.strokeStyle = 'rgba(255,215,0,0.18)';
   c.lineWidth = 1;
   c.setLineDash([2, 3]);
