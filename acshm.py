@@ -161,17 +161,19 @@ class SPageFileStatic(ctypes.Structure):
 
 
 # ------------------------------------------------- adversarios (opponents)
-# So o AC nao poe os outros carros nas suas paginas. Quem o faz e' a app em
-# Python do SimHub, que corre DENTRO do jogo e escreve esta pagina com os
-# 128 carros. Nao e' uma ligacao de rede: e' mais uma pagina de memoria
-# partilhada, que se le tal e qual as outras.
+# So o AC nao poe os outros carros nas suas paginas. Quem o faz e' a NOSSA
+# app, em python_app/actelemetry.py, que corre DENTRO do jogo e escreve
+# esta pagina com os 128 carros. Nao e' uma ligacao de rede: e' mais uma
+# pagina de memoria partilhada, que se le tal e qual as outras.
 #
-# A app tem de estar activa no Content Manager (Settings -> Python Apps ->
-# "SimHub"). Confirma-se pelo log do AC: "SimHub Was Here!".
+# A app e' a NOSSA: a que existia antes era a do SimHub, e o que publish
+# e' dela esta' agora em python_app/. Instalar e' copiar a pasta
+# actelemetry para assettocorsa/apps/python/ e ligar em Content Manager
+# (Settings -> Python Apps -> "AssettoCorsaTelemetry"). Confirma-se pelo
+# log do AC: "AssettoCorsaTelemetry <versao> a escrever na pagina".
 
-# maximo de setores por volta guardados por carro (ver simhub_shared_mem.py
-# da app -- tem de ser O MESMO NUMERO dos dois lados, e' o que define o
-# tamanho da struct).
+# maximo de setores por volta guardados por carro (tem de ser O MESMO
+# numero dos dois lados -- e' o que define o tamanho da struct)
 MAX_SECTORS = 8
 
 
@@ -199,11 +201,24 @@ class acsVehicleInfo(ctypes.Structure):
         ("carRealTimeLeaderboardPosition", c_int32),
         ("spLineLength", c_float),
         ("isConnected", c_int32),
-        ("suspensionDamage", c_float * 4),
-        ("engineLifeLeft", c_float),
-        ("tyreInflation", c_float * 4),
-        # v3: tempos de setor (ms) da ultima volta completa de cada carro,
-        # vindos de ac.getLastSplits() dentro da app do SimHub. So' fazem
+        # Antes aqui havia tres campos que NUNCA eram preenchidos e ficavam
+        # sempre a zero: suspensionDamage (c_float*4), engineLifeLeft
+        # (c_float) e tyreInflation (c_float*4) -- 36 bytes por carro,
+        # 4,6 KB na pagina, todos os dias, a zeros. Nenhum deles existe no
+        # enum CS do acsys.py, que e' o que o ac.getCarState() aceita,
+        # portanto na' e' a app que falhava: era' impossible escrever aquilo.
+        # Ver a Regra no 18 -- a HUD em Lua le-os pela API do objecto
+        # carro, que e' outra interface.
+        #
+        # No lugar deles, o que o CS tem mesmo e interessa a um adversario.
+        ("tyreCoreTemp", c_float * 4),      # Celsius, por pneu
+        ("turboBoost", c_float),            # fraccao 0..1
+        ("kersCharge", c_float),            # fraccao 0..1
+        ("drsAvailable", c_int32),          # a zona existe
+        ("drsEnabled", c_int32),            # e o DRS esta' ligado
+        ("tyreSurfaceTemp", c_float * 4),   # Celsius, banda
+        # Tempos de setor (ms) da ultima volta completa de cada carro,
+        # vindos de ac.getLastSplits() dentro da nossa app. So' fazem
         # sentido os primeiros 'lastSplitsCount' valores -- ver snapshot().
         ("lastSplitsMS", c_int32 * MAX_SECTORS),
         ("lastSplitsCount", c_int32),
@@ -233,12 +248,15 @@ def _b(v):
 
 
 class Opponents:
-    """Leitor da pagina que a app Python do SimHub preenche."""
+    """Leitor da pagina que a NOSSA app Python preenche."""
 
-    # v3: struct maior (splits de setor no fim). Se a app do SimHub no
-    # jogo ainda for a v2, esta pagina simplesmente nao existe ainda --
-    # open() falha com "available: False" em vez de ler a struct errada.
-    NAME = "acpmf_simhub_v3"
+    # O NOME DA PAGINA e' o contrato com python_app/actelemetry_shm.py.
+    # Tem de ser igual nos dois lados, e tests\test_contrato.py falha se
+    # algum mudar sozinho. E' um nome que nunca existiu, de proposito: se
+    # a app nao estiver instalada ou nao arrancar, esta pagina nao existe
+    # e open() da "available: False" -- em vez de abrir um mapeamento
+    # antigo, com a struct errada, e ler lixo a seguir ao fim.
+    NAME = "acpmf_actelemetry_v1"
 
     def __init__(self, name=None):
         self._h = None
@@ -247,10 +265,10 @@ class Opponents:
         self.available = False
         self.pluginVersion = ""
         # 'name' existe para os testes poderem usar uma pagina FICTICIA.
-        # Nunca criar "acpmf_simhub_v2" num teste: o SimHub mantem essa
-        # pagina mapeada mesmo com o jogo fechado, por isso o
-        # CreateFileMapping devolveria o objeto JA EXISTENTE e as escritas
-        # do teste iriam parar a memoria de uma sessao real.
+        # Nunca criar a pagina real num teste: a app mantem-na mapeada
+        # mesmo com o jogo fechado, por isso o CreateFileMapping devolveria
+        # o objeto JA EXISTENTE e as escritas do teste iriam parar a
+        # memoria de uma sessao real (Regra no 1).
         self.name = name or self.NAME
         self.open()
 
@@ -321,21 +339,28 @@ class Opponents:
                     "inPit": bool(c.isCarInPit),
                     "inPitLane": bool(c.isCarInPitline),
                     "connected": bool(c.isConnected),
-                    # suspensionDamage: fraccao 0..1 por roda (0 = intacta).
-                    # engineLifeLeft: bruto 0..1000 (1000 = motor novo). A
-                    # escala vem confirmada de um painel de danos de
-                    # referencia (CMRT), que usa
-                    # "1 - car.engineLifeLeft / 1000" para a fraccao de
-                    # dano -- NAO confirmado ainda contra uma captura desta
-                    # app, porque nunca aqui apareceu motor ou suspensao
-                    # danificados. Se um dia aparecer um numero estranho
-                    # (ex.: negativo persistente ou sempre 0), e' o primeiro
-                    # sitio a verificar.
-                    "suspDamage": [round(max(0.0, min(1.0, float(x))), 3)
-                                   for x in c.suspensionDamage],
-                    "engineDamage": round(
-                        max(0.0, min(1.0, 1.0 - float(c.engineLifeLeft) / 1000.0)),
-                        3),
+                    # Temperatura do nucleo dos 4 pneus, em Celsius, na
+                    # ordem FL, FR, RL, RR -- igual a todos os outros
+                    # arrays de 4 deste interface.
+                    #
+                    # CUIDADO com isto: a app passa o indice da roda ao
+                    # ac.getCarState(). A documentacao do acsys.py so'
+                    # exige o indice para ContactPoint/Normal/Heading/
+                    # RightVector, e nao para as temperaturas -- e nao ha'
+                    # como descobrir qual das duas coisas e' a certa sem
+                    # o jogo a correr. COMO SABER: se as quatro vierem
+                    # sempre iguais, o indice esta' a ser ignorado e o AC
+                    # esta' a devolver sempre a roda da frente. Le-se em
+                    # segundos, no ecra.
+                    "tyreCore": [round(float(x), 1) for x in c.tyreCoreTemp],
+                    "tyreSurface": [round(float(x), 1)
+                                    for x in c.tyreSurfaceTemp],
+                    # fraccoes 0..1, como as do carro do jogador
+                    "turbo": round(max(0.0, min(1.0, float(c.turboBoost))), 3),
+                    "ers": round(max(0.0, min(1.0, float(c.kersCharge))), 3),
+                    # 1 = a zona existe / o DRS esta' ligado
+                    "drsAvailable": int(c.drsAvailable),
+                    "drsEnabled": int(c.drsEnabled),
                     # tempos de setor da ultima volta completa, formatados
                     # como os outros tempos ("M:SS.mmm"/"--:--.---") para o
                     # cliente poder usar toSec() sem precisar de um caso
