@@ -172,29 +172,67 @@ if I18N:
     NOVAS = ["fuel.measuring", "fuel.lapsWhy", "fuel.oneLapWhy",
              "fuel.avisoWhy", "fuel.criticoWhy", "fuel.avisoWhyPct",
              "lb.posTitle", "opp.errTitle", "opp.err",
-             "wx.rain", "wx.dry", "wx.rainTitle", "wx.rainUnknown"]
+             "wx.rain", "wx.rainTitle", "wx.rainUnknown",
+             "tyres.gripWhat",
+             # As do tempo. Substituem a antiga `wx.dry`, que era um
+             # "seco" solto, por uma cena por banda da escala do jogo.
+             "wx.seco", "wx.chiada", "wx.chiadaForte", "wx.chuvaFraca",
+             "wx.chuva", "wx.chuvaForte", "wx.neve", "wx.trovoada",
+             "wx.trovoadaForte", "wx.furacao", "wx.topoDoCartao"]
     emFalta = [k for k in NOVAS if k not in I18N["pt-PT"]]
     if emFalta:
         ko("chaves novas em falta: %s" % emFalta)
     else:
         ok("as %d chaves novas desta sessao estao nas 4 linguas" % len(NOVAS))
 
-    # Uma chave e' usada de TRES maneiras, e a primeira versao deste
-    # teste so' via uma. Duas davam 83 chaves "mortas" que nao estavam:
+    # Uma chave e' usada de QUATRO maneiras, e as primeiras versoes deste
+    # teste viam menos. Duas davam 83 chaves "mortas" que nao estavam:
     #
     #   - 83 chaves sao postas pelo applyLang() a partir de um atributo
     #     data-i18n no HTML, e nao por t();
-    #   - e ha' chaves montadas em RUNTIME, que nenhuma busca estatica
-    #     pode ver: t('fuel.' + nivel + 'Why') e
-    #     const key = info.autodetected ? 'set.acPathAuto' : 'set.acPathOk'.
+    #   - ha' chaves montadas em RUNTIME, que nenhuma busca estatica pode
+    #     ver: t('fuel.' + nivel + 'Why') e
+    #     const key = info.autodetected ? 'set.acPathAuto' : 'set.acPathOk';
+    #   - e ha' chaves que vivem numa TABELA, escritas como texto simples
+    #     e passadas ao t() depois: a lista CENAS do tempo tem
+    #     { limiar: 0.001, chave: 'wx.chiada' }, e o t(c.chave) que a
+    #     segue nao deixa rasto nenhum para uma busca estatica.
     #
-    # As de runtime nao se podem verificar -- por isso sao listadas a
-    # parte, como 'nao verificavel', e nao como mortas. Um teste que as
-    # chama mortas obriga a depois a 'limpar' chaves que estao em uso, e
-    # a proxima pessoa que for usa-las demora a descobrir porque
-    # desapareceram.
-    usadas = set(re.findall(r"t\('([^']+)'\)", js))
+    # A tabela e' o caso novo, e apareceu porque a lista do tempo trocou
+    # um texto solto por catorze cenas -- e o teste passou a acusar catorze
+    # chaves mortas que estavam em uso. Nao se corrigiu com uma lista de
+    # excecoes, que e' o que se fez com as de runtime e que envelhece sem
+    # ninguem dar por isso: procura-se a chave em qualquer string do
+    # ficheiro.
+    #
+    # As de runtime continuam a nao se poder verificar, e sao listadas a
+    # parte, como 'nao verificavel'. Um teste que as chama mortas obriga
+    # a depois a 'limpar' chaves que estao em uso.
+    usadas = set(re.findall(r"t\(\s*['\"]([^'\"]+)['\"]", js))
     usadas |= set(re.findall(r'data-i18n(?:-aria|-title)?="([^"]+)"', h))
+    # a chave numa tabela: `chave: 'tal'` ou `chave = "tal"`
+    usadas |= set(re.findall(r"chave\s*[:=]\s*['\"]([^'\"]+)['\"]", js))
+    # E A QUE VEM DE OUTRO FICHEIRO, com o prefixo juntado depois.
+    #
+    # As catorze cenas do tempo vivem em `static/tempo.js`, e o `app.js`
+    # escreve `t('wx.' + cena)`. Para uma busca estatica isso e' uma
+    # concatenacao em runtime, e a resposta normal seria meter as catorze
+    # na lista de 'nao provavel' -- que e' o mesmo que nao as vigiar.
+    #
+    # Mas elas SAO verificaveis, porque o `tempo.js` tem os sufixos
+    # literalmente: `{ limiar: 0.001, chave: 'chiada' }`. Logo a chave
+    # `wx.chiada` conta como usada se e' `chave: 'chiada'` no modulo. E
+    # a DIFFERENCA entre 'nao provavel' e 'provavel por outra via': estas
+    # catorze continuam vigiadas, e se uma delas desaparecer do modulo
+    # este teste acusa.
+    p_tempo = os.path.join(ST, "tempo.js")
+    if os.path.exists(p_tempo):
+        tempo_js = io.open(p_tempo, encoding="utf-8").read()
+        sufixos = re.findall(r"chave:\s*'([^']+)'", tempo_js)
+        usadas |= set("wx." + x for x in sufixos)
+        if len(sufixos) < 10:
+            ko("o tempo.js so' da' %d cenas; eram 14. A lista de cenas "
+               "encolheu sem ninguem dar por isso" % len(sufixos))
     # O que NAO se consegue provar com uma busca estatica: a chave
     # montada em runtime. Duas formas, ambas neste projecto:
     #     t('fuel.' + nivel + 'Why')
