@@ -202,6 +202,17 @@
       interior: quatroDa(d.tyreTempInner),
       meio: null,                 // nao existe no F1 25
       nucleo: null,               // nao existe no F1 25
+      /* O F1 25 nao tem NUCLEO: tem superficie e interior. O `interior` e'
+       * a carcasse, que e' o mais proximo do que o AC chama nucleo, e por
+       * isso e' o numero grande. Medido em Abu Dhabi: interior 96 a 101 e
+       * superficie 49 a 61 -- e o AC dava 115 de nucleo para 72 de zona
+       * media na mesma corrida, a mesma ordem de grandeza.
+       *
+       * A CARTA mostrava `--`, porque o desenho lia `tyreCore`, que no F1
+       * 25 nao existe. Este valor estava aqui desde o inicio e nunca
+       * chegou a lado nenhum, porque o desenho nao perguntava. */
+      principal: quatroDa(d.tyreTempInner),
+      secundario: quatroDa(d.tyreTempSurface),
     };
   }
 

@@ -155,6 +155,9 @@
      * da logica de desenho. E cada teste deste ficheiro poe um valor
      * DIFERENTE em cada canto, porque com os quatro iguais uma ordem
      * errada e' indistinguivel de uma ordem certa. */
+    /* `principal` e' o numero GRANDE e `secundario` o pequeno, e cada
+    * modulo decide quais sao. Ver a Regra no 22: a traducao acontece
+    * uma vez, na fronteira, e o desenho so' escreve o que recebe. */
     tempPneu: function (d) { return { superficie: [0, 0, 0, 0], interior: null, nucleo: null }; },
 
     /* ------------------------------------------------------------------

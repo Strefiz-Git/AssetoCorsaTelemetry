@@ -1756,27 +1756,54 @@ function buildTyres(hostId) {
     host.appendChild(d);
   }
 }
+/* A temperatura de cada roda, TIDA AO MODULO DO JOGO.
+ *
+ * Este desenho nao conhece os nomes dos campos. Nao sabe que o AC manda
+ * `tyreCore` e que o F1 25 manda `tyreTempInner`, e nao tem de saber:
+ * quem traduz e' o modulo do jogo, na fronteira, e devolve o mesmo par
+ * para os dois -- `principal` (o numero grande) e `secundario` (o
+ * pequeno).
+ *
+ * Antes lia `d.tyreCore`, e no F1 25 a carta mostrava
+ * `FL -- 15.5 -- 24.6 psi`: o travessao no sitio da temperatura. Os
+ * valores CHEGAVAM -- superficie 49 a 61, interior 96 a 101, medido em
+ * Abu Dhabi -- e nao aparecia nada, porque o campo que se lia nao existe
+ * naquele jogo.
+ *
+ * Regra no 22: a traducao acontece uma vez, na fronteira, e nunca dentro
+ * da logica de desenho. E Regra no 19 pelo avesso: um `--` parece uma
+ * medida em falta, e nao um campo que se leu pelo nome errado.
+ *
+ * Sem modulo carregado -- antes da escolha do jogo, ou se um modulo vier
+ * sem `tempPneu` -- devolve nulos, e o desenho escreve o travessao. E a
+ * resposta honesta: nao se sabe, escreve-se que nao se sabe. */
+function tempDoPneu(d) {
+  const m = globalThis.Jogos && globalThis.Jogos.atual();
+  if (!m || !m.tempPneu) return { principal: null, secundario: null };
+  const t = m.tempPneu(d);
+  return t || { principal: null, secundario: null };
+}
+
 function renderTyres(hostId, d) {
   for (let i = 0; i < 4; i++) {
-    // O numero grande e' o NUCLEO, nao a superficie. Medido contra o
-    // ecra do jogo, no mesmo instante (pausa):
+    // O numero grande e' o `principal` do modulo do jogo, e o pequeno e' o
+    // `secundario`. Este desenho nao conhece os NOME dos campos: nao sabe
+    // que o AC manda `tyreCore` e o F1 25 manda `tyreTempInner`, e nao tem
+    // de saber. Quem traduz e' o modulo, na fronteira, e devolve o mesmo
+    // par para os dois.
     //
-    //   roda   jogo   tyreCore   tyreTempM (superficie)
-    //   FL     118        115            72
-    //   FR      82         92            68
-    //   RL     119        117            83
-    //   RR     108        107            82
-    //
-    // O jogo mostra o nucleo. O site mostrava a superficie, que sao 40 C
-    // menos -- e comparing os dois numeros, o do site pareceva errado.
-    // E o nucleo que interessa: e' a temperatura que diz se o pneu esta'
-    // na janela de trabalho.
-    const core = (d.tyreCore && d.tyreCore[i]) || 0;
+    // A escolha de qual e' o grande e' um juizo POR JOGO -- no AC e' o
+    // nucleo, no F1 25 e' a carcasse -- e por isso esta' nos dois modulos,
+    // com a medida que a sustenta. Um comentario aqui a justificar uma
+    // decisao que pertence ao modulo fica do lado errado, e daqui a um ano
+    // ninguem sabe se a medida ainda se aplica ao jogo novo. Regra no 22.
+    const t = tempDoPneu(d);
+    const core = (t.principal && t.principal[i]) || 0;
     setTxt(hostId + '-t' + i, core ? fmtTemp(core) + unidadeTemp() : '--');
     const te = $(hostId + '-t' + i);
     if (te) te.style.color = tempColor(core);
-    // a superficie vai ao lado da pressao, em corpo pequeno
-    const sup = (d.tyreTempM && d.tyreTempM[i]) || 0;
+    // o outro numero, ao lado da pressao, em corpo pequeno
+    const sup = (t.secundario && t.secundario[i]) || 0;
     setTxt(hostId + '-s' + i, sup ? fmtTemp(sup) + '°' : '--');
     const se = $(hostId + '-s' + i);
     if (se) se.title = t('tyres.surface');

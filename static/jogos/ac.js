@@ -152,10 +152,21 @@
    * no 22. */
   function tempPneu(d) {
     return {
-      superficie: arr(d.tyreTempO),     // a "superficie" do AC e' a zona
+      superficie: arr(d.tyreTempO),
       interior: arr(d.tyreTempI),
       meio: arr(d.tyreTempM),
       nucleo: arr(d.tyreCore),
+      /* O numero GRANDE e' o nucleo, e a medida que o sustenta esta' no
+       * `app.js`: o jogo mostra o nucleo e o site mostrava a superficie,
+       * e a diferenca de 40 graus fazia o numero do site parecer errado a
+       * quem conduz. O pequeno e' o meio.
+       *
+       * Escolher isto AQUI e' o que faz a traducao acontecer uma vez, na
+       * fronteira. No desenho, escolher seria uma regra de jogo no sitio
+       * errado -- e a Regra no 19 com outro nome: duas copias de uma
+       * regra divergem em silencio. */
+      principal: arr(d.tyreCore),
+      secundario: arr(d.tyreTempM),
     };
   }
   function arr(v) {
