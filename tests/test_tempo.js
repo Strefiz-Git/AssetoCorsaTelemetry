@@ -2,7 +2,10 @@
  * Planner. Corre com `node tests/test_tempo.js`, sem browser.
  *
  * A lista de valores e' a da
- * `ac_info/apps/lua/PurePlanner/settings/settings_defaults.lua`, e cada
+ * `nucleo/tempo.js`, que e' onde a lista esta' transcrita. Veio do
+ * `ac_info/apps/lua/PurePlanner/settings/settings_defaults.lua` -- uma
+ * pasta que foi apagada depois de a tabela ser copiada para ca, e o
+ * porquê da transcricao esta' no proprio `tempo.js`. Cada
  * um deles tem de cair na banda que o jogo lhe da. Este teste existe
  * porque o `chuva2.md` inventou cortes que pareceram bons e estavam
  * errados: aos 0,5 o jogo esta em `rain` a serio, e o painel dizia

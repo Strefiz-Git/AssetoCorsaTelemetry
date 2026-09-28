@@ -795,6 +795,11 @@ Planner, em
 `ac_info/apps/lua/PurePlanner/settings/settings_defaults.lua`, em 37
 linhas: o nome da cena e as quantidades que o próprio jogo reconhece.
 
+A pasta foi apagada depois de a tabela ser transcrita para 
+`static/nucleo/tempo.js`, que é agora onde a tabela vive e é o
+ficheiro que o `test_tempo.js` confere. O caminho fica escrito
+porque é de onde veio, e não porque se vá lá buscar nada.
+
 **O comentário de cabeçalho desse ficheiro está certo** — nomeia as
 treze colunas e batem com a linha, uma a uma:
 

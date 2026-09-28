@@ -499,6 +499,11 @@ O vocabulário do tempo do AC não está no AC. Está no Pure Planner, em
 `ac_info/apps/lua/PurePlanner/settings/settings_defaults.lua`, em 37
 linhas. As trinta e sete cenas, com vento, chuva e nuvem.
 
+A pasta foi apagada depois de a tabela ser transcrita para 
+`static/nucleo/tempo.js`, que é agora onde a tabela vive. O
+`test_tempo.js` confirma os valores. O caminho fica escrito
+porque é de onde veio, e não porque se vá lá buscar nada.
+
 **Doze das 37 têm `rain` a zero**, e com só a chuva o painel dizia "seco" a
 todas. Das doze, **uma** se distingue: `windy`, com vento 50. As outras
 diferenciam-se por `humidity`, `mist` e `sun`, que **não estão na memória
