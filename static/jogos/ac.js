@@ -169,6 +169,21 @@
       secundario: arr(d.tyreTempM),
     };
   }
+    /* O QUE ESTE NUMERO E'. O desenho nao pode saber, e perguntar e' o
+     * mesmo que se fez com a temperatura.
+     *
+     * No AC, `tyreWear` NAO e' desgaste: e' ADERENCIA. Desce 0,45 por
+     * volta -- medido, e a medicao esta na chave `tyres.gripWhat` e na
+     * Regra no 18 -- e um pneu que durasse 220 voltas nao e' um pneu.
+     *
+     * Portanto aqui: 100 e' o maximo, e um numero PEQUENO e' mau. E' o
+     * que `aoContrario: false` quer dizer, e e' o unico sitio em que o
+     * sentido do numero esta escrito. */
+    function desgastePneu(d, i) {
+      const v = (d.tyreWear && d.tyreWear[i] != null) ? d.tyreWear[i] : null;
+      return { valor: v, aoContrario: false, dica: 'tyres.gripWhat' };
+    }
+
   function arr(v) {
     return Array.isArray(v) ? v.slice(0, 4) : [null, null, null, null];
   }
@@ -427,6 +442,7 @@
     drs: drs,
     vidaPneu: vidaPneu,
     tempPneu: tempPneu,
+      desgastePneu: desgastePneu,
     combustivel: combustivel,
     clima: clima,
     delta: delta,

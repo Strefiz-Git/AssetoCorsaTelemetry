@@ -97,7 +97,8 @@ eq(F1.id, 'f125', 'o F1 25 diz-se F1 25');
  * a Regra no 14 do `AGENTS.md` e' exactamente sobre isso: uma coisa que
  * falta e' uma coisa que desaparece em silencio. */
 const CONTRATO = ['capacidades', 'embraiagem', 'volante', 'abs', 'tc', 'drs',
-                  'vidaPneu', 'tempPneu', 'combustivel', 'clima', 'delta'];
+                  'vidaPneu', 'tempPneu', 'desgastePneu', 'combustivel',
+                  'clima', 'delta'];
 for (const nome of CONTRATO) {
   ok(typeof AC[nome] === 'function', 'o AC tem ' + nome + '()');
   ok(typeof F1[nome] === 'function', 'o F1 25 tem ' + nome + '()');
@@ -324,6 +325,74 @@ eq(U.ouN(0, 1), '0.0', 'e zero com casas da\' "0.0"');
 eq(U.limita(120, 0, 100), 100, 'o limite trava em 100');
 eq(U.limita(-5, 0, 100), 0, 'e em 0');
 eq(U.limita(NaN, 0, 100), 0, 'e um NaN da\' o minimo, e nao NaN');
+
+console.log('');
+console.log('=== 13. o desgaste do pneu: o AC mede ADERENCIA, o F1 25 mede DESGASTE ===');
+/* Os dois campos chamam-se `tyreWear` e significam coisas opostas. MEDIDO:
+ * `docs/medicao-desgaste-f125.md`. Num `10.0` do F1 25 o MFD do jogo lia
+ * `12%`, e o jogo dava 2 voltas corridas de 21 -- 9,5 % de desgaste.
+ * Se fosse "quanto resta", seriam 19 voltas gastas, e o jogo anunciaria
+ * "faltam 2" em vez de "faltam 19". E' aritmeticamente impossivel: o mesmo
+ * 21 nao vale ao mesmo tempo para as 2 corridas e para as 19 que faltam.
+ *
+ * O que o `app.js` fazia antes: punha `bad` no que fosse menor que 20, com
+ * a dica de "aderencia baixa". No F1 25 isso pintava a VERMELHO os pneus
+ * NOVOS, e dizia que tinham pouca pegadela. Um numero plausivel e errado,
+ * que e' o pior resultado possivel (Regra no 19). */
+const gAC = AC.desgastePneu({ tyreWear: [98.7, 98.8, 98.4, 98.4] }, 0);
+eq(gAC.valor, 98.7, 'no AC o valor e a aderencia, e 100 e o maximo');
+eq(gAC.aoContrario, false, 'e um numero pequeno e o mau');
+eq(gAC.dica, 'tyres.gripWhat', 'com a dica que diz que e aderencia');
+
+const gF1 = F1.desgastePneu({ tyreWear: [10.0, 14.2, 10.2, 11.3] }, 0);
+eq(gF1.valor, 10.0, 'no F1 25 o valor e o MESMO numero, medido');
+eq(gF1.aoContrario, true, 'e aqui um numero PEQUENO e o BOM');
+eq(gF1.dica, 'tyres.gastoWhat', 'com uma dica que diz desgaste, e nao aderencia');
+
+/* A GRAVIDADE, que e' o que decide a cor. E' a mesma formula nos dois, com o
+ * sentido trocado, e e' o que garante que os limiares do AC nao mudam -- por
+ * isso e' uma so regra no desenho, e nao dois pares de numeros ao lado. */
+function grav(g) {
+  if (g.valor == null) return null;
+  return g.aoContrario ? g.valor / 100 : 1 - g.valor / 100;
+}
+function cor(g) {
+  const v = grav(g);
+  return v == null ? '' : v >= 0.8 ? 'bad' : v >= 0.6 ? 'warn' : '';
+}
+const ac = (v) => cor(AC.desgastePneu({ tyreWear: [v] }, 0));
+const f1 = (v) => cor(F1.desgastePneu({ tyreWear: [v] }, 0));
+
+eq(ac(100), '', 'AC com 100 de aderencia: sem cor');
+eq(ac(40), 'warn', 'AC com 40: warn, o limiar de antes');
+eq(ac(20), 'bad', 'AC com 20: bad, o limiar de antes');
+eq(ac(0), 'bad', 'AC com 0: bad');
+eq(ac(98.7), '', 'e o 98,7 medido no AC continua sem cor');
+
+/* O CASO QUE VALE A PENA. Era este que estava a vermelho. */
+eq(f1(10), '', 'F1 25 com 10 % de desgaste: um pneu NOVO, e sem cor');
+eq(f1(0), '', 'com 0 %: o mais novo que existe, e sem cor');
+eq(f1(60), 'warn', 'F1 25 com 60 %: warn');
+eq(f1(80), 'bad', 'F1 25 com 80 %: bad');
+eq(f1(90), 'bad', 'com 90 %: bad, que e um pneu a acabar');
+
+/* O mesmo numero, cores opostas. E' a Regra no 30 vista de lado: os dois
+ * jogos mostram a mesma grandeza com sentidos diferentes, e por isso a cor
+ * nao pode ser a mesma. */
+ok(ac(10) === 'bad' && f1(10) === '',
+   'o MESMO 10 e bad no AC e sem cor no F1 25, porque sao coisas diferentes');
+
+/* Sem dado, e nao zero. Regra no 19: um zero e' um numero que ninguem
+ * questiona, e aqui diria que o pneu nao tem nada. */
+const semDado = F1.desgastePneu({ tyreWear: [null, undefined, 5, 6] }, 0);
+eq(semDado.valor, null, 'sem valor, o modulo devolve null e nao 0');
+eq(cor(semDado), '', 'e sem cor nenhuma');
+eq(F1.desgastePneu({}, 1).valor, null, 'e um array ausente da null tambem');
+
+/* A ordem das rodas ja vem traduzida da fronteira, portanto aqui o indice e'
+ * o do painel -- como em `tempPneu`. */
+eq(F1.desgastePneu({ tyreWear: [10.0, 14.2, 10.2, 11.3] }, 1).valor, 14.2,
+   'o indice 1 e o FR, e o FR e mesmo o pior dos quatro (medido)');
 
 console.log('');
 if (falhou) {

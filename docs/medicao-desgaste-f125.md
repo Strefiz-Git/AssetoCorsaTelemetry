@@ -11,6 +11,23 @@ fotografia do MFD do jogo, no mesmo minuto.
 | **painel** (`tyreWear`) | 10.0 | 14.2 | 10.2 | 11.3 |
 | **MFD do jogo** | 12 % | 17 % | 12 % | 13 % |
 
+
+### A segunda leitura, que e' mais forte
+
+No fim da sessao, ja' com o jogo fechado, o ultimo estado publicado
+dava **12,1  17,9  12,1  13,6** para o MFD que a fotografia mostrava
+**12  17  12  13**.
+
+O desvio e' de 0,6 em vez dos 2 pontos da primeira leitura, e ja' nao
+pode ser o relogio entre ler o payload e fotografar o ecra: sao o mesmo
+numero com duas casas decimais, em quatro valores, e o FR o pior dos
+dois lados nas duas leituras.
+
+E o que fecha a conta: o painel mostrava estes numeros a **vermelho**,
+porque os tratava como aderencia e punha a vermelho o que fosse menor
+que 20. Sao os pneus **novos**. Ver [`../static/jogos/f125.js`](../static/jogos/f125.js),
+`desgastePneu`.
+
 E no mesmo instante:
 
 | campo | valor | de onde |

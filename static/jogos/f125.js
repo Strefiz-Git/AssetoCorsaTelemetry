@@ -216,6 +216,26 @@
     };
   }
 
+   /* O MESMO NOME, O SENTIDO CONTRARIO. MEDIDO.
+    *
+    * `m_tyresWear` e' QUANTO JA FOI USADO: 10 e' um pneu quase novo, e 90 e' um
+    * pneu quase a acabar. Ver `docs/medicao-desgaste-f125.md` -- a conta
+    * inteira, e porque a leitura oposta e' impossivel e nao so improvavel.
+    *
+    * O QUE ESTAVA ERRADO, e era visivel no ecra: o desenho tratava
+    * este valor como se fosse o do AC, e pintava a VERMELHO o que fosse
+    * menor que 20, com a dica "aderencia baixa". No F1 25 isso e' o
+    * contrario de tudo: um pneu com 10 % de desgaste e' um pneu NOVO, e
+    * aparecia a vermelho a dizer que a aderencia estava baixa. Um
+    * numero plausivel e errado, que e' a pior forma de errar (Regra no 19).
+    *
+    * E este e' o caso que a Regra no 30 existe para: os dois jogos diziam
+    * coisas diferentes no mesmo sitio, com uma so etiqueta. */
+   function desgastePneu(d, i) {
+     const v = (d.tyreWear && d.tyreWear[i] != null) ? d.tyreWear[i] : null;
+     return { valor: v, aoContrario: true, dica: 'tyres.gastoWhat' };
+   }
+
   /* A VIDA DO PNEU: O NUMERO.
    *
    * `m_tyresAgeLaps` e' a idade do stint e `lifeSpan` (do pacote Tyre
@@ -430,6 +450,7 @@
     drs: drs,
     vidaPneu: vidaPneu,
     tempPneu: tempPneu,
+     desgastePneu: desgastePneu,
     combustivel: combustivel,
     clima: clima,
     delta: delta,

@@ -1564,6 +1564,15 @@ questiona.
 | ficheiro | porque a regra aparece lá |
 |---|---|
 | `AGENTS.md`, esta regra | é a lei, e é a única com o porquê |
+
+**E não é uma preferência de estilo: há uma medição que a prova.** O
+`m_tyresWear` do F1 25 e o `tyreWear` do AC chamam-se igual e significam
+o contrário, e o painel tratava os dois como se fossem a mesma coisa --
+e pintava a vermelho os pneus **novos** do F1 25, a dizer que tinham
+pouca pegadela. A medicao inteira, com a conta que a torna aritmeticamente
+impossível ler ao contrário, está em
+[`docs/medicao-desgaste-f125.md`](docs/medicao-desgaste-f125.md).
+
 | `docs/f1-25.md` | quem mexer no módulo do F1 25 lê esse ficheiro, e não este |
 | `docs/assetto-corsa.md` | **é o AC que muda**, e quem mexe no AC tem de saber |
 | `README.md` | a tabela "o que muda entre os dois jogos" fica incompleta sem isto |
