@@ -859,6 +859,57 @@ cada módulo escolher a sua convenção, e ninguém comparar.
 
 ---
 
+## 2026-09-28 (7.ª parte) — os repos de referência: o que estava dentro e o que se perdeu
+
+### Porque
+
+Apagamento pedido, **condicionado**: "desde que já tenhas extraído e
+guardado a informação útil". A condição **não se cumpria**, e por isso
+primeiro se extraiu e só depois se apagou. Os dois ficheiros do fórum do AC
+que vinham em `ac_info/` tinham física de pneu que não estava em lado
+nenhum do projecto — 0 ocorrências da curva, do `vKM` e do `DY0` em
+`AGENTS.md` e nos quatro `docs/` de telemetria.
+
+### O que foi feito
+
+| Ficheiro | o que mudou |
+|---|---|
+| `docs/pneu-fisica-ac.md` | **novo.** A curva temperatura→aderência (9 pontos), o `vKM`, a `WEAR_CURVE`, o `DY0`/`DX0`, e o `BLISTER_GAIN`. Com a proveniência: quem, quando, e como |
+| `docs/README.md` | a página nova no índice |
+| `static/nucleo/tempo.js` | o `39 cenas` do cabeçalho era **`37`**, e a linha 88 do mesmo ficheiro já dizia 37 |
+
+### Dificuldades
+
+1. **O ficheiro contradizia-se a si próprio.** `tempo.js` linha 15 dizia
+   39 cenas e a linha 88 dizia 37. Contadas: a fonte tem 37 linhas de
+   preset, e o `Default_WeatherPresets.json` tem 37 entradas. O número
+   certo já estava no ficheiro e não foi lido.
+2. **O `ac_info/` são 4 GB, e 3944 MB são 116 texturas `.dds` do SimHub.**
+   Ou seja, 99 % do volume não tinha informação nenhuma. A parte com
+   conteúdo são 197 ficheiros de texto.
+3. **O `ac_info/` não está no git e está no `.gitignore`.** Apagá-lo é
+   irreversível a sério — sem histórico, sem remoto, sem segunda cópia. O
+   `resources/` está no git e apaga-se com um commit. A diferença entre os
+   dois decide se a operação é um `rm` ou um `git rm`.
+
+### Falta / não verificado
+
+- **A curva não foi medida por nós.** Vem de uma transcrição de 2014 e é de
+  um **slick GT3**, não de um F1. Por isso os cortes de cor a 95 e 105 °C
+  **não se mexeram**: a curva diz que 105 °C está no meio da banda de
+  aderência máxima, mas trocar um número sem base por outro número sem base
+  não é uma correcção, e o primeiro ao menos era visível. Medir com o AC
+  aberto é o que falta, e está escrito na página.
+- **A `WEAR_CURVE` explica o porquê dos 0,45 % por volta** (o desgaste é
+  função de *slip*, não de voltas) e reforça a conclusão do
+  `mutacao_grip.py`. Mas **não fecha a Regra nº 18**: continua por
+  identificar o que o HUD do Content Manager lê.
+- O `BLISTER_GAIN` dá um significado ao `m_tyreBlisters` do F1 25 que o
+  painel mostra como número. **Não foi ligado a nada** — é um dado do AC
+  e usá-lo no F1 25 seria inventar.
+
+---
+
 ## Resumo do que se aprendeu
 
 | Lição | Onde está registada |

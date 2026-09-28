@@ -12,7 +12,24 @@
  *
  * Do Pure Planner, em
  * `ac_info/apps/lua/PurePlanner/settings/settings_defaults.lua`, que tem
- * 39 cenas com nome, indice e as quantidades do proprio Assetto Corsa.
+ * 37 cenas com nome, indice e as quantidades do proprio Assetto Corsa.
+ *
+ * O numero era 39 e passou a 37 por CONTAGEM, nao por deducao: a fonte tem
+ * 37 linhas de preset, `Default_WeatherPresets.json` tem 37 entradas, e a
+ * linha 88 DESTE FICHEIRO ja dizia 37. Um ficheiro que se contradiz a si
+ * proprio -- duas contagens da mesma coisa, uma certa e outra errada, na
+ * mesma pagina -- e' a forma mais facil de alguem confiar na errada. E o
+ * ficheiro ja dizia 37 na linha 88, portanto o numero certo ja estava
+ * aqui e nao foi lido.
+ *
+ * A SEGUNDA FONTE, que nunca foi citada e que confirma a primeira:
+ * `ac_info/config-ext/PurePlanner/WeatherPresets/Default_WeatherPresets.json`
+ * tem as mesmas 37 cenas em forma de array, e os valores batem um a um --
+ * o `windy` com vento 50, o `tornado` com 0,3 de chuva e 100 de vento. Sao
+ * o Pure Planner a escrever o mesmo preset em dois formatos, e por isso as
+ * duas fontes se confirmam. Nenhuma delas esta' no repositorio: viviam em
+ * `ac_info/`, que foi apagado depois da extraccao. A partir de agora a
+ * fonte deste ficheiro e' `docs/` e este comentario.
  * Cada limiar desta tabela e' a quantidade de uma cena REAL:
  *
  *     light_drizzle        3    0,001          drizzle          4    0,02

@@ -17,6 +17,9 @@ qualquer coisa de um jogo.
 | [`f1-25.md`](f1-25.md) | o F1 25: os 17 packets, os **dois formatos**, e o Season Pack 2026 |
 | [`assetto-corsa.md`](assetto-corsa.md) | o Assetto Corsa: as três páginas de memória partilhada, e a app que corre dentro do jogo |
 
+| [`pneu-fisica-ac.md`](pneu-fisica-ac.md) | a curva temperatura → aderência, e porque é que o desgaste é função do *slip* — de fonte de terceiros, com a proveniência escrita |
+| [`medicao-desgaste-f125.md`](medicao-desgaste-f125.md) | a medição que diz que o `m_tyresWear` do F1 25 é quanto **já foi usado** |
+
 Os dois documentos são **complementares e não redundantes**. Onde os
 jogos separem, cada um diz o seu e o outro também, lado a lado, porque
 a diferença é a informação:
