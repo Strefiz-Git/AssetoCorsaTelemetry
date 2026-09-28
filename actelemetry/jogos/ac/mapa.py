@@ -46,7 +46,22 @@ import re
 import struct
 import string
 
-from .defs import _load_settings, _save_settings
+# O `defs` esta' DOIS NIVELIS acima: este ficheiro e'
+# `actelemetry/jogos/ac/mapa.py`, o `defs.py` e' `actelemetry/defs.py`.
+# Com um ponto a menos o import quebrava, e o que se via era um **500 em
+# `/api/games`** -- a rota mais basica do ecra de escolha de jogo, e a
+# que o `test_handler.py` usa.
+#
+# E o pior sitio para um ImportError: `rotas()` e' chamada em cada pedido
+# que o nucleo nao conhece, e o `http.py` embala a excepcao num 500 com
+# o texto -- por isso o sintoma era "a escolha de jogo da 500" e a causa
+# estava tres pastas para dentro, num import relativo.
+#
+# O que se aprendeu: num pacote com varios niveis, cada import relativo e'
+# uma coisa para contar, e o teste que o prova e' o que ARRANCA O
+# SERVIDOR -- nao o que le um ficheiro. Um import relativa usado o erro so
+# quando o caminho passa por essa linha.
+from ...defs import _load_settings, _save_settings
 
 
 # ------------------------------------------------------- onde esta o AC

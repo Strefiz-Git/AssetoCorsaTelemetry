@@ -11,7 +11,7 @@
  */
 'use strict';
 const path = require('path');
-const T = require(path.join(__dirname, '..', 'static', 'tempo.js'));
+const T = require(path.join(__dirname, '..', 'static', 'nucleo', 'tempo.js'));
 
 let passou = 0, falhou = 0;
 function eq(a, b, msg) {

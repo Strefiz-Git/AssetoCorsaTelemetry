@@ -194,17 +194,31 @@ class Handler(BaseHTTPRequestHandler):
         self._send(code, body, ctype, extra)
         return True
 
+    # Os tres Talking Points com o Hub.
+    #
+    # `getattr` em vez de ponto, e nao por defensividade gratuit: o Handler
+    # e' tambem o que os testes usam, com um hub de mentira que so tem
+    # `get()` e `get_opponents()`. Um `self.hub.capacidades` directo
+    # rebentava com um AttributeError DENTRO do pedido, e o cliente via
+    # "Remote end closed connection without response" -- que e' a forma
+    # mais cara de dizer "falhou", porque nao diz o que.
+    #
+    # A alternativa seria obrigar o hub de mentira a ter os tres metodos,
+    # que e' pior: o hub de mentira passaria a ter de saber a interface do
+    # hub verdadeiro para poder fingi-lo.
+    def _do_hub(self, nome, *args):
+        f = getattr(self.hub, nome, None)
+        return f(*args) if callable(f) else None
+
     def _capacidades(self):
-        f = getattr(self.hub, capacidades, None)
-        return f() if callable(f) else {}
+        return self._do_hub("capacidades") or {}
 
     def _diagnostico(self):
-        f = getattr(self.hub, diagnostico, None)
-        return f() if callable(f) else {}
+        return self._do_hub("diagnostico") or {}
 
     def _trocar(self, novo):
-        f = getattr(self.hub, trocar_de_jogo, None)
-        return f(novo) if callable(f) else novo
+        r = self._do_hub("trocar_de_jogo", novo)
+        return r if r is not None else novo
 
     # -- o que se pede ao servidor -------------------------------------
     def do_GET(self):

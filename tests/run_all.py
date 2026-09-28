@@ -30,10 +30,21 @@ SUITE = [
     ("o JavaScript faz parse", "py", "verificar_js.py"),
     ("a app e o leitor falam igual", "py", "test_contrato.py"),
     ("o servidor fica calado", "py", "test_handler.py"),
+    # O SISTEMA LIGADO. Todos os outros testam pecas -- structs,
+    # regras, contratos -- e este arranca o servidor de verdade e
+    # pergunta-lhe o que responde, com os dois jogos. E o unico que
+    # apanha um import relativo partido, que so rebenta quando o
+    # caminho passa por essa linha.
+    ("o sistema ligado, com os dois jogos", "py", "verificar_servidor.py"),
     ("o payload tem o que o painel precisa", "py", "test_payload.py"),
     ("tempos de volta e delta", "node", "test_tempos.js"),
     ("vida do pneu", "node", "test_tyres.js"),
     ("voltas de combustivel", "node", "test_combustivel.js"),
+    # As REGRAS dos dois jogos, sem browser e sem nenhum deles a correr.
+    # Sao as que estavam dentro da IIFE do `app.js`, onde so seavam
+    # vistas no ecra -- e os cortes do clima do AC estavam errados
+    # assim durante meses. Ver `static/jogos/`.
+    ("as regras dos dois jogos", "node", "test_jogos.js"),
     ("o frontend aguenta-se de pe", "py", "auditar_frontend.py"),
     ("a regra 2.3.3 morde mesmo", "py", "mutacao_acessibilidade.py"),
     ("valores nao finitos", "py", "verificar_finitos.py"),

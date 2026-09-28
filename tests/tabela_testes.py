@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 """Regenera a tabela de testes do AGENTS.md a partir do run_all.py.
 
+A ARVORE, QUE MUDOU
+---------------------
+Os modulos puros do browser estao em `static/nucleo/` (a matematica que e' igual nos dois jogos) e os modulos de jogo em `static/jogos/` (as regras de cada um). O `app.js` e' o frontend e nao tem regras de jogo dentro.
+
 A tabela diz o que cada teste prova, e e' a parte do AGENTS.md que mais
 se desatualiza: cresce de everytime que se acrescenta um teste, e ninguem
 a reescreve porque ninguem a le para fazer testes. Citava doze ficheiros
@@ -35,12 +39,20 @@ DESCRICAO = {
     "mutacao_grip.py": "que a regra da aderencia morde, partindo o codigo",
     "test_opponents.py": ("o struct de 128 carros: ordem dos campos, m/s para "
                           "km/h, tempos, filtro de carros vazios"),
-    "compilar.py": "que os 40 `.py` compilam -- apanha erro de sintaxe",
-    "verificar_js.py": "que os 11 `.js` fazem parse no node",
+    "compilar.py": ("que os `.py` compilam -- apanha erro de sintaxe"),
+    "verificar_js.py": "que os 15 `.js` fazem parse no node",
     "test_contrato.py": "que a app e o leitor falam a mesma linguagem",
+    "verificar_servidor.py": ("o SISTEMA ligado: arranca com os dois "
+                              "jogos, a troca a quente, e as rotas"),
     "test_handler.py": "que um cliente que cancela nao enche a consola",
     "test_payload.py": ("que o `/api/state` tem o que o painel precisa, "
                         "clima incluido -- o meio da ligacao"),
+    "test_f125_parser.py": ("o F1 25 nos DOIS formatos: os 33 tamanhos, a ordem "
+                            "das rodas, o truque dos minutos, o /1000 das "
+                            "forcas G, e o formato desconhecido recusado"),
+    "test_jogos.js": ("as regras dos dois jogos no browser: embraiagem, ABS, "
+                      "vida do pneu, combustivel, clima, delta e as 81 "
+                      "capacidades -- sem nenhum jogo a correr"),
     "test_tempos.js": "35 casos de tempos e delta, sem browser",
     "test_tyres.js": "a vida do pneu e a escala dos valores",
     "test_combustivel.js": "voltas de combustivel e a percentagem",

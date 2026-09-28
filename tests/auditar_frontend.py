@@ -301,14 +301,65 @@ if I18N:
     # a DIFFERENCA entre 'nao provavel' e 'provavel por outra via': estas
     # catorze continuam vigiadas, e se uma delas desaparecer do modulo
     # este teste acusa.
-    p_tempo = os.path.join(ST, "tempo.js")
-    if os.path.exists(p_tempo):
-        tempo_js = io.open(p_tempo, encoding="utf-8").read()
-        sufixos = re.findall(r"chave:\s*'([^']+)'", tempo_js)
-        usadas |= set("wx." + x for x in sufixos)
-        if len(sufixos) < 10:
-            ko("o tempo.js so' da' %d cenas; eram 14. A lista de cenas "
-               "encolheu sem ninguem dar por isso" % len(sufixos))
+    # Os MODULOS PUROS, que vivem em `static/nucleo/`.
+    #
+    # Estecodigo estava escrito para um ficheiro so, `static/tempo.js`, e o
+    # nome estava HARD-CODED. Quando os modulos puros foram para
+    # `nucleo/`, o ficheiro desapareceu deste sitio, `os.path.exists`
+    # deu falso, e o teste passou a accusing catorze chaves do tempo de
+    # mortas -- com o `wx.seco` e' etc. em uso, dentro do modulo que tinha
+    # acabado de mudar de pasta.
+    #
+    # E' a forma mais enganadora de um teste falhar: a CAUSA e' uma mudanca
+    # de pasta, o SINTOMA e' "ha' catorze chaves mortas", e a reacao
+    # natural -- que e' a que eu tive -- e' ir ao `app.js` apagar a
+    # traducao. Isso parte uma coisa que funciona, e o problema real
+    # (o caminho) fica exactamente igual. A Regra no 9 outra vez: a
+    # mensagem nao apontava para a causa.
+    #
+    # Por isso agora varre-se a PASTA, e nao um ficheiro. E a razao de o
+    # fazer assim e nao apontar para `nucleo/tempo.js`: um ficheiro novo em
+    # `nucleo/` com uma tabela de chaves tem de ser visto sem que este
+    # teste saiba o nome dele. Um teste que grownece para cada ficheiro
+    # novo e' um teste que alguem vai esquecer de actualizar.
+    # E o mesmo para static/jogos/, onde vivem as regras de cada jogo.
+    #
+    # As chaves de um modulo de jogo sao escritos no modulo e traduzidas
+    # no pp.js, na hora de as pintar. Uma busca estatica no pp.js
+    # nao as ve -- e sem esta linha o teste acusava dezenove chaves mortas
+    # que estavam em uso, todas do genero 1.absDica. E o mesmo
+    # problema pelo mesmo motivo, e a correccao e' a mesma: varrer a pasta
+    # em vez de um ficheiro.
+    nucleo = os.path.join(ST, "nucleo")
+    entradas = []
+    for pasta in (nucleo, os.path.join(ST, "jogos")):
+        if not os.path.isdir(pasta):
+            continue
+        for n in sorted(os.listdir(pasta)):
+            if n.endswith(".js"):
+                entradas.append(os.path.join(pasta, n))
+    if not entradas:
+        ko("a pasta static/nucleo/ nao existe ou esta' vazia. A matematica "
+           "partilhada pelos dois jogos vive la, e sem ela nao ha' o que "
+           "testar sem browser")
+    cenas = 0
+    for caminho in entradas:
+        nome = os.path.basename(caminho)
+        txt = io.open(caminho, encoding="utf-8").read()
+        # a chave numa tabela: `chave: 'tal'`
+        sufixos = re.findall(r"chave\s*:\s*'([^']+)'", txt)
+        if nome == "tempo.js":
+            cenas += len(sufixos)
+            usadas |= set("wx." + x for x in sufixos)
+        # e as chaves escritas por extenso, para qualquer modulo poder
+        # usar a mesma convencao sem ficar dependente do `tempo.js`
+        usadas |= set(re.findall(r"'((?:ac|f1|jog|drs|abs|tyres)\.\w+)'", txt))
+    if os.path.isdir(nucleo):
+        if cenas < 10:
+            ko("o nucleo/tempo.js so' da' %d cenas; eram 14. A lista de "
+               "cenas encolheu sem ninguem dar por isso" % cenas)
+        else:
+            ok("as %d cenas do tempo estao em nucleo/tempo.js" % cenas)
     # O que NAO se consegue provar com uma busca estatica: a chave
     # montada em runtime. Duas formas, ambas neste projecto:
     #     t('fuel.' + nivel + 'Why')

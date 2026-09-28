@@ -9,6 +9,20 @@ const $ = (id) => document.getElementById(id);
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 
 /* ------------------------------------------------------------------ i18n */
+/* As chaves do jogo e das regras que dependem dele estao nos quatro
+ * idiomas, e nao por vaidade: o `auditar_frontend.py` acusa uma chave de
+ * traducao num idioma e nao nos outros, e uma dica que aparece em
+ * portugues e fica com o nome da chave em ingles nos outros tres.
+ *
+ * Repara-se que NAO HÁ NENHUM COMENTARIO DENTRO deste literal, e so' por
+ * causa disto: o `auditar_frontend.py` faz `eval` do I18N em PYTHON para
+ * contar as chaves, e um comentario em JavaScript -- tanto o de bloco
+ * como o de linha -- nao e' Python valido. Bastou um comentario dentro do
+ * literal para o teste parar de avaliar o I18N inteiro, e a mensagem que
+ * ele deu foi "nao consegui avaliar o I18N": nao dizia nada sobre a causa,
+ * e essa e' a falha mais enganadora que um teste pode ter. E' a Regra
+ * no 9 -- quando a causa nao esta' no erro, o erro so' diz que algures
+ * foi. */
 const I18N = {
   'pt-PT': {
     'app.title': 'Telemetria AC',
@@ -100,6 +114,56 @@ const I18N = {
     'opp.err': 'Não é a app estar desligada — por isso não a desligues. A leitura acima é o que está a falhar dentro do jogo; o log do AC tem mais.',
     'opp.none': 'Nenhum carro na sessão.',
     'lb.pit': 'PIT',
+    'jog.title':
+      'Jogo',
+    'jog.sub':
+      'Podes mudar a qualquer momento, aqui ou nas definições.',
+    'jog.why':
+      'O jogo decide o que o painel consegue mostrar.',
+    'jog.abrir':
+      'Trocar de jogo',
+    'jog.semJogos':
+      'O servidor não respondeu com a lista de jogos. Reinicia-o e volta a abrir esta página.',
+    'jog.precisaInstalar':
+      'Precisa da app instalada no jogo',
+    'abs.off':
+      'desligado',
+    'drs.on':
+      'ligado',
+    'drs.disp':
+      'disponível',
+    'f1.embraiagemDica':
+      'O F1 25 manda a embraiagem de 0 a 100, com 100 a embraiada. O painel mostra o inverso: quanto está solta.',
+    'f1.volanteDica':
+      'O F1 25 manda o volante normalizado, de −1 a 1, com o limite na documentação.',
+    'f1.absDica':
+      'O F1 25 diz só ligado ou desligado. Não há percentagem, e mostrar uma seria inventar um número que o jogo não dá.',
+    'f1.tcDica':
+      'No F1 25 o controle de tração é um modo: desligado, médio ou cheio. Não é um nível de 0 a 100%.',
+    'f1.tcMedio':
+      'médio',
+    'f1.tcCheio':
+      'cheio',
+    'f1.drsDica':
+      'O F1 25 diz quantos metros faltam para a zona de DRS. O Assetto Corsa não diz, e por isso lá a zona é medida a conduzir.',
+    'f1.vidaSemDados':
+      'O pacote de pneus ainda não chegou. O jogo só o manda de poucos em poucos segundos.',
+    'f1.vidaDica':
+      'Voltas que faltam, lidas do jogo. No Assetto Corsa este número não existe e é estimado.',
+    'f1.combustivelDica':
+      'O F1 25 manda o combustível em quilos. O Assetto Corsa manda litros, e 42,5 kg não são 42,5 L.',
+    'ac.embraiagemDica':
+      'O Assetto Corsa manda a embraiagem de 0 a 1, e 1,0 é EMBRAIADA — a documentação diz “pedal” e não é. O painel mostra o inverso.',
+    'ac.volanteDica':
+      'O ângulo da roda, em radianos. O limite não está escrito em lado nenhum, e por isso não há barra.',
+    'ac.absDica':
+      'O nível a que o ABS está a trabalhar, medido em 0,13 durante 4502 amostras de travagens duras. Por isso mostra uma percentagem e não ligado/desligado.',
+    'ac.tcDica':
+      'O nível a que o controle de tração está a trabalhar.',
+    'ac.drsDica':
+      'O Assetto Corsa não diz onde é a zona de DRS. O painel mede o flag durante uma volta inteira, porque o mesmo flag esteve a 1 em 98,9% do traçado num carro e a 1 em 18,5% noutro.',
+    'ac.combustivelDica':
+      'O Assetto Corsa manda o combustível em litros.',
   },
   'pt-BR': {
     'app.title': 'Telemetria AC', 'boot.waiting': 'Aguardando o Assetto Corsa',
@@ -184,6 +248,56 @@ const I18N = {
     'opp.err': 'Não é o app estar desligado — por isso não o desligue. A leitura acima é o que está falhando dentro do jogo; o log do AC tem mais.',
     'opp.how': 'O app <b>AssettoCorsaTelemetry</b> escreve a página de memória com os carros, e é o nosso — vem na pasta <b>python_app</b> do projecto. Copie-o para <b>assettocorsa/apps/python/actelemetry_strefiz/</b> e ative-o no Content Manager (<b>Settings → Python Apps → AssettoCorsaTelemetry</b>). Confirme que subiu pelo log do AC, e que o AC está numa sessão com outros carros.',
     'opp.none': 'Nenhum carro na sessão.', 'lb.pit': 'BOX',
+    'jog.title':
+      'Jogo',
+    'jog.sub':
+      'Você pode mudar quando quiser, aqui ou nas configurações.',
+    'jog.why':
+      'O jogo define o que o painel consegue mostrar.',
+    'jog.abrir':
+      'Trocar de jogo',
+    'jog.semJogos':
+      'O servidor não respondeu com a lista de jogos. Reinicie-o e abra esta página de novo.',
+    'jog.precisaInstalar':
+      'Precisa do app instalado no jogo',
+    'abs.off':
+      'desligado',
+    'drs.on':
+      'ligado',
+    'drs.disp':
+      'disponível',
+    'f1.embraiagemDica':
+      'O F1 25 manda a embreagem de 0 a 100, com 100 engatada. O painel mostra o contrário.',
+    'f1.volanteDica':
+      'O F1 25 manda o volante normalizado, de −1 a 1.',
+    'f1.absDica':
+      'O F1 25 diz só ligado ou desligado. Não há porcentual, e mostrar um seria inventar um número.',
+    'f1.tcDica':
+      'No F1 25 o controle de tração é um modo: desligado, médio ou cheio.',
+    'f1.tcMedio':
+      'médio',
+    'f1.tcCheio':
+      'cheio',
+    'f1.drsDica':
+      'O F1 25 diz quantos metros faltam para a zona de DRS.',
+    'f1.vidaSemDados':
+      'O pacote de pneus ainda não chegou.',
+    'f1.vidaDica':
+      'Voltas que faltam, lidas do jogo.',
+    'f1.combustivelDica':
+      'O F1 25 manda o combustível em quilos. O Assetto Corsa manda litros.',
+    'ac.embraiagemDica':
+      'O Assetto Corsa manda a embreagem de 0 a 1, e 1,0 é ENGATADA. O painel mostra o contrário.',
+    'ac.volanteDica':
+      'O ângulo da roda, em radianos. O limite não está escrito em lugar nenhum.',
+    'ac.absDica':
+      'O nível em que o ABS está trabalhando, medido em 0,13. Por isso mostra uma porcentagem.',
+    'ac.tcDica':
+      'O nível em que o controle de tração está trabalhando.',
+    'ac.drsDica':
+      'O Assetto Corsa não diz onde é a zona de DRS. O painel mede o flag durante uma volta inteira.',
+    'ac.combustivelDica':
+      'O Assetto Corsa manda o combustível em litros.',
   },
   'es': {
     'app.title': 'Telemetría AC', 'boot.waiting': 'Esperando al Assetto Corsa',
@@ -268,6 +382,56 @@ const I18N = {
     'opp.waiting': 'Esperando los datos de los rivales.',
     'opp.how': 'La app <b>AssettoCorsaTelemetry</b> escribe la página de memoria con los coches, y es la nuestra — viene en la carpeta <b>python_app</b> del proyecto. Copiala en <b>assettocorsa/apps/python/actelemetry_strefiz/</b> y activala en Content Manager (<b>Settings → Python Apps → AssettoCorsaTelemetry</b>). Comprueba que arranco en el log del AC, y que el AC esta en una sesion con otros coches.',
     'opp.none': 'Ningún coche en la sesión.', 'lb.pit': 'PIT',
+    'jog.title':
+      'Juego',
+    'jog.sub':
+      'Puedes cambiar cuando quieras, aquí o en los ajustes.',
+    'jog.why':
+      'El juego decide lo que el panel puede mostrar.',
+    'jog.abrir':
+      'Cambiar de juego',
+    'jog.semJogos':
+      'El servidor no respondió con la lista de juegos. Reinícialo y abre esta página otra vez.',
+    'jog.precisaInstalar':
+      'Necesita la app instalada en el juego',
+    'abs.off':
+      'desconectado',
+    'drs.on':
+      'conectado',
+    'drs.disp':
+      'disponible',
+    'f1.embraiagemDica':
+      'El F1 25 manda el embrague de 0 a 100, con 100 embragado. El panel muestra lo contrario.',
+    'f1.volanteDica':
+      'El F1 25 manda el volante normalizado, de −1 a 1.',
+    'f1.absDica':
+      'El F1 25 solo dice conectado o desconectado. No hay porcentaje.',
+    'f1.tcDica':
+      'En el F1 25 el control de tracción es un modo.',
+    'f1.tcMedio':
+      'medio',
+    'f1.tcCheio':
+      'completo',
+    'f1.drsDica':
+      'El F1 25 dice cuántos metros faltan para la zona DRS.',
+    'f1.vidaSemDados':
+      'El paquete de neumáticos aún no ha llegado.',
+    'f1.vidaDica':
+      'Vueltas que faltan, leídas del juego.',
+    'f1.combustivelDica':
+      'El F1 25 manda el combustible en kilogramos. El Assetto Corsa lo manda en litros.',
+    'ac.embraiagemDica':
+      'El Assetto Corsa manda el embrague de 0 a 1, y 1,0 es EMBRAGADO. El panel muestra lo contrario.',
+    'ac.volanteDica':
+      'El ángulo de la rueda, en radianes. El límite no está escrito en ningún sitio.',
+    'ac.absDica':
+      'El nivel en el que trabaja el ABS, medido en 0,13.',
+    'ac.tcDica':
+      'El nivel en el que trabaja el control de tracción.',
+    'ac.drsDica':
+      'El Assetto Corsa no dice dónde está la zona de DRS. El panel mide el flag durante una vuelta entera.',
+    'ac.combustivelDica':
+      'El Assetto Corsa manda el combustible en litros.',
   },
   'en': {
     'app.title': 'AC Telemetry', 'boot.waiting': 'Waiting for Assetto Corsa',
@@ -355,6 +519,56 @@ const I18N = {
     'opp.waiting': 'Waiting for opponent data.',
     'opp.how': 'The <b>AssettoCorsaTelemetry</b> app writes the memory page with the cars, and it is ours — it ships in the <b>python_app</b> folder of the project. Copy it to <b>assettocorsa/apps/python/actelemetry_strefiz/</b> and enable it in Content Manager (<b>Settings → Python Apps → AssettoCorsaTelemetry</b>). Check it started in the AC log, and that AC is in a session with other cars.',
     'opp.none': 'No cars in the session.', 'lb.pit': 'PIT',
+    'jog.title':
+      'Game',
+    'jog.sub':
+      'You can change it any time, here or in the settings.',
+    'jog.why':
+      'The game decides what the dashboard can show.',
+    'jog.abrir':
+      'Change game',
+    'jog.semJogos':
+      'The server did not return the list of games. Restart it and open this page again.',
+    'jog.precisaInstalar':
+      'Needs the app installed in the game',
+    'abs.off':
+      'off',
+    'drs.on':
+      'on',
+    'drs.disp':
+      'available',
+    'f1.embraiagemDica':
+      'F1 25 sends the clutch from 0 to 100, with 100 fully engaged. The panel shows the opposite.',
+    'f1.volanteDica':
+      'F1 25 sends the steering normalised, from −1 to 1.',
+    'f1.absDica':
+      'F1 25 only says on or off. There is no percentage, and showing one would be inventing a number the game does not give.',
+    'f1.tcDica':
+      'In F1 25 traction control is a mode: off, medium or full. It is not a 0 to 100 level.',
+    'f1.tcMedio':
+      'medium',
+    'f1.tcCheio':
+      'full',
+    'f1.drsDica':
+      'F1 25 says how many metres are left to the DRS zone.',
+    'f1.vidaSemDados':
+      'The tyre packet has not arrived yet.',
+    'f1.vidaDica':
+      'Laps remaining, read from the game.',
+    'f1.combustivelDica':
+      'F1 25 sends the fuel in kilograms. Assetto Corsa sends litres.',
+    'ac.embraiagemDica':
+      'Assetto Corsa sends the clutch from 0 to 1, and 1.0 is ENGAGED. The panel shows the opposite.',
+    'ac.volanteDica':
+      'The steering angle, in radians. The limit is not written anywhere.',
+    'ac.absDica':
+      'The level the ABS is working at, measured at 0.13.',
+    'ac.tcDica':
+      'The level traction control is working at.',
+    'ac.drsDica':
+      'Assetto Corsa does not say where the DRS zone is. The panel measures the flag over a whole lap.',
+    'ac.combustivelDica':
+      'Assetto Corsa sends the fuel in litres.',
   },
 };
 
@@ -2961,6 +3175,134 @@ function loop() {
 }
 
 /* ------------------------------------------------------------ arranque */
+/* O ecra de escolha do jogo, e a ligacao ao modulo.
+ *
+ * Este e' o unico sitio do `app.js` que sabe que ha' mais do que um
+ * jogo, e ele delega tudo no `Jogos` (`static/jogos/seletor.js`). O que
+ * fica aqui e' o que e' FRONTEND: desenhar os botoes, por a nota da
+ * instrucao correcta ao lado, e abrir e fechar o ecra.
+ *
+ * ---------------------------------------------------------------------------
+ * A ORDEM DO ARRANQUE, E POR QUE ESTA NESTA
+ * ---------------------------------------------------------------------------
+ * Nao e' arbitraria, e cada passo esta' aqui por causa de uma coisa que
+ * dava errado na ordem contraria:
+ *
+ *   1. as DEFINICOES locais, para o painel saber o idioma e as unidades
+ *      ANTES de pintar seja o que for. Sem isto, o primeiro frame
+ *      aparece em ingles -- porque as traducoes ainda nao foram
+ *      aplicadas -- e salta para o portugues um instante depois. E'
+ *      um salto visivel que se nota a cada arranque.
+ *
+ *   2. a LISTA DE JOGOS, que vem do servidor. E' a unica ida e volta que
+ *      bloqueia, e bloqueia por uma razao: um ecra de escolha com um
+ *      botao a menos e' melhor do que um ecra de escolha que promete um
+ *      jogo que o servidor nao tem. Escrever os dois botoes no HTML
+ *      seria mostrar ao utilizador um jogo que o servidor nao conhece.
+ *
+ *   3. o JOGO. Se ja' ha' escolha guardada, aplica-se sem perguntar; se
+ *      nao ha', mostra-se o ecra. E' este o passo que decide que modulo
+ *      fica carregado.
+ *
+ * E o SSE so' e' ligado DEPOIS do passo 3, nunca antes. Ligar a
+ * telemetria antes de saber o jogo e' ouvir o AC e estar a pintar o
+ * F1 25 -- e nao ha' nenhum sinal de erro no ecra, porque os dois estao
+ * a falar do mesmo `Hub`. E' a mesma classe de bug da Regra no 16, com
+ * duas vistas do mesmo mundo e convencoes diferentes. */
+function montarEcraJogos() {
+  const lista = document.getElementById('jogos-lista');
+  const nota = document.getElementById('jogos-nota');
+  if (!lista) return;
+  const hoje = globalThis.Jogos.lista.jogos;
+  if (!hoje || !hoje.length) {
+    /* O servidor respondeu e nao tem jogos. Nao se inventa uma lista
+     * aqui: um botao para um jogo que o servidor nao tem e' um botao que
+     * nao faz nada, e nao faz nada sem dizer porquê. */
+    if (nota) nota.textContent = t('jog.semJogos');
+    return;
+  }
+  lista.innerHTML = hoje.map((j) => {
+    /* O botao diz o que e' preciso fazer para aquele jogo aparecer.
+     *
+     * Escolher mal e' mais barato do que escolher e nao ver nada, e um
+     * painel vazio sem instrucao e' a pior das tres situacoes: nao se
+     * sabe se o jogo esta' ligado, se o socket esta' aberto, ou se a app
+     * nao esta' instalada. Sao tres instrucoes completamente diferentes,
+     * e trocar uma pela outra e' a forma mais rapida de perder a
+     * confianca de quem esta' a tentar usar isto. */
+    const extra = j.precisaInstalar
+      ? '<small class="jogo-nota">' + esc(j.precisaInstalar ? t('jog.precisaInstalar') : '') + '</small>'
+      : '';
+    return '<button class="menu-card jogo-card" data-jogo="' + esc(j.id) + '">' +
+      '<span class="mc-ico" aria-hidden="true"><svg viewBox="0 0 40 28">' +
+      '<circle cx="13" cy="14" r="8" fill="none" stroke="currentColor" stroke-width="2.4"/>' +
+      '<circle cx="13" cy="14" r="2.4" fill="currentColor"/>' +
+      '<path d="M21 14h14M30 8v12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>' +
+      '</svg></span>' +
+      '<b>' + esc(j.nome) + '</b>' +
+      '<small>' + esc(j.transporte || '') + '</small>' + extra +
+      '</button>';
+  }).join('');
+  lista.querySelectorAll('button[data-jogo]').forEach((b) => {
+    b.addEventListener('click', () => {
+      const id = b.getAttribute('data-jogo');
+      fecharEcraJogos();
+      globalThis.Jogos.escolher(id).then(arrancarAposEscolher);
+    });
+  });
+}
+
+function abrirEcraJogos() {
+  montarEcraJogos();
+  const e = document.getElementById('jogos');
+  if (e) e.classList.remove('hidden');
+  if (globalThis.FecharGavetaAberta) globalThis.FecharGavetaAberta();
+}
+function fecharEcraJogos() {
+  const e = document.getElementById('jogos');
+  if (e) e.classList.add('hidden');
+}
+
+/* O nome do jogo no rodape.
+ *
+ * E' o unico sitio onde se diz de que jogo se esta' a falar, e e' o que
+ * impede a confusao de um painel que mostra o F1 25 com a telemetria do
+ * AC por tras. Um painel sem isto mostra os mesmos numeros nos dois
+ * jogos, e quem os conhece nao sabe qual esta' a ver. */
+function mostrarJogoNaInterface() {
+  const m = globalThis.Jogos.atual();
+  const el = document.getElementById('foot-jogo');
+  if (el && m) el.textContent = m.nome;
+  document.querySelectorAll('#set-jogo button').forEach((b) => {
+    b.classList.toggle('on', b.getAttribute('data-v') === globalThis.Jogos.idAtivo());
+  });
+  const nota = document.getElementById('set-jogo-nota');
+  if (nota) {
+    const info = (globalThis.Jogos.lista.jogos || [])
+      .find((j) => j.id === globalThis.Jogos.idAtivo());
+    nota.textContent = (info && info.instrucao) ? info.instrucao : '';
+  }
+}
+
+function montarDefinicoesJogo() {
+  const host = document.getElementById('set-jogo');
+  if (!host) return;
+  const hoje = globalThis.Jogos.lista.jogos;
+  if (!hoje || !hoje.length) { host.innerHTML = ''; return; }
+  host.innerHTML = hoje.map((j) =>
+    '<button data-v="' + esc(j.id) + '">' + esc(j.nome) + '</button>').join('');
+  host.querySelectorAll('button[data-v]').forEach((b) => {
+    b.addEventListener('click', () => {
+      /* Trocar de jogo a partir das definicoes NAO reinicia o painel: o
+       * mapa continua (esta' no `localStorage`), as voltas de referencia
+       * continuam, e a ligacao SSE continua. Perder tudo isso por trocar
+       * de jogo seria o pior de trocar de jogo. */
+      globalThis.Jogos.escolher(b.getAttribute('data-v'));
+    });
+  });
+  mostrarJogoNaInterface();
+}
+
 function boot() {
   loadDef();
   applyLang();
@@ -2971,12 +3313,34 @@ function boot() {
   syncSettingsUI();
   applyMode();
   document.body.classList.remove('booting');
+
+  globalThis.Jogos.lerLista().then(() => {
+    montarDefinicoesJogo();
+    const jaEscolheu = globalThis.Jogos.lista.escolha;
+    if (jaEscolheu) {
+      /* Havia escolha guardada. Reenvia-se ao servidor na mesma, porque o
+       * `localStorage` e' do browser e o ficheiro de definicoes e' do
+       * servidor: podem discordar, e quem ganha e' o servidor. */
+      globalThis.Jogos.escolher(jaEscolheu).then(arrancarAposEscolher);
+    } else {
+      /* NINGUEM jogo escolhido: o ecra de escolha e' a primeira coisa que
+       * aparece. E nao o menu de vista, porque a vista e' uma escolha
+       * MENOR e trocar de jogo depois obriga a recarregar a pagina. */
+      abrirEcraJogos();
+    }
+  });
+}
+
+/* Tudo o que se liga depois de o jogo estar escolhido. */
+let _jaArrancou = false;
+function arrancarAposEscolher() {
+  mostrarJogoNaInterface();
+  if (_jaArrancou) return;      /* trocar de jogo nao reinicia nada */
+  _jaArrancou = true;
   connectOpponents();
   connectTelemetry();
   loop();
-
   if (DEF.mode) {
-    // ja escolheu antes: nao mostrar o menu, so acionar a vista
     applyMode();
   } else {
     showMenu(true);
@@ -2984,7 +3348,26 @@ function boot() {
   addFpsControl();
 }
 
+/* Os pontos que o seletor chama quando o jogo muda.
+ *
+ * Sao funcoes aqui dentro, e nao no seletor, porque sao de FRONTEND --
+ * pintar ids, aplicar unidades, fechar um ecra. O seletor sabe que o
+ * jogo mudou; nao sabe o que se pinta. Nenhum dos dois sabe do outro
+ * para alem destes nomes, e e' por isso que trocar a ordem dos `<script>`
+ * nao parte nada. */
+globalThis.AplicarIdioma = function () { applyLang(); };
+globalThis.AplicarUnidades = function () { applyUnits(); };
+globalThis.RepintarTudo = function () { /* o proximo frame pinta */ };
+globalThis.AplicarJogoNaInterface = mostrarJogoNaInterface;
+globalThis.AbrirEcraJogos = abrirEcraJogos;
+globalThis.FecharEcraJogos = fecharEcraJogos;
+globalThis.MontarDefinicoesJogo = montarDefinicoesJogo;
+globalThis.FecharGavetaAberta = function () {
+  if (typeof fecharGaveta === 'function') fecharGaveta();
+};
+
 function addFpsControl() {
+
   const host = document.getElementById('set-fps-host');
   if (!host) return;
   host.innerHTML =

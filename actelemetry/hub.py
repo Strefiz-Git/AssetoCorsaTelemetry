@@ -81,15 +81,38 @@ class Hub:
         fechado ANTES do novo abrir, e a ordem importa: o socket do F1 25
         fica na porta 20777, e se o novo jogo tambem precisasse dela ia
         falhar por causa do anterior.
+
+        E o snapshot do leitor novo e' tirado AQUI, dentro da troca, e nao
+        no frame seguinte. Sem isso, o `/api/state` respondia durante uns
+        milissegundos com um dicionario de tres chaves, e o painel via um
+        payload sem `drsDistancia`, sem `tyreTempSurface` e sem mais nada.
+
+        A forma curta nao dava erro -- o frontend pinta o que falta a
+        neutro -- e por isso era invisivel. Mas e' a Regra no 14 ao
+        contrario: uma chave em falta obriga o frontend a decidir sozinho
+        o que fazer com ela, e essa decisao e' sempre tomada no sitio
+        errado. A troca de jogo e' o momento em que o painel tem menos
+        informacao de sempre, e e' por isso que nao se pode deixar o
+        payload com a forma errada precisamente nessa altura.
         """
         with self.lock:
             if novo_id == self.jogo_id and self.leitor is not None:
                 return self.jogo_id
             self._parar_leitor()
-            self.ultimo = {"jogo": novo_id, "connected": False, "live": False}
             self.opponents = {"available": False, "cars": []}
             self.erro = None
             self._montar(novo_id)
+            if self.leitor is not None:
+                try:
+                    snap = self.leitor.snapshot()
+                except Exception as e:
+                    snap = {"connected": False, "live": False, "erro": str(e)}
+                snap.setdefault("jogo", self.jogo_id)
+                snap.setdefault("estadoJogo", "encerrado")
+                self.ultimo = snap
+            else:
+                self.ultimo = {"jogo": self.jogo_id, "connected": False,
+                               "live": False}
         return self.jogo_id
 
     def _parar_leitor(self):

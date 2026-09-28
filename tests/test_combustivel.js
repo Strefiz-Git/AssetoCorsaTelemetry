@@ -30,7 +30,7 @@
  */
 'use strict';
 
-const C = require('../static/combustivel.js');
+const C = require('../static/nucleo/combustivel.js');
 
 let passou = 0, falhou = 0;
 

@@ -928,3 +928,66 @@ body.paused .app{opacity:.6;filter:saturate(.5)}
    o mesmo do `h-flag`: e' um estado, nao um valor, e le-se de relance
    enquanto se olha para a pista. */
 .h-wx{font-weight:900;font-size:12px;letter-spacing:.1em;white-space:nowrap}
+
+/* ===========================================================================
+ * O JOGO
+ * ===========================================================================
+ *
+ * O que o painel mostra depende do jogo activo, e estas sao as tres
+ * situacoes em que um elemento pode estar. Sao tres e nao duas, e a
+ * terceira e' a que importa:
+ *
+ *   "on"    o jogo publica, o painel escreve o valor
+ *   "auto"  o jogo publica mas o painel nao tem CERTEZA. A vida do pneu
+ *           no Assetto Corsa e' estimada a partir de duas voltas
+ *           medidas de desgaste, e o flag do DRS so se sabe depois de
+ *           conduzir uma volta inteira. O elemento fica a meia
+ *           opacidade, e nao escondido.
+ *   "off"   o jogo nao publica. O elemento desaparece.
+ *
+ * Esconder o "auto" seria a terceira via errada: o piloto via um painel
+ * sem o campo e concluia que o jogo nao o manda, quando o que acontece
+ * e' que o manda e o painel ainda nao tem certeza. Sao situacoes
+ * diferentes, e a distincao entre "nao existe" e "ainda nao sei" e' a
+ * Regra no 19 aplicada ao ecra em vez do payload.
+ */
+
+/* A opacidade e' a UNICA coisa que muda, e nao a cor nem o tamanho: um
+ * campo a esbatido que muda de tamanho faz a grelha dos pneus saltar de
+ * cada vez que o jogo muda, e um painel que salta quando se troca de
+ * definicao e' pior do que um painel esbatido. A regra 2.3.3 do
+ * `acessibilidade.md` e' sobre movimento, e isto nao se mexe. */
+[data-cap].cap-auto {
+  opacity: 0.55;
+}
+
+/* O ecra de escolha do jogo.
+ *
+ * Fica ANTES do menu de vista, e nao depois, porque a escolha do jogo e'
+ * a que muda mais: decide que modulo de logica carrega, o que o painel
+ * consegue mostrar, e a instrucao de arranque. Uma escolha que se faz
+ * depois obriga a recarregar a pagina, e recarregar nao apaga o mapa
+ * nem as voltas de referencia -- o que torna a troca de jogo um
+ * costume carissimo para uma coisa que se faz uma vez. */
+.jogo-card {
+  min-width: 12rem;
+}
+.jogo-card .jogo-nota {
+  color: var(--gold);
+  font-size: 0.78rem;
+  margin-top: 0.2rem;
+}
+
+/* A nota debaixo da lista: a instrucao do jogo ACTIVO.
+ *
+ * Uma instrucao errada aqui e' a confusao mais cara do ecra de escolha:
+ * o utilizador segue a instrucao certa para o jogo errado, nada
+ * acontece, e a culpa e' do painel. Por isso a nota diz sempre o jogo a
+ * que se refere, e nao "instale a app" a secas. */
+#jogos-nota,
+#set-jogo-nota {
+  color: var(--vazio);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  margin-top: 0.9rem;
+}

@@ -57,7 +57,17 @@ APP = ler('python_app', 'actelemetry_strefiz', 'actelemetry_strefiz.py')
 SHM = ler('python_app', 'actelemetry_strefiz', 'actelemetry_shm.py')
 JS = ler('static', 'app.js')
 HTML = ler('static', 'index.html')
-T = ler('static', 'tempo.js')
+# Os modulos puros, que foram para static/nucleo/, e os modulos de
+# jogo, que estao em static/jogos/. Ler static/tempo.js dava
+# FileNotFoundError e o teste parava no sitio -- que e' a falha mais
+# enganadora que um teste pode ter, porque parece que passou.
+T = ler('static', 'nucleo', 'tempo.js')
+NUCLEO_JS = [ler('static', 'nucleo', n) for n in
+             sorted(os.listdir(os.path.join(RAIZ, 'static', 'nucleo')))
+             if n.endswith('.js')]
+JOGOS_JS = [ler('static', 'jogos', n) for n in
+            sorted(os.listdir(os.path.join(RAIZ, 'static', 'jogos')))
+            if n.endswith('.js')]
 RUN = ler('tests', 'run_all.py')
 AG = ler('AGENTS.md')
 

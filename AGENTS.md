@@ -951,7 +951,7 @@ certo, não uma falha. Os testes de memória escrevem em páginas
 
 Corre com `python tests\run_all.py`. Sai com codigo diferente de zero se
 algo falhar, e com codigo 2 (que nao e' falha) se o AC
-estiver a correr e os testes de memoria forem saltados. Sao 24 grupos.
+estiver a correr e os testes de memoria forem saltados. Sao 27 grupos.
 
 | Ficheiro | O que prova |
 |---|---|
@@ -959,14 +959,17 @@ estiver a correr e os testes de memoria forem saltados. Sao 24 grupos.
 | `test_acshm.py` | a leitura de telemetria, 46 valores com unidades |
 | `mutacao_grip.py` | que a regra da aderencia morde, partindo o codigo |
 | `test_opponents.py` | o struct de 128 carros: ordem dos campos, m/s para km/h, tempos, filtro de carros vazios |
-| `compilar.py` | que os 40 `.py` compilam -- apanha erro de sintaxe |
-| `verificar_js.py` | que os 11 `.js` fazem parse no node |
+| `test_f125_parser.py` | o F1 25 nos DOIS formatos: os 33 tamanhos, a ordem das rodas, o truque dos minutos, o /1000 das forcas G, e o formato desconhecido recusado |
+| `compilar.py` | que os `.py` compilam -- apanha erro de sintaxe |
+| `verificar_js.py` | que os 15 `.js` fazem parse no node |
 | `test_contrato.py` | que a app e o leitor falam a mesma linguagem |
 | `test_handler.py` | que um cliente que cancela nao enche a consola |
+| `verificar_servidor.py` | o SISTEMA ligado: arranca com os dois jogos, a troca a quente, e as rotas |
 | `test_payload.py` | que o `/api/state` tem o que o painel precisa, clima incluido -- o meio da ligacao |
 | `test_tempos.js` | 35 casos de tempos e delta, sem browser (node) |
 | `test_tyres.js` | a vida do pneu e a escala dos valores (node) |
 | `test_combustivel.js` | voltas de combustivel e a percentagem (node) |
+| `test_jogos.js` | as regras dos dois jogos no browser: embraiagem, ABS, vida do pneu, combustivel, clima, delta e as 81 capacidades -- sem nenhum jogo a correr (node) |
 | `auditar_frontend.py` | o frontend inteiro: ids, traduccoes, contraste, chaves CSS, movimento reduzido |
 | `mutacao_acessibilidade.py` | que a regra 2.3.3 morde, partindo o CSS |
 | `verificar_finitos.py` | que nenhum valor chega a NaN ou infinito |
