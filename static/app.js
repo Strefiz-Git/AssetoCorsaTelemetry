@@ -1020,13 +1020,50 @@ function resetMap(clearStorage) {
  * o enquadramento: a pista toda dentro da caixa, ou centrado no carro com
  * zoom.
  */
-function mapaEnquadramento(w, h, espW, espH, carroX, carroZ) {
+/* O enquadramento do mapa, e o UNICO sitio que decide onde cada ponto cai
+ * no canvas.
+ *
+ * Os dois ramos recebem as MESMAS COORDENADAS: as do mundo, cruas. E o que
+ * antes nao era verdade, e o que fazia a vista relativa estar errada.
+ *
+ *   ramo inteiro    px = ox + (x - origX) * sc
+ *   ramo relativo   px = w/2 + (x - carroX) * sc
+ *
+ * O primeiro precisa da origem porque a pista inteira tem de caber; o
+ * segundo nao, porque recentra no carro. Antes o caller subtractia a
+ * origem de TUDO, e no ramo relativo isso era subtrair duas vezes: o
+ * `carroX` ja' ia cru, e a camara ficava centrada longe do carro, num erro
+ * da ordem do `minX` -- centenas de metros numa pista larga.
+ *
+ * `pxPorM` diz quantos pixels vale um metro NESTE espaco:
+ *
+ *   mapa tracado   o espaco e' o mundo, e vale 1
+ *   mapa real      o espaco e' a imagem do jogo, e vale `rm.pxPerMetre`
+ *
+ * Sem isso, a vista de perto tratava PIXEIS DA IMAGEM como se fossem
+ * METROS: com `pxPerMetre` a 1,4, "150 m" eram 150 pixels, que sao 107 m.
+ * O zoom de perto estava errado pelo factor da imagem, e a diferenca
+ * mudava de pista para pista -- que e' a forma mais cara de um bug,
+ * porque numa pista pode parecer certo.
+ *
+ * Regra no 10, pela terceira vez: a transformacao parte do centro, com a
+ * origem DENTRO dela, e nao misturada com quem a chama. E Regra no 16: as
+ * duas vistas tem de usar a mesma convencao, e por isso sao as DUAS esta
+ * funcao. */
+function mapaEnquadramento(w, h, espW, espH, carroX, carroZ, origX, origZ, pxPorM) {
   const pad = 14;
   const inteira = Math.min((w - pad * 2) / espW, (h - pad * 2) / espH);
+  const porMetro = pxPorM || 1;
 
   if (DEF.mapView !== 'relativa' || carroX == null) {
     const ox = (w - espW * inteira) / 2, oy = (h - espH * inteira) / 2;
-    return { sc: inteira, px: (x) => ox + x * inteira, py: (y) => oy + y * inteira, relativa: false };
+    const dx = origX || 0, dz = origZ || 0;
+    return {
+      sc: inteira,
+      relativa: false,
+      px: (x) => ox + (x - dx) * inteira,
+      py: (y) => oy + (y - dz) * inteira
+    };
   }
 
   // Vista relativa: quão longe se ve, em metros, consoante a velocidade.
@@ -1038,9 +1075,13 @@ function mapaEnquadramento(w, h, espW, espH, carroX, carroZ) {
   // tamanho da pista e via-se menos de um segundo à frente a 300 km/h —
   // o piloto pediu para não apertar tanto. 150 m é um compromise: dá para
   // ver a próxima curva sem a bola tapar a estrada.
+  // E 150 m CONVERTIDOS para pixels deste espaco. Era aqui que o bug
+  // estava: 150 e' uma medida, e o que o canvas mede e' o espaco em que as
+  // coordenadas vivem.
   const v = clamp(S.velSuave || 0, 0, 320);
   const t = clamp(v / 280, 0, 1);
-  const perto = Math.max(inteira, Math.min((w - pad * 2) / 150, (h - pad * 2) / 150));
+  const pertoPx = Math.max(1, 150 * porMetro);
+  const perto = Math.max(inteira, Math.min((w - pad * 2) / pertoPx, (h - pad * 2) / pertoPx));
   const longe = inteira;
   const sc = perto + (longe - perto) * t;
   return {
@@ -1151,7 +1192,11 @@ function drawMapReal(c, w, h, rm) {
   // a posicao do carro, para a vista relativa poder centrar-se nela
   const ult = S.path.length ? S.path[S.path.length - 1] : null;
   const [carX, carZ] = ult ? worldToMapImg(rm, ult[0], ult[1]) : [null, null];
-  const q = mapaEnquadramento(w, h, iw, ih, carX, carZ);
+  // O espaço do mapa real e' a IMAGEM do jogo, e nao o mundo: por isso a
+  // origem e' zero e a escala vem do `map.ini`. Sem o `pxPorM`, a vista de
+  // perto tratava pixels da imagem como se fossem metros.
+  const q = mapaEnquadramento(w, h, iw, ih, carX, carZ, 0, 0,
+    (rm.pxPerMetre || 1));
   const sc = q.sc, px = q.px, py = q.py;
 
   c.save();
@@ -1237,10 +1282,15 @@ function drawMapTraced(c, w, h) {
   // O enquadramento vem de mapaEnquadramento, o mesmo que o mapa real usa:
   // as duas vistas nao podem divergir outra vez.
   const ult = S.path[S.path.length - 1];
-  const q = mapaEnquadramento(w, h, spanX, spanZ, ult ? ult[0] : null, ult ? ult[1] : null);
+  const q = mapaEnquadramento(w, h, spanX, spanZ, ult ? ult[0] : null,
+    ult ? ult[1] : null, S.minX, S.minY, 1);
   const sc = q.sc;
-  const px = (p) => q.px(p[0] - S.minX);
-  const py = (p) => q.py(p[1] - S.minY);
+  // As coordenadas CRUAS, porque e' assim que o `mapaEnquadramento` as
+  // quer nos dois ramos. Antes era `p[0] - S.minX`, e no ramo relativo isso
+  // era subtrair a origem duas vezes -- a camara ficava centrada longe do
+  // carro. Regra no 10: a origem e' da transformacao, nao de quem a chama.
+  const px = (p) => q.px(p[0]);
+  const py = (p) => q.py(p[1]);
 
   c.save();
   if (q.relativa) { c.beginPath(); c.rect(0, 0, w, h); c.clip(); }
