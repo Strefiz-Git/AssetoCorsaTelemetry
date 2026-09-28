@@ -25,26 +25,60 @@ SUITE = [
     ("leitura de telemetria", "py", "test_acshm.py"),
     ("a aderencia morde mesmo", "py", "mutacao_grip.py"),
     ("leitura de adversarios", "py", "test_opponents.py"),
+    ("o F1 25 le-se nos dois formatos", "py", "test_f125_parser.py"),
     ("a app compila", "py", "compilar.py"),
     ("o JavaScript faz parse", "py", "verificar_js.py"),
     ("a app e o leitor falam igual", "py", "test_contrato.py"),
     ("o servidor fica calado", "py", "test_handler.py"),
+    # O SISTEMA LIGADO. Todos os outros testam pecas -- structs,
+    # regras, contratos -- e este arranca o servidor de verdade e
+    # pergunta-lhe o que responde, com os dois jogos. E o unico que
+    # apanha um import relativo partido, que so rebenta quando o
+    # caminho passa por essa linha.
+    ("o sistema ligado, com os dois jogos", "py", "verificar_servidor.py"),
     ("o payload tem o que o painel precisa", "py", "test_payload.py"),
     ("tempos de volta e delta", "node", "test_tempos.js"),
     ("vida do pneu", "node", "test_tyres.js"),
     ("voltas de combustivel", "node", "test_combustivel.js"),
+    # A decisao do ERS vivia dentro da IIFE do `app.js`, numa linha de
+    # pintura, e por isso nao se conseguia testar. Escrevia "ERS 0%" com
+    # 1 105 744 J guardados, porque `null || 0` da' zero. Va para
+    # `nucleo/ers.js`, que corre no node.
+    ("o ERS diz o que sabe, e nada mais", "node", "test_ers.js"),
+    # As REGRAS dos dois jogos, sem browser e sem nenhum deles a correr.
+    # Sao as que estavam dentro da IIFE do `app.js`, onde so seavam
+    # vistas no ecra -- e os cortes do clima do AC estavam errados
+    # assim durante meses. Ver `static/jogos/`.
+    ("as regras dos dois jogos", "node", "test_jogos.js"),
     ("o frontend aguenta-se de pe", "py", "auditar_frontend.py"),
+    # O HTML fechou mal uma vez -- um `</div>` comido, e o ecra de escolha
+    # de jogo passou a ser FILHO do ecra de espera. Os 31 grupos passaram,
+    # porque com o HTML partido o `getElementById` encontra TUDO: nao falta
+    # elemento, esta' todos la, so' aninhados no sitio errado. Ver a Regra.
+    ("o HTML fecha e ninguem esta dentro de ninguem", "py", "verificar_html.py"),
+    ("essa verificacao morde", "py", "mutacao_html.py"),
     ("a regra 2.3.3 morde mesmo", "py", "mutacao_acessibilidade.py"),
+    # o rodape' e' a unica linha que diz COMO se le o jogo. A regra e'
+    # que nao fique a dizer "memoria do AC" com o F1 25 no ecra, e que o
+    # titulo e o ecra' de espera nao nomeiem um jogo antes de o escolher.
+    ("a regra do rodape' morde", "py", "mutacao_rodape.py"),
     ("valores nao finitos", "py", "verificar_finitos.py"),
     ("os testes mordem mesmo", "py", "test_mutation.py"),
     ("o contrato e' mesmo verificado", "py", "mutacao_contrato.py"),
     ("o loop da app nao engole falhas", "py", "test_loop_app.py"),
     ("o loop da app morde mesmo", "py", "mutacao_loop.py"),
     ("as cenas do tempo sao as do jogo", "node", "test_tempo.js"),
+    ("o esquema das definicoes", "node", "test_defs.js"),
     ("a medicao do pneu morde", "py", "test_medir_tyrewear.py"),
     ("o README bate com o codigo", "py", "verificar_readme.py"),
     ("texto sem caracteres estranhos", "py", "verificar_texto.py"),
+    ("a regra do TAB morde", "py", "mutacao_texto.py"),
     ("mensagens de commit limpas", "py", "verificar_commits.py"),
+    # O `index.html` diz WHICH scripts entram no browser, e so' o browser
+    # le essa lista. O `require` de um teste traz as dependencias que o
+    # FICHEIRO declara, e nao as que o HTML lista -- por isso e' que um
+    # modulo pode faltar no HTML e todos os testes passarem. Ver a Regra.
+    ("os scripts chegam todos ao browser", "node", "test_scripts.js"),
 ]
 
 # codigo 2 = "o jogo esta a correr, nao se pode testar". Nao e' falha: e

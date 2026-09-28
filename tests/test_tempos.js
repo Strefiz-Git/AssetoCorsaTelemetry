@@ -12,7 +12,7 @@
 'use strict';
 
 const path = require('path');
-const T = require(path.join(__dirname, '..', 'static', 'tempos.js'));
+const T = require(path.join(__dirname, '..', 'static', 'nucleo', 'tempos.js'));
 
 const { toSec, deltaParaRef, melhorTempo, empilharPonto, VOLTA_MINIMA_S,
         intervaloAoVivo, novoRastreadorPosicoes, corridaArranca, registarPosicoes,

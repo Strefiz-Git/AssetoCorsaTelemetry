@@ -9,10 +9,24 @@ const $ = (id) => document.getElementById(id);
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 
 /* ------------------------------------------------------------------ i18n */
+/* As chaves do jogo e das regras que dependem dele estao nos quatro
+ * idiomas, e nao por vaidade: o `auditar_frontend.py` acusa uma chave de
+ * traducao num idioma e nao nos outros, e uma dica que aparece em
+ * portugues e fica com o nome da chave em ingles nos outros tres.
+ *
+ * Repara-se que NAO HÁ NENHUM COMENTARIO DENTRO deste literal, e so' por
+ * causa disto: o `auditar_frontend.py` faz `eval` do I18N em PYTHON para
+ * contar as chaves, e um comentario em JavaScript -- tanto o de bloco
+ * como o de linha -- nao e' Python valido. Bastou um comentario dentro do
+ * literal para o teste parar de avaliar o I18N inteiro, e a mensagem que
+ * ele deu foi "nao consegui avaliar o I18N": nao dizia nada sobre a causa,
+ * e essa e' a falha mais enganadora que um teste pode ter. E' a Regra
+ * no 9 -- quando a causa nao esta' no erro, o erro so' diz que algures
+ * foi. */
 const I18N = {
   'pt-PT': {
-    'app.title': 'Telemetria AC',
-    'boot.waiting': 'A aguardar o Assetto Corsa',
+    'app.title': 'Telemetria',
+    'boot.waiting': 'A aguardar o jogo',
     'boot.reading': 'A ler a telemetria directamente do jogo…',
 
     'menu.title': 'O que queres ver?',
@@ -48,6 +62,7 @@ const I18N = {
     'ers.short': 'ERS', 'pit.short': 'PIT',
     'state.lim': 'LIM',
     'map.title': 'MAPA DA PISTA', 'pedals.title': 'PEDAIS',
+    'map.vazio': 'Sem mapa ainda. Conduz uma volta e ele desenha-se sozinho.',
     'wheel.title': 'VOLANTE', 'wheel.note': 'Angulo do volante, de -1 a 1. O alcance do valor esta'
     + ' por confirmar a conduzir.',
     'map.drsKey': 'zona de DRS',
@@ -60,7 +75,8 @@ const I18N = {
     'tyres.life': 'Vida do pneu',
     'tyres.measuring': 'a medir', 'tyres.perLap': 'por volta', 'tyres.needTwoLaps': 'Faltam 2 voltas para estimar', 'tyres.lapsOnThisSet': 'voltas neste jogo',
     'tyres.surface': 'Temperatura da banda. O número grande é o do núcleo, que é o que o jogo mostra.',
-    'tyres.gripWhat': 'Aderência do pneu, de 0 a 100, em que 100 é a máxima. Não é desgaste: o campo chama-se `tyreWear` mas mede a aderência, e por isso desce só 0,45 por volta — aaderência muda devagar. O desgaste que o HUD do Content Manager mostra é outra grandeza, e os dois não se convertem.', 'tyres.pressTitle': 'Pressão real, em psi. O jogo mostra o desvio para uma nominal que não é publicada.',
+    'tyres.gripWhat': 'Aderência do pneu, de 0 a 100, em que 100 é a máxima. Não é desgaste: o campo chama-se `tyreWear` mas mede a aderência, e por isso desce só 0,45 por volta — a aderência muda devagar. O desgaste que o HUD do Content Manager mostra é outra grandeza, e os dois não se convertem.', 'tyres.pressTitle': 'Pressão real, em psi. O jogo mostra o desvio para uma nominal que não é publicada.',
+  'tyres.gastoWhat': 'Desgaste do pneu, de 0 a 100, em que 100 é o fim da vida. Este número é quanto JÁ FOI USADO, e 0 é um pneu novo. O MFD do jogo mostra a mesma percentagem, e é medido: com 2 voltas de 21 o jogo dava 10. No Assetto Corsa este mesmo campo é outra coisa — é aderência, não desgaste.',
     'tyres.lifeNote': 'Estimativa a partir do desgaste já medido neste stint. O Assetto Corsa não publica a vida do composto, e o desgaste que publica é lento demais para dar um número fiável: se aparecer, é porque o valor desta vez é plausível.',
     'tyres.notWear': 'não dá',
     'tyres.notWearWhy': 'O desgaste que o jogo publica é lento demais para um stint real: 0,17% ao fim de duas voltas dariam 588 voltas de vida. Não dá para prever a partir dele.',
@@ -89,7 +105,8 @@ const I18N = {
     'lb.time': 'TEMPO', 'lb.best': 'MELHOR', 'lb.gap': 'INT.',
     'lb.intTitle': 'Tempo até ao carro da frente. Na mesma volta é o tempo exacto que ele levou a passar pelo mesmo ponto da pista; fora isso é uma estimativa pelo ritmo da última volta dele.',
     'lb.penalty': 'Penalidade', 'lb.drs': 'DRS',
-    'foot.src': 'memória do AC, sem SimHub',
+    'foot.src.ac': 'memória partilhada, sem SimHub',
+    'foot.src.f125': 'UDP, sem SimHub',
     'status.live': 'AO VIVO', 'status.paused': 'EM PAUSA',
     'status.closed': 'JOGO ENCERRADO', 'status.stale': 'últimos valores',
     'sector': 'SETOR', 'lapCount': 'VOLTA',
@@ -100,9 +117,63 @@ const I18N = {
     'opp.err': 'Não é a app estar desligada — por isso não a desligues. A leitura acima é o que está a falhar dentro do jogo; o log do AC tem mais.',
     'opp.none': 'Nenhum carro na sessão.',
     'lb.pit': 'PIT',
+    'jog.title':
+      'Jogo',
+    'jog.sub':
+      'Podes mudar a qualquer momento, aqui ou nas definições.',
+    'jog.why':
+      'O jogo decide o que o painel consegue mostrar.',
+    'jog.abrir':
+      'Trocar de jogo',
+    'jog.semJogos':
+      'O servidor não respondeu com a lista de jogos. Reinicia-o e volta a abrir esta página.',
+    'jog.precisaInstalar':
+      'Precisa da app instalada no jogo',
+    'jog.divergencia':
+      'O servidor arrancou para <b>{jogo}</b> e este browser ficou com <b>{outro}</b> da última vez. Escolhe qual queres.',
+    'jog.escolher':
+      'Escolher o jogo',
+    'abs.off':
+      'desligado',
+    'drs.on':
+      'ligado',
+    'drs.disp':
+      'disponível',
+    'f1.embraiagemDica':
+      'O F1 25 manda a embraiagem de 0 a 100, com 100 a embraiada. O painel mostra o inverso: quanto está solta.',
+    'f1.volanteDica':
+      'O F1 25 manda o volante normalizado, de −1 a 1, com o limite na documentação.',
+    'f1.absDica':
+      'O F1 25 diz só ligado ou desligado. Não há percentagem, e mostrar uma seria inventar um número que o jogo não dá.',
+    'f1.tcDica':
+      'No F1 25 o controle de tração é um modo: desligado, médio ou cheio. Não é um nível de 0 a 100%.',
+    'f1.tcMedio':
+      'médio',
+    'f1.tcCheio':
+      'cheio',
+    'f1.drsDica':
+      'O F1 25 diz quantos metros faltam para a zona de DRS. O Assetto Corsa não diz, e por isso lá a zona é medida a conduzir.',
+    'f1.vidaSemDados':
+      'O pacote de pneus ainda não chegou. O jogo só o manda de poucos em poucos segundos.',
+    'f1.vidaDica':
+      'Voltas que faltam, lidas do jogo. No Assetto Corsa este número não existe e é estimado.',
+    'f1.combustivelDica':
+      'O F1 25 manda o combustível em quilos. O Assetto Corsa manda litros, e 42,5 kg não são 42,5 L.',
+    'ac.embraiagemDica':
+      'O Assetto Corsa manda a embraiagem de 0 a 1, e 1,0 é EMBRAIADA — a documentação diz “pedal” e não é. O painel mostra o inverso.',
+    'ac.volanteDica':
+      'O ângulo da roda, em radianos. O limite não está escrito em lado nenhum, e por isso não há barra.',
+    'ac.absDica':
+      'O nível a que o ABS está a trabalhar, medido em 0,13 durante 4502 amostras de travagens duras. Por isso mostra uma percentagem e não ligado/desligado.',
+    'ac.tcDica':
+      'O nível a que o controle de tração está a trabalhar.',
+    'ac.drsDica':
+      'O Assetto Corsa não diz onde é a zona de DRS. O painel mede o flag durante uma volta inteira, porque o mesmo flag esteve a 1 em 98,9% do traçado num carro e a 1 em 18,5% noutro.',
+    'ac.combustivelDica':
+      'O Assetto Corsa manda o combustível em litros.',
   },
   'pt-BR': {
-    'app.title': 'Telemetria AC', 'boot.waiting': 'Aguardando o Assetto Corsa',
+    'app.title': 'Telemetria', 'boot.waiting': 'Aguardando o jogo',
     'boot.reading': 'Lendo a telemetria direto do jogo…',
 
     'menu.title': 'O que você quer ver?', 'menu.sub': 'Dá para mudar a qualquer momento nas configurações.',
@@ -133,6 +204,7 @@ const I18N = {
     'unit.mph': 'mph', 'unit.rpm': 'rpm', 'ers.short': 'ERS', 'pit.short': 'BOX',
     'state.lim': 'LIM',
     'map.title': 'MAPA DA PISTA', 'pedals.title': 'PEDAIS',
+    'map.vazio': 'Sem mapa ainda. Conduz uma volta e ele se desenha sozinho.',
     'wheel.title': 'VOLANTE', 'wheel.note': 'Angulo do volante, de -1 a 1. O alcance do valor esta'
     + ' por confirmar dirigindo.',
     'map.drsKey': 'zona de DRS',
@@ -147,7 +219,8 @@ const I18N = {
     'tyres.life': 'Vida do pneu',
     'tyres.measuring': 'medindo', 'tyres.perLap': 'por volta', 'tyres.needTwoLaps': 'Faltam 2 voltas para estimar', 'tyres.lapsOnThisSet': 'voltas neste stint',
     'tyres.surface': 'Temperatura da banda. O número grande é o do núcleo, que é o que o jogo mostra.',
-    'tyres.gripWhat': 'Aderência do pneu, de 0 a 100, em que 100 é a máxima. Não é desgaste: o campo chama-se `tyreWear` mas mede a aderência, e por isso desce só 0,45 por volta — aaderência muda devagar. O desgaste que o HUD do Content Manager mostra é outra grandeza, e os dois não se convertem.', 'tyres.pressTitle': 'Pressão real, em psi. O jogo mostra o desvio para uma nominal que não é publicada.',
+    'tyres.gripWhat': 'Aderência do pneu, de 0 a 100, em que 100 é a máxima. Não é desgaste: o campo chama-se `tyreWear` mas mede a aderência, e por isso desce só 0,45 por volta — a aderência muda devagar. O desgaste que o HUD do Content Manager mostra é outra grandeza, e os dois não se convertem.', 'tyres.pressTitle': 'Pressão real, em psi. O jogo mostra o desvio para uma nominal que não é publicada.',
+  'tyres.gastoWhat': 'Desgaste do pneu, de 0 a 100, em que 100 é o fim da vida. Este número é quanto JÁ FOI USADO, e 0 é um pneu novo. O MFD do jogo mostra a mesma percentagem, e é medido: com 2 voltas de 21 o jogo dava 10. No Assetto Corsa este mesmo campo é outra coisa — é aderência, não desgaste.',
     'tyres.lifeNote': 'Estimativa feita do desgaste que já aconteceu neste stint, não de uma tabela do jogo: o Assetto Corsa não publica a vida do pneu. Depois de duas voltas medidas o número já significa alguma coisa; antes disso é um palpite.',
     'brakes.title': 'FREIOS', 'brakes.bias': 'B. FREIO',
     'brakes.biasTitle': 'Distribuição da frenagem, em porcentagem do freio total. Medido 0,58 num TS040 sem nada mexido. O HUD do Content Manager mostra o mesmo campo e ajusta de 0,5 em 0,5.',
@@ -174,7 +247,8 @@ const I18N = {
     'lb.time': 'TEMPO', 'lb.best': 'MELHOR', 'lb.gap': 'INT.',
     'lb.intTitle': 'Tempo até ao carro da frente. Na mesma volta é o tempo exacto que ele levou a passar pelo mesmo ponto da pista; fora isso é uma estimativa pelo ritmo da última volta dele.',
     'lb.penalty': 'Penalty', 'lb.drs': 'DRS',
-    'foot.src': 'memória do AC, sem SimHub',
+    'foot.src.ac': 'memória compartilhada, sem SimHub',
+    'foot.src.f125': 'UDP, sem SimHub',
     'status.live': 'AO VIVO', 'status.paused': 'EM PAUSA',
     'status.closed': 'JOGO ENCERRADO', 'status.stale': 'últimos valores',
     'sector': 'SETOR', 'lapCount': 'VOLTA',
@@ -184,9 +258,63 @@ const I18N = {
     'opp.err': 'Não é o app estar desligado — por isso não o desligue. A leitura acima é o que está falhando dentro do jogo; o log do AC tem mais.',
     'opp.how': 'O app <b>AssettoCorsaTelemetry</b> escreve a página de memória com os carros, e é o nosso — vem na pasta <b>python_app</b> do projecto. Copie-o para <b>assettocorsa/apps/python/actelemetry_strefiz/</b> e ative-o no Content Manager (<b>Settings → Python Apps → AssettoCorsaTelemetry</b>). Confirme que subiu pelo log do AC, e que o AC está numa sessão com outros carros.',
     'opp.none': 'Nenhum carro na sessão.', 'lb.pit': 'BOX',
+    'jog.title':
+      'Jogo',
+    'jog.sub':
+      'Você pode mudar quando quiser, aqui ou nas configurações.',
+    'jog.why':
+      'O jogo define o que o painel consegue mostrar.',
+    'jog.abrir':
+      'Trocar de jogo',
+    'jog.semJogos':
+      'O servidor não respondeu com a lista de jogos. Reinicie-o e abra esta página de novo.',
+    'jog.precisaInstalar':
+      'Precisa do app instalado no jogo',
+    'jog.divergencia':
+      'O navegador se acordou con <b>{outro}</b> de la última vez, pero el servidor arrancó para <b>{jogo}</b>. Elige cuál quieres.',
+    'jog.escolher':
+      'Elegir el juego',
+    'abs.off':
+      'desligado',
+    'drs.on':
+      'ligado',
+    'drs.disp':
+      'disponível',
+    'f1.embraiagemDica':
+      'O F1 25 manda a embreagem de 0 a 100, com 100 engatada. O painel mostra o contrário.',
+    'f1.volanteDica':
+      'O F1 25 manda o volante normalizado, de −1 a 1.',
+    'f1.absDica':
+      'O F1 25 diz só ligado ou desligado. Não há porcentual, e mostrar um seria inventar um número.',
+    'f1.tcDica':
+      'No F1 25 o controle de tração é um modo: desligado, médio ou cheio.',
+    'f1.tcMedio':
+      'médio',
+    'f1.tcCheio':
+      'cheio',
+    'f1.drsDica':
+      'O F1 25 diz quantos metros faltam para a zona de DRS.',
+    'f1.vidaSemDados':
+      'O pacote de pneus ainda não chegou.',
+    'f1.vidaDica':
+      'Voltas que faltam, lidas do jogo.',
+    'f1.combustivelDica':
+      'O F1 25 manda o combustível em quilos. O Assetto Corsa manda litros.',
+    'ac.embraiagemDica':
+      'O Assetto Corsa manda a embreagem de 0 a 1, e 1,0 é ENGATADA. O painel mostra o contrário.',
+    'ac.volanteDica':
+      'O ângulo da roda, em radianos. O limite não está escrito em lugar nenhum.',
+    'ac.absDica':
+      'O nível em que o ABS está trabalhando, medido em 0,13. Por isso mostra uma porcentagem.',
+    'ac.tcDica':
+      'O nível em que o controle de tração está trabalhando.',
+    'ac.drsDica':
+      'O Assetto Corsa não diz onde é a zona de DRS. O painel mede o flag durante uma volta inteira.',
+    'ac.combustivelDica':
+      'O Assetto Corsa manda o combustível em litros.',
   },
   'es': {
-    'app.title': 'Telemetría AC', 'boot.waiting': 'Esperando al Assetto Corsa',
+    'app.title': 'Telemetría', 'boot.waiting': 'Esperando al juego',
     'boot.reading': 'Leyendo la telemetría directamente del juego…',
 
     'menu.title': '¿Qué quieres ver?', 'menu.sub': 'Puedes cambiarlo cuando quieras en los ajustes.',
@@ -217,6 +345,7 @@ const I18N = {
     'unit.mph': 'mph', 'unit.rpm': 'rpm', 'ers.short': 'ERS', 'pit.short': 'PIT',
     'state.lim': 'LIM',
     'map.title': 'MAPA DE LA PISTA', 'pedals.title': 'PEDALES',
+    'map.vazio': 'Sin mapa todavia. Conduce una vuelta y se dibuja solo.',
     'wheel.title': 'VOLANTE', 'wheel.note': 'Angulo del volante, de -1 a 1. El alcance del valor esta'
     + ' por confirmar conduciendo.',
     'map.drsKey': 'zona de DRS',
@@ -230,6 +359,7 @@ const I18N = {
     'tyres.measuring': 'midiendo', 'tyres.perLap': 'por vuelta', 'tyres.needTwoLaps': 'Faltan 2 vueltas para poder estimar', 'tyres.lapsOnThisSet': 'vueltas en este stint',
     'tyres.surface': 'Temperatura de la banda. El número grande es el del núcleo, que es el que muestra el juego.',
     'tyres.gripWhat': 'Adherencia del neumático, de 0 a 100, donde 100 es la máxima. No es desgaste: el campo se llama `tyreWear` pero mide la adherencia, y por eso baja solo 0,45 por vuelta — la adherencia cambia despacio. El desgaste que muestra el HUD del Content Manager es otra magnitud, y los dos no se convierten.', 'tyres.pressTitle': 'Presión real, en psi. El juego muestra la desviación respecto a una nominal que no se publica.',
+  'tyres.gastoWhat': 'Desgaste del neumático, de 0 a 100, donde 100 es el final de la vida. Este número es cuánto YA SE HA GASTADO, y 0 es un neumático nuevo. El MFD del juego muestra el mismo porcentaje, y está medido: con 2 vueltas de 21 el juego daba 10. En el Assetto Corsa este mismo campo es otra cosa: es adherencia, no desgaste.',
     'tyres.notWear': 'no se puede',
     'tyres.notWearWhy': 'El desgaste que publica el juego no acompaña un stint real: da 0,17% tras dos vueltas, o que serían 588 vueltas de vida. No se puede predecir a partir de ahí.',
     'fuel.measuring': 'midiendo',
@@ -258,7 +388,8 @@ const I18N = {
     'lb.time': 'TIEMPO', 'lb.best': 'MEJOR', 'lb.gap': 'INT.',
     'lb.intTitle': 'Tiempo hasta el coche de delante. En la misma vuelta es el tiempo exacto que tardó en pasar por el mismo punto de la pista; si no, es una estimación según el ritmo de su última vuelta.',
     'lb.penalty': 'Penalización', 'lb.drs': 'DRS',
-    'foot.src': 'memoria del AC, sin SimHub',
+    'foot.src.ac': 'memoria compartida, sin SimHub',
+    'foot.src.f125': 'UDP, sin SimHub',
     'status.live': 'EN VIVO', 'status.paused': 'EN PAUSA',
     'status.closed': 'JUEGO CERRADO', 'status.stale': 'últimos valores',
     'sector': 'SECTOR', 'lapCount': 'VUELTA',
@@ -268,9 +399,63 @@ const I18N = {
     'opp.waiting': 'Esperando los datos de los rivales.',
     'opp.how': 'La app <b>AssettoCorsaTelemetry</b> escribe la página de memoria con los coches, y es la nuestra — viene en la carpeta <b>python_app</b> del proyecto. Copiala en <b>assettocorsa/apps/python/actelemetry_strefiz/</b> y activala en Content Manager (<b>Settings → Python Apps → AssettoCorsaTelemetry</b>). Comprueba que arranco en el log del AC, y que el AC esta en una sesion con otros coches.',
     'opp.none': 'Ningún coche en la sesión.', 'lb.pit': 'PIT',
+    'jog.title':
+      'Juego',
+    'jog.sub':
+      'Puedes cambiar cuando quieras, aquí o en los ajustes.',
+    'jog.why':
+      'El juego decide lo que el panel puede mostrar.',
+    'jog.abrir':
+      'Cambiar de juego',
+    'jog.semJogos':
+      'El servidor no respondió con la lista de juegos. Reinícialo y abre esta página otra vez.',
+    'jog.precisaInstalar':
+      'Necesita la app instalada en el juego',
+    'jog.divergencia':
+      'O navegador ficou com <b>{outro}</b> da última vez, mas o servidor arrancou para <b>{jogo}</b>. Escolhe qual queres.',
+    'jog.escolher':
+      'Escolher o jogo',
+    'abs.off':
+      'desconectado',
+    'drs.on':
+      'conectado',
+    'drs.disp':
+      'disponible',
+    'f1.embraiagemDica':
+      'El F1 25 manda el embrague de 0 a 100, con 100 embragado. El panel muestra lo contrario.',
+    'f1.volanteDica':
+      'El F1 25 manda el volante normalizado, de −1 a 1.',
+    'f1.absDica':
+      'El F1 25 solo dice conectado o desconectado. No hay porcentaje.',
+    'f1.tcDica':
+      'En el F1 25 el control de tracción es un modo.',
+    'f1.tcMedio':
+      'medio',
+    'f1.tcCheio':
+      'completo',
+    'f1.drsDica':
+      'El F1 25 dice cuántos metros faltan para la zona DRS.',
+    'f1.vidaSemDados':
+      'El paquete de neumáticos aún no ha llegado.',
+    'f1.vidaDica':
+      'Vueltas que faltan, leídas del juego.',
+    'f1.combustivelDica':
+      'El F1 25 manda el combustible en kilogramos. El Assetto Corsa lo manda en litros.',
+    'ac.embraiagemDica':
+      'El Assetto Corsa manda el embrague de 0 a 1, y 1,0 es EMBRAGADO. El panel muestra lo contrario.',
+    'ac.volanteDica':
+      'El ángulo de la rueda, en radianes. El límite no está escrito en ningún sitio.',
+    'ac.absDica':
+      'El nivel en el que trabaja el ABS, medido en 0,13.',
+    'ac.tcDica':
+      'El nivel en el que trabaja el control de tracción.',
+    'ac.drsDica':
+      'El Assetto Corsa no dice dónde está la zona de DRS. El panel mide el flag durante una vuelta entera.',
+    'ac.combustivelDica':
+      'El Assetto Corsa manda el combustible en litros.',
   },
   'en': {
-    'app.title': 'AC Telemetry', 'boot.waiting': 'Waiting for Assetto Corsa',
+    'app.title': 'Telemetry', 'boot.waiting': 'Waiting for the game',
     'boot.reading': 'Reading telemetry straight from the game…',
 
     'menu.title': 'What do you want to see?',
@@ -304,6 +489,7 @@ const I18N = {
     'unit.mph': 'mph', 'unit.rpm': 'rpm', 'ers.short': 'ERS', 'pit.short': 'PIT',
     'state.lim': 'LIM',
     'map.title': 'TRACK MAP', 'pedals.title': 'PEDALS',
+    'map.vazio': 'No map yet. Drive a lap and it draws itself.',
     'wheel.title': 'STEERING', 'wheel.note': 'Steering angle, from -1 to 1. The range of the value is'
     + ' not confirmed yet, measured while driving.',
     'map.drsKey': 'DRS zone',
@@ -323,6 +509,7 @@ const I18N = {
     'tyres.measuring': 'measuring', 'tyres.perLap': 'per lap', 'tyres.needTwoLaps': 'Needs 2 laps before it can estimate', 'tyres.lapsOnThisSet': 'laps on this set',
     'tyres.surface': 'Tread temperature. The big number is the core, which is what the game shows.',
     'tyres.gripWhat': 'Tyre grip, 0 to 100, where 100 is the maximum. Not wear: the field is called `tyreWear` but it measures grip, which is why it drops only 0.45 per lap — grip changes slowly. The wear the Content Manager HUD shows is a different quantity, and the two do not convert.', 'tyres.pressTitle': 'Real pressure, in psi. The game shows the deviation from a nominal that is not published.',
+  'tyres.gastoWhat': 'Tyre wear, 0 to 100, where 100 is the end of its life. This number is how much HAS BEEN USED, and 0 is a new tyre. The game MFD shows the same percentage, and it is measured: with 2 laps of 21 the game read 10. In Assetto Corsa this same field is a different thing — it is grip, not wear.',
     'tyres.notWear': 'cannot tell',
     'tyres.notWearWhy': 'The wear the game publishes does not track a real stint: 0.17% after two laps, which would be 588 laps of life. There is no way to predict from it.',
     'tyres.lifeNote': 'Estimated from the wear that has already happened on this stint, not from a game table: Assetto Corsa does not publish the compound life. After two measured laps the number means something; before that it is a guess.',
@@ -345,7 +532,8 @@ const I18N = {
     'lb.time': 'TIME', 'lb.best': 'BEST', 'lb.gap': 'INT.',
     'lb.intTitle': 'Time to the car ahead. On the same lap it is the exact time it took him to pass the same point on track; otherwise it is an estimate from the pace of his last lap.',
     'lb.penalty': 'Penalty', 'lb.drs': 'DRS',
-    'foot.src': 'AC memory, no SimHub',
+    'foot.src.ac': 'shared memory, no SimHub',
+    'foot.src.f125': 'UDP, no SimHub',
     'status.live': 'LIVE', 'status.paused': 'PAUSED',
     'status.closed': 'GAME CLOSED', 'status.stale': 'last values',
     'sector': 'SECTOR', 'lapCount': 'LAP',
@@ -355,6 +543,60 @@ const I18N = {
     'opp.waiting': 'Waiting for opponent data.',
     'opp.how': 'The <b>AssettoCorsaTelemetry</b> app writes the memory page with the cars, and it is ours — it ships in the <b>python_app</b> folder of the project. Copy it to <b>assettocorsa/apps/python/actelemetry_strefiz/</b> and enable it in Content Manager (<b>Settings → Python Apps → AssettoCorsaTelemetry</b>). Check it started in the AC log, and that AC is in a session with other cars.',
     'opp.none': 'No cars in the session.', 'lb.pit': 'PIT',
+    'jog.title':
+      'Game',
+    'jog.sub':
+      'You can change it any time, here or in the settings.',
+    'jog.why':
+      'The game decides what the dashboard can show.',
+    'jog.abrir':
+      'Change game',
+    'jog.semJogos':
+      'The server did not return the list of games. Restart it and open this page again.',
+    'jog.precisaInstalar':
+      'Needs the app installed in the game',
+    'jog.divergencia':
+      'The browser still had <b>{outro}</b> from last time, but the server was started for <b>{jogo}</b>. Pick the one you want.',
+    'jog.escolher':
+      'Choose the game',
+    'abs.off':
+      'off',
+    'drs.on':
+      'on',
+    'drs.disp':
+      'available',
+    'f1.embraiagemDica':
+      'F1 25 sends the clutch from 0 to 100, with 100 fully engaged. The panel shows the opposite.',
+    'f1.volanteDica':
+      'F1 25 sends the steering normalised, from −1 to 1.',
+    'f1.absDica':
+      'F1 25 only says on or off. There is no percentage, and showing one would be inventing a number the game does not give.',
+    'f1.tcDica':
+      'In F1 25 traction control is a mode: off, medium or full. It is not a 0 to 100 level.',
+    'f1.tcMedio':
+      'medium',
+    'f1.tcCheio':
+      'full',
+    'f1.drsDica':
+      'F1 25 says how many metres are left to the DRS zone.',
+    'f1.vidaSemDados':
+      'The tyre packet has not arrived yet.',
+    'f1.vidaDica':
+      'Laps remaining, read from the game.',
+    'f1.combustivelDica':
+      'F1 25 sends the fuel in kilograms. Assetto Corsa sends litres.',
+    'ac.embraiagemDica':
+      'Assetto Corsa sends the clutch from 0 to 1, and 1.0 is ENGAGED. The panel shows the opposite.',
+    'ac.volanteDica':
+      'The steering angle, in radians. The limit is not written anywhere.',
+    'ac.absDica':
+      'The level the ABS is working at, measured at 0.13.',
+    'ac.tcDica':
+      'The level traction control is working at.',
+    'ac.drsDica':
+      'Assetto Corsa does not say where the DRS zone is. The panel measures the flag over a whole lap.',
+    'ac.combustivelDica':
+      'Assetto Corsa sends the fuel in litres.',
   },
 };
 
@@ -386,19 +628,76 @@ function t(k) {
   return k;
 }
 
-/* ------------------------------------------------------------ definicoes */
+/* ------------------------------------------------------------ definicoes
+ *
+ * A LISTA e as omissões não estão aqui: estão em `defs.js`, que é puro e
+ * corre no node. Este ficheiro só tem o que é do navegador — a chave de
+ * armazenamento e o `try` do `JSON.parse`.
+ *
+ * O que muda, e porquê:
+ *
+ * Antes era
+ *
+ *     DEF = Object.assign({}, DEFAULTS, JSON.parse(raw));
+ *
+ * que aceita o que vier. Medido no browser, com valores inventados no
+ * `localStorage`:
+ *
+ *     temp: 'banana'    -> ficava em Celsius, sem dizer nada
+ *     speed: 'knots'    -> ficava em km/h, sem dizer nada
+ *     lang: 'fr'        -> caía para português, com aviso (esse está tratado)
+ *     chaveInventada:42 -> sobrevivia, e voltava a ser gravada em cada save
+ *
+ * Um valor inventado também podia ser do TIPO errado: um `fps: "30"`
+ * passava como texto, e o `DEF.fps === 60` passava a ser falso, o botão
+ * dos 60 fps deixava de ficar aceso e o SSE ia pedir 60 Hz a um
+ * servidor que não dava. Três sítios, uma causa, nada a dizer.
+ *
+ * `Defs.validar` só deixa passar valores declarados, e devolve o valor
+ * DECLARADO — o `30` do esquema, não a string que estava guardada.
+ * As chaves que não estão no esquema não entram, o que também impede o
+ * ficheiro no `localStorage` de crescer sozinho com o que foi removido.
+ *
+ * O `ac_path` NÃO entra nisto: vive em `ac_settings.json`, no servidor,
+ * e é lido por um caminho próprio. Ver o `AGENTS.md`, e a fase que
+ * falta. */
 const DEF_KEY = 'acdef.v1';
-const DEFAULTS = { mode: null, temp: 'C', speed: 'kmh', lang: 'pt-PT', map: 'on', fps: 60, mapFlipX: false, mapFlipZ: false, mapView: 'inteira' };
-let DEF = Object.assign({}, DEFAULTS);
+let DEF = Defs.validar({});
 
 function loadDef() {
+  let bruto = null;
   try {
-    const raw = localStorage.getItem(DEF_KEY);
-    if (raw) DEF = Object.assign({}, DEFAULTS, JSON.parse(raw));
-  } catch (e) { /* ignora */ }
+    bruto = localStorage.getItem(DEF_KEY);
+  } catch (e) { /* sem armazenamento: as omissões servem */ }
+  if (!bruto) { DEF = Defs.validar({}); return; }
+  try {
+    DEF = Defs.validar(JSON.parse(bruto));
+  } catch (e) {
+    // JSON illegível. Não é a mesma coisa que um valor inválido: aqui
+    // não há nada para validar, e o painel precisa de uma omissão legal
+    // para não pintar lixo.
+    DEF = Defs.validar({});
+  }
 }
+
 function saveDef() {
   try { localStorage.setItem(DEF_KEY, JSON.stringify(DEF)); } catch (e) { /* ignora */ }
+}
+
+/* "Repor predefinições" volta tudo às omissões — menos a VISTA e o
+ * IDIOMA, que estão marcados com `manterNoReset` no esquema.
+ *
+ * O que NÃO é tocado, e é a razão de isto ser uma função e não um
+ * `localStorage.clear()`:
+ *
+ *   `acmap.v3`     o mapa desenhado, por pista. Desenhá-lo é conduzir.
+ *   `ac_settings.json`  a pasta do AC, que vive no servidor.
+ *
+ * Um `localStorage.clear()` apagava o mapa, e o utilizador perdia o
+ * traçado de todas as pistas por causa de um botão nas definições. */
+function resetDef() {
+  DEF = Defs.repor(DEF);
+  saveDef();
 }
 
 /* ------------------------------------------------------------ unidades */
@@ -729,13 +1028,50 @@ function resetMap(clearStorage) {
  * o enquadramento: a pista toda dentro da caixa, ou centrado no carro com
  * zoom.
  */
-function mapaEnquadramento(w, h, espW, espH, carroX, carroZ) {
+/* O enquadramento do mapa, e o UNICO sitio que decide onde cada ponto cai
+ * no canvas.
+ *
+ * Os dois ramos recebem as MESMAS COORDENADAS: as do mundo, cruas. E o que
+ * antes nao era verdade, e o que fazia a vista relativa estar errada.
+ *
+ *   ramo inteiro    px = ox + (x - origX) * sc
+ *   ramo relativo   px = w/2 + (x - carroX) * sc
+ *
+ * O primeiro precisa da origem porque a pista inteira tem de caber; o
+ * segundo nao, porque recentra no carro. Antes o caller subtractia a
+ * origem de TUDO, e no ramo relativo isso era subtrair duas vezes: o
+ * `carroX` ja' ia cru, e a camara ficava centrada longe do carro, num erro
+ * da ordem do `minX` -- centenas de metros numa pista larga.
+ *
+ * `pxPorM` diz quantos pixels vale um metro NESTE espaco:
+ *
+ *   mapa tracado   o espaco e' o mundo, e vale 1
+ *   mapa real      o espaco e' a imagem do jogo, e vale `rm.pxPerMetre`
+ *
+ * Sem isso, a vista de perto tratava PIXEIS DA IMAGEM como se fossem
+ * METROS: com `pxPerMetre` a 1,4, "150 m" eram 150 pixels, que sao 107 m.
+ * O zoom de perto estava errado pelo factor da imagem, e a diferenca
+ * mudava de pista para pista -- que e' a forma mais cara de um bug,
+ * porque numa pista pode parecer certo.
+ *
+ * Regra no 10, pela terceira vez: a transformacao parte do centro, com a
+ * origem DENTRO dela, e nao misturada com quem a chama. E Regra no 16: as
+ * duas vistas tem de usar a mesma convencao, e por isso sao as DUAS esta
+ * funcao. */
+function mapaEnquadramento(w, h, espW, espH, carroX, carroZ, origX, origZ, pxPorM) {
   const pad = 14;
   const inteira = Math.min((w - pad * 2) / espW, (h - pad * 2) / espH);
+  const porMetro = pxPorM || 1;
 
   if (DEF.mapView !== 'relativa' || carroX == null) {
     const ox = (w - espW * inteira) / 2, oy = (h - espH * inteira) / 2;
-    return { sc: inteira, px: (x) => ox + x * inteira, py: (y) => oy + y * inteira, relativa: false };
+    const dx = origX || 0, dz = origZ || 0;
+    return {
+      sc: inteira,
+      relativa: false,
+      px: (x) => ox + (x - dx) * inteira,
+      py: (y) => oy + (y - dz) * inteira
+    };
   }
 
   // Vista relativa: quão longe se ve, em metros, consoante a velocidade.
@@ -747,9 +1083,13 @@ function mapaEnquadramento(w, h, espW, espH, carroX, carroZ) {
   // tamanho da pista e via-se menos de um segundo à frente a 300 km/h —
   // o piloto pediu para não apertar tanto. 150 m é um compromise: dá para
   // ver a próxima curva sem a bola tapar a estrada.
+  // E 150 m CONVERTIDOS para pixels deste espaco. Era aqui que o bug
+  // estava: 150 e' uma medida, e o que o canvas mede e' o espaco em que as
+  // coordenadas vivem.
   const v = clamp(S.velSuave || 0, 0, 320);
   const t = clamp(v / 280, 0, 1);
-  const perto = Math.max(inteira, Math.min((w - pad * 2) / 150, (h - pad * 2) / 150));
+  const pertoPx = Math.max(1, 150 * porMetro);
+  const perto = Math.max(inteira, Math.min((w - pad * 2) / pertoPx, (h - pad * 2) / pertoPx));
   const longe = inteira;
   const sc = perto + (longe - perto) * t;
   return {
@@ -860,7 +1200,11 @@ function drawMapReal(c, w, h, rm) {
   // a posicao do carro, para a vista relativa poder centrar-se nela
   const ult = S.path.length ? S.path[S.path.length - 1] : null;
   const [carX, carZ] = ult ? worldToMapImg(rm, ult[0], ult[1]) : [null, null];
-  const q = mapaEnquadramento(w, h, iw, ih, carX, carZ);
+  // O espaço do mapa real e' a IMAGEM do jogo, e nao o mundo: por isso a
+  // origem e' zero e a escala vem do `map.ini`. Sem o `pxPorM`, a vista de
+  // perto tratava pixels da imagem como se fossem metros.
+  const q = mapaEnquadramento(w, h, iw, ih, carX, carZ, 0, 0,
+    (rm.pxPerMetre || 1));
   const sc = q.sc, px = q.px, py = q.py;
 
   c.save();
@@ -925,9 +1269,27 @@ function drawMapReal(c, w, h, rm) {
    encontrada nos ficheiros do jogo, ou pasta do AC nao configurada). */
 function drawMapTraced(c, w, h) {
   if (S.path.length < 2) {
-    c.fillStyle = '#555C5D'; c.font = '600 12px Titillium, sans-serif';
+    /* O QUE DIZER QUANDO O MAPA ESTA VAZIO
+     *
+     * Dizia o TITULO do mapa -- "MAPA DA PISTA" -- dentro do sitio onde o
+     * mapa devia estar. Nao e' mentira, mas nao ajuda: o painel mostrava
+     * um campo vazio sem razao, e quem conduz pensava que o mapa nao
+     * funcionava.
+     *
+     * E a razao importa porque **no F1 25 nao ha' mapa para carregar**:
+     * `/api/games` diz `temMapaFicheiro: false`. O Assetto Corsa tem
+     * `content/tracks/<pista>/map.png` e o F1 25 nao tem nada equivalente.
+     * Portanto no F1 25 o mapa so existe DEPOIS de conduzido, tracado a
+     * partir das posicoes -- e isso nao e' uma falha, e o que a frase tem
+     * de dizer.
+     *
+     * E a espera e' o jogo em pausa: o `pushMapPoint` esta' gateado por
+     * `d.connected && d.live` de proposito, para o mapa nao se encher de
+     * ruido nos menus. */
+    c.fillStyle = '#555C5D';
+    c.font = '600 12px Titillium, sans-serif';
     c.textAlign = 'center';
-    c.fillText(t('map.title'), w / 2, h / 2);
+    c.fillText(t('map.vazio'), w / 2, h / 2);
     return;
   }
 
@@ -946,10 +1308,15 @@ function drawMapTraced(c, w, h) {
   // O enquadramento vem de mapaEnquadramento, o mesmo que o mapa real usa:
   // as duas vistas nao podem divergir outra vez.
   const ult = S.path[S.path.length - 1];
-  const q = mapaEnquadramento(w, h, spanX, spanZ, ult ? ult[0] : null, ult ? ult[1] : null);
+  const q = mapaEnquadramento(w, h, spanX, spanZ, ult ? ult[0] : null,
+    ult ? ult[1] : null, S.minX, S.minY, 1);
   const sc = q.sc;
-  const px = (p) => q.px(p[0] - S.minX);
-  const py = (p) => q.py(p[1] - S.minY);
+  // As coordenadas CRUAS, porque e' assim que o `mapaEnquadramento` as
+  // quer nos dois ramos. Antes era `p[0] - S.minX`, e no ramo relativo isso
+  // era subtrair a origem duas vezes -- a camara ficava centrada longe do
+  // carro. Regra no 10: a origem e' da transformacao, nao de quem a chama.
+  const px = (p) => q.px(p[0]);
+  const py = (p) => q.py(p[1]);
 
   c.save();
   if (q.relativa) { c.beginPath(); c.rect(0, 0, w, h); c.clip(); }
@@ -1465,27 +1832,106 @@ function buildTyres(hostId) {
     host.appendChild(d);
   }
 }
+/* A temperatura de cada roda, TIDA AO MODULO DO JOGO.
+ *
+ * Este desenho nao conhece os nomes dos campos. Nao sabe que o AC manda
+ * `tyreCore` e que o F1 25 manda `tyreTempInner`, e nao tem de saber:
+ * quem traduz e' o modulo do jogo, na fronteira, e devolve o mesmo par
+ * para os dois -- `principal` (o numero grande) e `secundario` (o
+ * pequeno).
+ *
+ * Antes lia `d.tyreCore`, e no F1 25 a carta mostrava
+ * `FL -- 15.5 -- 24.6 psi`: o travessao no sitio da temperatura. Os
+ * valores CHEGAVAM -- superficie 49 a 61, interior 96 a 101, medido em
+ * Abu Dhabi -- e nao aparecia nada, porque o campo que se lia nao existe
+ * naquele jogo.
+ *
+ * Regra no 22: a traducao acontece uma vez, na fronteira, e nunca dentro
+ * da logica de desenho. E Regra no 19 pelo avesso: um `--` parece uma
+ * medida em falta, e nao um campo que se leu pelo nome errado.
+ *
+ * Sem modulo carregado -- antes da escolha do jogo, ou se um modulo vier
+ * sem `tempPneu` -- devolve nulos, e o desenho escreve o travessao. E a
+ * resposta honesta: nao se sabe, escreve-se que nao se sabe. */
+function tempDoPneu(d) {
+  const m = globalThis.Jogos && globalThis.Jogos.atual();
+  if (!m || !m.tempPneu) return { principal: null, secundario: null };
+  const t = m.tempPneu(d);
+  return t || { principal: null, secundario: null };
+}
+
+/* O combustivel, TIDO AO MODULO DO JOGO, pela razao da temperatura: os
+ * dois modulos ja' devolvem `{txt, pct, laps, unidade}` com a unidade
+ * certa -- `L` no AC e `kg` no F1 25 -- e a pintura nao usava nada
+ * disso. Lia `d.fuelL`, que no F1 25 nao existe, e escrevia "0.0 L" com
+ * 7,34 quilos no deposito.
+ *
+ * E o pior resultado possivel: mostrava ZERO LITROS com o tanque cheio, e
+ * "0" parece um numero que ninguem questiona. E' pior do que o "0%" do
+ * ERS, porque aqui o valor certo -- 7,34 -- ESTAVA NO PAYLOAD.
+ *
+ * Regra no 24: a unidade nunca se converte para ser mostrada, escreve-se a
+ * que o jogo manda. E Regra no 22: quem traduz e' o modulo. */
+/* O QUE O NUMERO DO PNEU E': a pergunta que o desenho nao pode fazer,
+ * e a mesma que a temperatura. O `app.js` pintava este valor com a
+ * etiqueta de "aderencia" nos QUATRO idiomas, e punha a vermelho o
+ * que fosse menor que 20.
+ *
+ * No AC isso esta' certo: `tyreWear` e' aderencia, 100 e' o maximo, e um
+ * numero pequeno e' um pneu sem pegadela. No F1 25 e' o contrario --
+ * MEDIDO, e `m_tyresWear` e' quanto ja' foi usado. La um 10 e' um pneu
+ * NOVO, e aparecia a vermelho a dizer "aderencia baixa".
+ *
+ * A correccao nao e' inverter a regra no desenho: e' perguntar ao modulo
+ * do jogo, que e' quem sabe (Regra no 22). O modulo devolve o VALOR e o
+ * SENTIDO, e a pintura decide a cor -- porque a cor e' apresentacao, e
+ * a apresentacao e' uma coisa so para os dois jogos (Regra no 30).
+ *
+ * Sem modulo carregado -- antes da escolha do jogo -- assume-se o que
+ * havia, que e' o do AC. Nao ha' dados para pintar nessa altura, por isso
+ * a diferenca nao se ve; e se um modulo vier sem este metodo, mostrar
+ * zero e' melhor do que nao mostrar nada.
+ */
+function desgasteDoPneu(d, i) {
+  const m = globalThis.Jogos && globalThis.Jogos.atual();
+  const v = (d.tyreWear && d.tyreWear[i] != null) ? d.tyreWear[i] : null;
+  const semModulo = { valor: v, aoContrario: false, dica: 'tyres.gripWhat' };
+  if (!m || !m.desgastePneu) return semModulo;
+  return m.desgastePneu(d, i) || semModulo;
+}
+
+function combustivelDoJogo(d) {
+  const m = globalThis.Jogos && globalThis.Jogos.atual();
+  if (!m || !m.combustivel) return null;
+  return m.combustivel(d) || null;
+}
+
 function renderTyres(hostId, d) {
   for (let i = 0; i < 4; i++) {
-    // O numero grande e' o NUCLEO, nao a superficie. Medido contra o
-    // ecra do jogo, no mesmo instante (pausa):
+    // O numero grande e' o `principal` do modulo do jogo, e o pequeno e' o
+    // `secundario`. Este desenho nao conhece os NOME dos campos: nao sabe
+    // que o AC manda `tyreCore` e o F1 25 manda `tyreTempInner`, e nao tem
+    // de saber. Quem traduz e' o modulo, na fronteira, e devolve o mesmo
+    // par para os dois.
     //
-    //   roda   jogo   tyreCore   tyreTempM (superficie)
-    //   FL     118        115            72
-    //   FR      82         92            68
-    //   RL     119        117            83
-    //   RR     108        107            82
-    //
-    // O jogo mostra o nucleo. O site mostrava a superficie, que sao 40 C
-    // menos -- e comparing os dois numeros, o do site pareceva errado.
-    // E o nucleo que interessa: e' a temperatura que diz se o pneu esta'
-    // na janela de trabalho.
-    const core = (d.tyreCore && d.tyreCore[i]) || 0;
+    // A escolha de qual e' o grande e' um juizo POR JOGO -- no AC e' o
+    // nucleo, no F1 25 e' a carcasse -- e por isso esta' nos dois modulos,
+    // com a medida que a sustenta. Um comentario aqui a justificar uma
+    // decisao que pertence ao modulo fica do lado errado, e daqui a um ano
+    // ninguem sabe se a medida ainda se aplica ao jogo novo. Regra no 22.
+    // NUNCA `t`. O `t` deste ficheiro e' a funcao de traducao, e e' usada
+    // dezenas de vezes: `const t = ...` aqui escondia-a, e o
+    // `t('tyres.surface')` duas linhas abaixo rebentava com
+    // "t is not a function" -- o que ABORTA O RENDER INTEIRO a meio, e o
+    // painel ficava com o pneu 0 pintada e nada mais. Nem desgaste, nem
+    // pressao, nem combustivel, nem setores. Foi lido como "faltam coisas".
+    const tPneu = tempDoPneu(d);
+    const core = (tPneu.principal && tPneu.principal[i]) || 0;
     setTxt(hostId + '-t' + i, core ? fmtTemp(core) + unidadeTemp() : '--');
     const te = $(hostId + '-t' + i);
     if (te) te.style.color = tempColor(core);
-    // a superficie vai ao lado da pressao, em corpo pequeno
-    const sup = (d.tyreTempM && d.tyreTempM[i]) || 0;
+    // o outro numero, ao lado da pressao, em corpo pequeno
+    const sup = (tPneu.secundario && tPneu.secundario[i]) || 0;
     setTxt(hostId + '-s' + i, sup ? fmtTemp(sup) + '°' : '--');
     const se = $(hostId + '-s' + i);
     if (se) se.title = t('tyres.surface');
@@ -1533,19 +1979,30 @@ function renderTyres(hostId, d) {
     // e sem intervalo. A do AC base esta cifrada e nao se consegue ler.
     // Portanto o nome vem da implementacao de outra pessoa e da medicao,
     // e nao da documentacao -- que fica escrito para quem vier depois.
-    const ader = (d.tyreWear && d.tyreWear[i] != null) ? d.tyreWear[i] : null;
-    setTxt(hostId + '-w' + i, ader == null ? '—' : ader.toFixed(1));
+    const dg = desgasteDoPneu(d, i);
+    const val = dg.valor;
+    setTxt(hostId + '-w' + i, val == null ? '—' : val.toFixed(1));
     const we = $(hostId + '-w' + i);
     if (we) {
-      // Os limiares voltam. Para um sinal de ADERENCIA, 40 e 20 sao de
-      // facto alarmedores -- era por isso que nunca disparavam: porque
-      // o campo nunca descia dos 98. Nao era o limiar que estava mal,
-      // era o NOME, que punha um sinal de aderencia a ser lido como
-      // desgaste restante.
-      const cls = ader == null ? ''
-        : ader <= 20 ? ' bad' : ader <= 40 ? ' warn' : '';
+      /* A COR SAI DA GRAVIDADE, e nao do numero cru. Gravidade e' quanto
+       * falta para o pior: 0 e' impecavel, 1 e' o fim.
+       *
+       *   aoContrario = false  ->  1 - v / 100    (AC, aderencia)
+       *   aoContrario = true   ->      v / 100    (F1 25, desgaste)
+       *
+       * E o que garante que os limiares NAO mudam para o AC: com
+       * `aoContrario: false`, gravidade >= 0,8 equivale a v <= 20 e
+       * gravidade >= 0,6 equivale a v <= 40 -- exactamente o que estava
+       * escrito a mao. A correccao do F1 25 nao mexe no AC, e e' por
+       * isso que isto se escreve como gravidade e nao como uma segunda
+       * regra com os numeros ao lado. */
+      const grav = val == null ? null
+        : dg.aoContrario ? val / 100 : 1 - val / 100;
+      const cls = grav == null ? ''
+        : grav >= 0.8 ? ' bad' : grav >= 0.6 ? ' warn' : '';
       we.className = 'tyre-worn' + cls;
-      we.title = t('tyres.gripWhat') + (ader == null ? '' : ' ' + ader.toFixed(1));
+      // A dica e' DO JOGO: no AC e' aderencia, no F1 25 e' desgaste usado.
+      we.title = t(dg.dica) + (val == null ? '' : ' ' + val.toFixed(1));
     }
     drawTyreBar(hostId + '-b' + i, core);
     // psi, e nao kPa. Medido num F1: 28.7 a 32.3. Se fossem kPa seriam
@@ -1643,10 +2100,18 @@ function renderCombustivel(d) {
   // para a cor, e tem de ser a mesma nos dois: se cada um normalizasse
   // a seu jeito, um dia uma delas recebia 0 e a outra null, e a cor
   // dizia 'acabou o combustivel' no frame em que o alerta calava.
-  const pct = (typeof d.fuelPct === 'number' && isFinite(d.fuelPct))
-    ? d.fuelPct : null;
+  // A percentagem vem do MODULO, que a calcula a partir da unidade do
+  // jogo: `7.34 / 110` no F1 25 e `7.34 / 100` no AC dao numeros
+  // diferentes, e so' um deles e' o que o jogo esta' a mostrar.
+  const pct = (comb && typeof comb.pct === 'number') ? comb.pct
+    : ((typeof d.fuelPct === 'number' && isFinite(d.fuelPct)) ? d.fuelPct : null);
   const r = Combustivel.estimarCombustivel(S.combustivel, {
-    litros: d.fuelL,
+    // A QUANTIDADE e' a do modulo, na UNIDADE do jogo. Passar `d.fuelL`
+    // mandava ZERO ao estimador no F1 25, e a estimativa de voltas ficava
+    // sempre a `a medir` sem razao nenhuma. A unidade e' a do jogo porque
+    // o estimador mede uma RACAO -- quanto por volta -- e uma razao de
+    // quilos por volta e' valida como uma de litros.
+    quanto: (comb && comb.txt && comb.txt !== '--') ? Number(comb.txt) : null,
     voltas: d.lap,
     connected: !!d.connected
   }, pct);
@@ -1850,6 +2315,14 @@ function applyLang() {
   });
   document.title = t('app.title');
   applyUnits();
+  // O rodape' do jogo e' a unica linha que descreve COMO se le o jogo, e
+  // por isso e' escrita a mao em vez de levar `data-i18n`. Sem esta
+  // chamada, mudar de idioma deixava "shared memory, no SimHub" em
+  // ingles num painel em portugues -- e a troca de jogo voltava a ter de
+  // ficar aEtiqueta errada quando o painel tinha so' o AC.
+  if (typeof globalThis.AplicarJogoNaInterface === 'function') {
+    globalThis.AplicarJogoNaInterface();
+  }
   if (typeof syncDrsMarkUI === 'function') syncDrsMarkUI();
   if (typeof loadAcPathSettings === 'function') loadAcPathSettings();
 }
@@ -2105,6 +2578,32 @@ function syncDrsMarkUI() {
    paginas. Nao se inventa: mostra-se o que o jogo publica, que e' o
    efeito do clima - ar, pista, densidade, vento - e a aderencia, que e'
    o unico sinal de pista molhada. */
+
+/* A luz e a barra do ERS, a partir do modulo.
+ *
+ * A DECISAO -- percentagem com maximo, joules sem -- esta' em
+ * `nucleo/ers.js`, e nao aqui, porque ja' errou uma vez: o `|| 0` escrevia
+ * "ERS 0%" com 1 105 744 J guardados. Um numero plausivel e errado nao
+ * se denuncia sozinho (Regra no 19), e uma decisao dessas que fique no
+ * meio do codigo de pintura nao se testa.
+ *
+ * Aqui so fica o desenho, e a barra ESCONDE quando nao ha' percentagem:
+ * pintar a zero seria afirmar que a bateria esta' a zeros. */
+function pintarErs(idLuz, idBarra, d) {
+  const e = Ers.estadoErs(d);
+  setLight(idLuz, e.texto, e.estado);
+  const b = $(idBarra);
+  if (!b) return;
+  if (e.pct === null) {
+    b.style.width = '0%';
+    b.classList.add('hidden');
+    return;
+  }
+  b.classList.remove('hidden');
+  b.style.width = e.pct + '%';
+  b.classList.toggle('low', e.pct <= 20);
+}
+
 
 function pintarClima(d) {
   // escrever nos dois modos, para o clima nao desaparecer ao mudar de vista
@@ -2495,11 +2994,10 @@ function render(d) {
   $('rpm-fill').style.width = (100 - pct) + '%';
   setTxt('shift-hint', pct > 92 ? '▲' : '');
 
-  const hasE = d.hasERS || d.hasKERS;
-  setLight('l-ers', hasE ? Math.round(d.ersPct || 0) + '%' : '—',
-    hasE ? ((d.ersPct || 0) > 25 ? 'on' : 'warn') : '');
-  const eb = $('ers-bar');
-  if (eb) { eb.style.width = clamp(d.ersPct || 0, 0, 100) + '%'; eb.classList.toggle('low', (d.ersPct || 0) <= 20); }
+  // O ERS, por `estadoErs()`: com maximo e' percentagem, sem maximo e' os
+  // joules e a barra desaparece. O `|| 0` que estava aqui dava "0%" ao F1
+  // 25, que tem bateria e nao diz quanto cabe.
+  pintarErs('l-ers', 'ers-bar', d);
   // ABS e TC sao o NIVEL de ajuste, nao "esta a actuar". Medido: em 4502
   // amostras com travagens duras e aceleracao a fundo, os dois ficaram
   // constantes (0.13 e 0.08). Antes isto mostrava "OFF" sempre que o
@@ -2559,10 +3057,17 @@ function render(d) {
   renderBrakeBias(d);
 
   // combustivel
-  setTxt('fuel-pct', Math.round(d.fuelPct || 0));
-  $('fuel-bar').style.width = clamp(d.fuelPct || 0, 0, 100) + '%';
-  setTxt('fuel-l', (d.fuelL || 0).toFixed(1) + ' L');
-  renderCombustivel(d);
+  //
+  // A quantidade e a UNIDADE sao do modulo do jogo. Antes era
+  // `d.fuelL || 0` e a letra "L" escrita a mao, e no F1 25 -- que manda
+  // QUILOS -- dava "0.0 L" com 7,34 kg no deposito. Ver
+  // `combustivelDoJogo()`.
+  const comb = combustivelDoJogo(d);
+  const pctComb = (comb && typeof comb.pct === 'number') ? comb.pct : d.fuelPct;
+  setTxt('fuel-pct', Math.round(pctComb || 0));
+  $('fuel-bar').style.width = clamp(pctComb || 0, 0, 100) + '%';
+  setTxt('fuel-l', comb ? comb.txt + ' ' + comb.unidade : '—');
+  renderCombustivel(d, comb);
   setTxt('temps', fmtTemp(d.airTemp || 0) + ' / ' + fmtTemp(d.roadTemp || 0) + ' ' + tUnit());
   const pe = $('pen-time');
   if (pe) {
@@ -2612,8 +3117,7 @@ function render(d) {
   setTxt('b-gear', d.gear || 'N');
   setTxt('b-rpm', d.rpm || 0);
   $('b-rpm-fill').style.width = (100 - clamp((d.rpm || 0) / (d.maxRpm || 12000) * 100, 0, 100)) + '%';
-  setLight('b-l-ers', hasE ? Math.round(d.ersPct || 0) + '%' : '—', hasE ? 'on' : '');
-  $('b-ers-bar').style.width = clamp(d.ersPct || 0, 0, 100) + '%';
+  pintarErs('b-l-ers', 'b-ers-bar', d);
   setLight('b-l-pit', d.pitLimiter ? t('state.lim') : d.isInPit ? t('lb.pit') : '—',
     d.pitLimiter ? 'bad' : d.isInPit ? 'warn' : '');
   setTxt('b-trackpct', (clamp(d.trackPct || 0, 0, 1) * 100).toFixed(1) + '%');
@@ -2631,7 +3135,12 @@ function render(d) {
   setTxt('m-pen', d.penaltyTime > 0 ? '+' + d.penaltyTime + ' s' : (d.penaltiesEnabled ? t('fuel.none') : '—'));
   setTxt('m-drs', !d.hasDRS ? '—' : dr.on ? t('drs.open') : dr.avail ? t('drs.avail') : t('drs.off'));
   setTxt('m-brake', (d.brakeTemp || []).map((v) => fmtTemp(v)).join(' ') || '—');
-  setTxt('m-fuel', Math.round(d.fuelPct || 0) + '% · ' + (d.fuelL || 0).toFixed(0) + ' L');
+  // O combustivel tambem vem do modulo, e pela mesma razao do modo
+  // central: `d.fuelL` no F1 25 dava "0 L" com 7,34 kg no deposito.
+  const mComb = combustivelDoJogo(d);
+  setTxt('m-fuel', mComb
+    ? Math.round(mComb.pct || 0) + '% · ' + mComb.txt + ' ' + mComb.unidade
+    : '—');
   renderTyres('tyres3', d);
 
   lastD = d;
@@ -2961,6 +3470,231 @@ function loop() {
 }
 
 /* ------------------------------------------------------------ arranque */
+/* O ecra de escolha do jogo, e a ligacao ao modulo.
+ *
+ * Este e' o unico sitio do `app.js` que sabe que ha' mais do que um
+ * jogo, e ele delega tudo no `Jogos` (`static/jogos/seletor.js`). O que
+ * fica aqui e' o que e' FRONTEND: desenhar os botoes, por a nota da
+ * instrucao correcta ao lado, e abrir e fechar o ecra.
+ *
+ * ---------------------------------------------------------------------------
+ * A ORDEM DO ARRANQUE, E POR QUE ESTA NESTA
+ * ---------------------------------------------------------------------------
+ * Nao e' arbitraria, e cada passo esta' aqui por causa de uma coisa que
+ * dava errado na ordem contraria:
+ *
+ *   1. as DEFINICOES locais, para o painel saber o idioma e as unidades
+ *      ANTES de pintar seja o que for. Sem isto, o primeiro frame
+ *      aparece em ingles -- porque as traducoes ainda nao foram
+ *      aplicadas -- e salta para o portugues um instante depois. E'
+ *      um salto visivel que se nota a cada arranque.
+ *
+ *   2. a LISTA DE JOGOS, que vem do servidor. E' a unica ida e volta que
+ *      bloqueia, e bloqueia por uma razao: um ecra de escolha com um
+ *      botao a menos e' melhor do que um ecra de escolha que promete um
+ *      jogo que o servidor nao tem. Escrever os dois botoes no HTML
+ *      seria mostrar ao utilizador um jogo que o servidor nao conhece.
+ *
+ *   3. o JOGO. Se ja' ha' escolha guardada, aplica-se sem perguntar; se
+ *      nao ha', mostra-se o ecra. E' este o passo que decide que modulo
+ *      fica carregado.
+ *
+ * E o SSE so' e' ligado DEPOIS do passo 3, nunca antes. Ligar a
+ * telemetria antes de saber o jogo e' ouvir o AC e estar a pintar o
+ * F1 25 -- e nao ha' nenhum sinal de erro no ecra, porque os dois estao
+ * a falar do mesmo `Hub`. E' a mesma classe de bug da Regra no 16, com
+ * duas vistas do mesmo mundo e convencoes diferentes. */
+function montarEcraJogos(notaDeDesacordo) {
+  const lista = document.getElementById('jogos-lista');
+  const nota = document.getElementById('jogos-nota');
+  if (!lista) return;
+  const hoje = globalThis.Jogos.lista.jogos;
+  if (!hoje || !hoje.length) {
+    /* O servidor respondeu e nao tem jogos. Nao se inventa uma lista
+     * aqui: um botao para um jogo que o servidor nao tem e' um botao que
+     * nao faz nada, e nao faz nada sem dizer porquê. */
+    if (nota) nota.innerHTML = notaDeDesacordo || esc(t('jog.semJogos'));
+    return;
+  }
+  lista.innerHTML = hoje.map((j) => {
+    /* O botao diz o que e' preciso fazer para aquele jogo aparecer.
+     *
+     * Escolher mal e' mais barato do que escolher e nao ver nada, e um
+     * painel vazio sem instrucao e' a pior das tres situacoes: nao se
+     * sabe se o jogo esta' ligado, se o socket esta' aberto, ou se a app
+     * nao esta' instalada. Sao tres instrucoes completamente diferentes,
+     * e trocar uma pela outra e' a forma mais rapida de perder a
+     * confianca de quem esta' a tentar usar isto. */
+    const extra = j.precisaInstalar
+      ? '<small class="jogo-nota">' + esc(j.precisaInstalar ? t('jog.precisaInstalar') : '') + '</small>'
+      : '';
+    return '<button class="menu-card jogo-card" data-jogo="' + esc(j.id) + '">' +
+      '<span class="mc-ico" aria-hidden="true"><svg viewBox="0 0 40 28">' +
+      '<circle cx="13" cy="14" r="8" fill="none" stroke="currentColor" stroke-width="2.4"/>' +
+      '<circle cx="13" cy="14" r="2.4" fill="currentColor"/>' +
+      '<path d="M21 14h14M30 8v12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>' +
+      '</svg></span>' +
+      '<b>' + esc(j.nome) + '</b>' +
+      '<small>' + esc(j.transporte || '') + '</small>' + extra +
+      '</button>';
+  }).join('');
+  lista.querySelectorAll('button[data-jogo]').forEach((b) => {
+    b.addEventListener('click', () => {
+      const id = b.getAttribute('data-jogo');
+      fecharEcraJogos();
+      globalThis.Jogos.escolher(id).then(arrancarAposEscolher);
+    });
+  });
+}
+
+/* ESCOLHER O JOGO TAMBIM DESDE O ECRA DE ESPERA.
+ *
+ * Faltava a linha que esconde o `#boot`, e e' a mesma que o `showMenu()`
+ * ja' tem. Sem ela o ecra de escolha abre POR BAIXO do ecra de espera: o
+ * boot e' `z-index:60` e o overlay e' `z-index:50`, e quem abre a pagina
+ * ve "A aguardar o jogo" por cima de uns botoes que nao aparecem.
+ *
+ * Medido no browser antes da correccao:
+ *
+ *     #boot     VISIVEL 1223x886   z-index 60
+ *     #jogos    VISIVEL 1223x886   z-index 50
+ *     main.app  display:none
+ *
+ * E o `main.app` estava `display:none` porque o painel so aparece depois
+ * de escolhida a VISTA -- por isso o `#btn-jogo` do cabecalho, que se
+ * acabou de ligar, tinha zero de tamanho e nao tinha onde ser clicado.
+ * Ligar o botao foi preciso e nao chegou.
+ *
+ * O `z-index` nao se mexe: o `60` do boot e' o que o poe a cima de tudo, e
+ * isso e' certo para uma espera. O que estava errado e' o boot continuar
+ * visivel por cima de um ecra que se abriu depois dele. */
+function abrirEcraJogos(nota) {
+  montarEcraJogos(nota);
+  const e = document.getElementById('jogos');
+  if (e) e.classList.remove('hidden');
+  $('boot').classList.add('hidden');
+  /* `inert` e' "isto nao aceita cliques nem foco". NAO e' uma marcacao
+   * de "isto e' modal" -- e o `showMenu()` tem o modelo, e e' o contrario
+   * disto:
+   *
+   *     $('app').inert = true;      // a APLICACAO de baixo
+   *
+   * Um ecra `aria-modal` tem de ser INTERACTIVEL, e o que esta' por baixo
+   * e' que nao entra na tabulacao. Tive-o ao contrario, e o resultado foi
+   * um ecra de escolha que se via e nao se podia clicar: os cartoes tinham
+   * 453x181 e o clique no centro acertava o `<body>`.
+   *
+   * Nao da' erro nenhum, que e' o que faz isto passar sem o dizer: os ids
+   * existem todos, o ecra tem tamanho, e os 33 grupos da suite passam.
+   * Um `inert` no sitio errado e' invisivel para tudo o que nao abrir o
+   * browser e clicar. */
+  $('app').inert = true;
+  $('jogos').inert = false;
+  if (globalThis.FecharGavetaAberta) globalThis.FecharGavetaAberta();
+}
+/* Fechar o ecra de escolha VOLTA ao ecra de espera, e nao ao painel.
+ *
+ * Sem isto, fechar o ecra de escolha deixava o ecra inteiro a vazio: nem
+ * o painel, que so aparece depois de escolhida a vista, nem a espera, que
+ * esconder ja' estava. O ecra de espera e' o estado HONESTO depois de
+ * escolher um jogo que ainda nao da' telemetria -- e' o que diz que o
+ * painel esta' vivo e a espera pelo jogo. */
+function fecharEcraJogos() {
+  const e = document.getElementById('jogos');
+  if (e) e.classList.add('hidden');
+  $('app').inert = false;
+  $('boot').classList.remove('hidden');
+}
+
+/* O nome do jogo no rodape.
+ *
+ * E' o unico sitio onde se diz de que jogo se esta' a falar, e e' o que
+ * impede a confusao de um painel que mostra o F1 25 com a telemetria do
+ * AC por tras. Um painel sem isto mostra os mesmos numeros nos dois
+ * jogos, e quem os conhece nao sabe qual esta' a ver. */
+function mostrarJogoNaInterface() {
+  const m = globalThis.Jogos.atual();
+  const el = document.getElementById('foot-jogo');
+  if (el && m) el.textContent = m.nome;
+
+  /* O ESQUEMA DAS DEFINICOES DEPENDE DO JOGO, e esta e' a unica linha
+   * que lho diz.
+   *
+   * O AC publica litros e o F1 25 publica quilos, e o F1 25 nao publica
+   * vento. Quem publica a unidade e' o modulo do jogo -- e' ele que sabe
+   * de que campo o numero veio -- e o `defs.js` nao tem uma tabela
+   * "unidades por jogo" porque isso seria um segundo sitio a saber o
+   * que cada jogo manda, ao lado do modulo que ja' o diz.
+   *
+   * E ANTES de validar, nunca depois. O que se validou contra as
+   * unidades do jogo anterior e' um valor que ja' nao e' legal, e
+   * guardar esse valor e' a forma de o painel pintar "1.0 lb" a partir
+   * de um numero em litros. O que a `validar` devolve e' a unidade que
+   * o jogo manda, porque e' a unica que tem significado antes de haver
+   * uma medicao. Regra no 24. */
+  if (m && m.UNIDADES) {
+    Defs.usarJogo(m.id, m.UNIDADES);
+    DEF = Defs.validar(DEF);
+    saveDef();
+    applyUnits();
+  }
+
+  /* A SEGUNDA linha do rodape' tambem descreve o jogo, e por isso tambem
+   * e' por jogo. Era um texto fixo -- "memoria do AC, sem SimHub" nos
+   * quatro idiomas -- que ficava no ecra' com o F1 25 escolhido, ao lado
+   * de "F1 25" na primeira. Duas linhas a dizer de que jogo se trata, uma
+   * certa e outra errada, e a errada e' a que tem a forma de frase: e' a
+   * que se le sem reparar.
+   *
+   * A correccao e' `foot.src.<id>`, e nao texto tirado do modulo do jogo,
+   * porque a traducao vive em UM sitio (a skill `documentacao` diz que
+   * e' o `app.js`) e partida por jogos deixaria de se contar o I18N
+   * inteiro. E o `auditar_frontend.py` passa a exigir a chave nos quatro
+   * idiomas para cada jogo registado.
+   *
+   * Se a chave faltar, fica o texto cru do jogo em vez de uma frase de
+   * outro: e' feio, mas nao e' uma mentira. */
+  const id = globalThis.Jogos.idAtivo();
+  const info = (globalThis.Jogos.lista.jogos || [])
+    .find((j) => j.id === id);
+  const elSrc = document.getElementById('foot-src');
+  if (elSrc) {
+    const txt = t('foot.src.' + id);
+    // o `transporte` vem da lista e nao do modulo: `Jogos.atual()` sao
+    // as REGRAS do jogo, e nao os dados de como se le o jogo.
+    elSrc.textContent = (txt === 'foot.src.' + id)
+      ? ((info && info.transporte) || '')
+      : txt;
+  }
+
+  document.querySelectorAll('#set-jogo button').forEach((b) => {
+    b.classList.toggle('on', b.getAttribute('data-v') === globalThis.Jogos.idAtivo());
+  });
+  const nota = document.getElementById('set-jogo-nota');
+  if (nota) {
+    nota.textContent = (info && info.instrucao) ? info.instrucao : '';
+  }
+}
+
+function montarDefinicoesJogo() {
+  const host = document.getElementById('set-jogo');
+  if (!host) return;
+  const hoje = globalThis.Jogos.lista.jogos;
+  if (!hoje || !hoje.length) { host.innerHTML = ''; return; }
+  host.innerHTML = hoje.map((j) =>
+    '<button data-v="' + esc(j.id) + '">' + esc(j.nome) + '</button>').join('');
+  host.querySelectorAll('button[data-v]').forEach((b) => {
+    b.addEventListener('click', () => {
+      /* Trocar de jogo a partir das definicoes NAO reinicia o painel: o
+       * mapa continua (esta' no `localStorage`), as voltas de referencia
+       * continuam, e a ligacao SSE continua. Perder tudo isso por trocar
+       * de jogo seria o pior de trocar de jogo. */
+      globalThis.Jogos.escolher(b.getAttribute('data-v'));
+    });
+  });
+  mostrarJogoNaInterface();
+}
+
 function boot() {
   loadDef();
   applyLang();
@@ -2968,15 +3702,89 @@ function boot() {
   buildTyres('tyres2');
   buildTyres('tyres3');
   bindSettings();
+  /* O BOTAO DE ESCOLHER O JOGO, que existia sem handler nenhum.
+   *
+   * O `#btn-jogo` estava no `index.html` desde o inicio, com icone,
+   * com `aria-label` e com a chave `jog.abrir` nos quatro idiomas --
+   * e sem um unico listener. O unico sitio que abria o ecra de escolha
+   * era o arranque, e so na primeira vez, porque a escolha fica no
+   * `localStorage` para sempre.
+   *
+   * O resultado era um painel que abria, nao perguntava nada, e ficava a
+   * aguardar um jogo -- e sem caminho para trocar. O comentario do
+   * proprio HTML diz que este botao e' "o unico sitio onde se troca de
+   * jogo sem reiniciar o servidor", e ele nao fazia nada.
+   *
+   * Sem guarda: o ecra ja' esta' no HTML e `abrirEcraJogos` e'
+   * idempotente -- chama-la duas vezes nao estraga nada. */
+  $('btn-jogo').addEventListener('click', () => abrirEcraJogos());
+  /* E O BOTAO DO ECRA DE ESPERA, que e' onde se chega na pratica.
+   *
+   * Durante a espera o ecra cobre tudo a `z-index:60`, e o `main.app`
+   * esta' a `display:none` porque a vista ainda nao foi escolhida --
+   * entao o `#btn-jogo` do cabecalho tem zero de tamanho e nao ha' nada
+   * para clicar. Sem este botao, quem abre o painel com o jogo errado ve
+   * uma roda a girar e nenhuma opcao. */
+  $('boot-jogo').addEventListener('click', () => abrirEcraJogos());
   syncSettingsUI();
   applyMode();
   document.body.classList.remove('booting');
+
+  globalThis.Jogos.lerLista().then(() => {
+    montarDefinicoesJogo();
+    const jaEscolheu = globalThis.Jogos.lista.escolha;
+    const doServidor = globalThis.Jogos.lista.servidor;
+
+    if (jaEscolheu && doServidor && jaEscolheu !== doServidor) {
+      /* O SERVIDOR E' O BROWSER, E VAOO DIFERENTE.
+       *
+       * O servidor foi arrancado com `--jogo f125` na linha de comando:
+       * essa e' a intencao de quem o arrancou, e e' explicita. O
+       * `localStorage` e' do browser, e pode ser de uma sessao em que se
+       * jogou o outro.
+       *
+       * A versao anterior reenviava a escolha do browser ao servidor, e o
+       * servidor trocava -- em silencio. O comentario logo ao lado dizia
+       * "quem ganha e' o servidor", e o codigo fazia o contrario. O
+       * resultado era um painel a mostrar a telemetria de um jogo que
+       * ninguem pediu, com o rodape' a dizer o nome desse jogo, e sem nada
+       * no ecra' que explicasse porque.
+       *
+       * Um desacordo nao se resolve a adivinhar: pergunta-se. E a nota diz
+       * qual dos dois esta' a mandar, para quem escolhe saber o que
+       * estava a acontecer. */
+      const nomeDe = (id) => {
+        const j = (globalThis.Jogos.lista.jogos || []).find(x => x.id === id);
+        return (j && j.nome) || id;
+      };
+      abrirEcraJogos(t('jog.divergencia')
+        .replace('{jogo}', esc(nomeDe(doServidor)))
+        .replace('{outro}', esc(nomeDe(jaEscolheu))));
+    } else if (jaEscolheu) {
+      /* Havia escolha guardada E o servidor esta' no mesmo jogo. Reenvia-se
+       * na mesma, porque o `localStorage` e' do browser e o ficheiro de
+       * definicoes e' do servidor: podem discordar, e quem ganha e' o
+       * servidor. */
+      globalThis.Jogos.escolher(jaEscolheu).then(arrancarAposEscolher);
+    } else {
+      /* NINGUEM jogo escolhido: o ecra de escolha e' a primeira coisa que
+       * aparece. E nao o menu de vista, porque a vista e' uma escolha
+       * MENOR e trocar de jogo depois obriga a recarregar a pagina. */
+      abrirEcraJogos();
+    }
+  });
+}
+
+/* Tudo o que se liga depois de o jogo estar escolhido. */
+let _jaArrancou = false;
+function arrancarAposEscolher() {
+  mostrarJogoNaInterface();
+  if (_jaArrancou) return;      /* trocar de jogo nao reinicia nada */
+  _jaArrancou = true;
   connectOpponents();
   connectTelemetry();
   loop();
-
   if (DEF.mode) {
-    // ja escolheu antes: nao mostrar o menu, so acionar a vista
     applyMode();
   } else {
     showMenu(true);
@@ -2984,7 +3792,26 @@ function boot() {
   addFpsControl();
 }
 
+/* Os pontos que o seletor chama quando o jogo muda.
+ *
+ * Sao funcoes aqui dentro, e nao no seletor, porque sao de FRONTEND --
+ * pintar ids, aplicar unidades, fechar um ecra. O seletor sabe que o
+ * jogo mudou; nao sabe o que se pinta. Nenhum dos dois sabe do outro
+ * para alem destes nomes, e e' por isso que trocar a ordem dos `<script>`
+ * nao parte nada. */
+globalThis.AplicarIdioma = function () { applyLang(); };
+globalThis.AplicarUnidades = function () { applyUnits(); };
+globalThis.RepintarTudo = function () { /* o proximo frame pinta */ };
+globalThis.AplicarJogoNaInterface = mostrarJogoNaInterface;
+globalThis.AbrirEcraJogos = abrirEcraJogos;
+globalThis.FecharEcraJogos = fecharEcraJogos;
+globalThis.MontarDefinicoesJogo = montarDefinicoesJogo;
+globalThis.FecharGavetaAberta = function () {
+  if (typeof fecharGaveta === 'function') fecharGaveta();
+};
+
 function addFpsControl() {
+
   const host = document.getElementById('set-fps-host');
   if (!host) return;
   host.innerHTML =

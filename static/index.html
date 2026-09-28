@@ -14,8 +14,48 @@
 <div id="boot" class="boot">
   <div class="boot-box">
     <div class="spinner"></div>
-    <h1 data-i18n="boot.waiting">A aguardar o Assetto Corsa</h1>
+    <h1 data-i18n="boot.waiting">A aguardar o jogo</h1>
     <p id="boot-msg" data-i18n="boot.reading">A ler a telemetria directamente do jogo…</p>
+
+    <!-- ESCOLHER O JOGO TAMBEM DAQUI.
+         O ecra de espera cobre o ecra inteiro, e enquanto ele esta' em
+         cima o cabecalho -- onde esta' o botao de trocar de jogo -- nem
+         esta' visivel. E um ecra de espera onde a unica coisa a fazer e'
+         esperar, e a espera nao traz instrucao nenhuma: quem abriu o
+         painel com o jogo errado fica a ver uma roda a girar sem
+         perceber que ha' uma opcao.
+
+         O botao vai com o TEXTO e nao so' com o icone, porque a razao
+         para aqui e' nao perceber o que se pode fazer -- e um icone de
+         uma bola com uma cruz nao diz "isto escolhe o jogo". -->
+    <button id="boot-jogo" class="boot-btn" data-i18n="jog.escolher">
+      Escolher o jogo
+    </button>
+  </div>
+</div>
+
+<!-- ================================================== escolha de jogo -->
+<!-- Este e' o PRIMEIRO ecra, antes do menu de vista. A ordem importa:
+     escolher o jogo decide que modulo de logica carrega, que campos
+     existem e que cartoes se mostram. Escolher a vista primeiro e'
+     trocar a ordem e obrigar a recarregar a pagina.
+
+     A lista de jogos NAO esta escrita aqui. Vem de /api/games, e cada
+     botao diz o que e' preciso fazer para aquele jogo aparecer -- no AC
+     instalar a app, no F1 25 ligar o UDP. Escolher mal e' mais barato
+     do que escolher e nao ver nada, e um painel vazio sem instrucao e'
+     o pior resultado.
+
+     Voltar a este ecra e' possivel a qualquer momento, pelo botao do
+     cabecalho. E' o unico sitio onde se troca de jogo sem reiniciar o
+     servidor. -->
+<div id="jogos" class="overlay hidden" role="dialog" aria-modal="true"
+     aria-labelledby="jogos-title">
+  <div class="menu-box">
+    <h1 id="jogos-title" data-i18n="jog.title">De que jogo queres ver a telemetria?</h1>
+    <p class="menu-sub" data-i18n="jog.sub">Podes mudar a qualquer momento, aqui ou nas definições.</p>
+    <div class="menu-cards" id="jogos-lista"></div>
+    <p class="menu-note" id="jogos-nota"></p>
   </div>
 </div>
 
@@ -66,6 +106,17 @@
   </div>
 
   <div class="set-body">
+    <!-- O JOGO, em primeiro, porque e' a escolha de que muda mais: troca
+         o modulo de logica carregado, o que o painel consegue mostrar, e
+         ate a instrucao de arranque. A lista vem de /api/games, e so'
+         mostra os jogos que o servidor conhece. -->
+    <section class="set-group">
+      <h3 data-i18n="jog.title">Jogo</h3>
+      <p class="set-note" data-i18n="jog.why"></p>
+      <div class="seg col" id="set-jogo"></div>
+      <p class="set-note" id="set-jogo-nota"></p>
+    </section>
+
     <section class="set-group">
       <h3 data-i18n="set.mode">Vista</h3>
       <div class="seg" id="set-mode">
@@ -145,6 +196,10 @@
 
   <!-- ------------------------------------------------ cabeçalho -->
   <header class="head">
+    <button id="btn-jogo" class="icon-btn" data-i18n-aria="jog.abrir" aria-label="Trocar de jogo">
+      <svg viewBox="0 0 24 24" width="20" height="20"><circle cx="7" cy="7" r="3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="7" cy="7" r="1.4" fill="currentColor"/><circle cx="17" cy="17" r="3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17" cy="17" r="1.4" fill="currentColor"/><path d="M10 8.5l4 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+
     <button id="btn-menu" class="icon-btn" data-i18n-aria="set.menu" aria-label="Menu">
       <svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
     </button>
@@ -224,12 +279,12 @@
             <span class="l-val">—</span>
             <div class="l-bar"><i id="ers-bar"></i></div>
           </div>
-          <div class="light" id="l-abs">
+          <div class="light" id="l-abs" data-cap="nivelAbs">
             <span class="l-lbl">ABS</span>
             <span class="l-val">—</span>
             <div class="l-bar"><i id="abs-bar"></i></div>
           </div>
-          <div class="light" id="l-tc">
+          <div class="light" id="l-tc" data-cap="nivelTc">
             <span class="l-lbl">TC</span>
             <span class="l-val">—</span>
             <div class="l-bar"><i id="tc-bar"></i></div>
@@ -253,11 +308,11 @@
             <span class="wx-lbl" data-i18n="wx.road">PISTA</span>
             <span class="wx-val"><span id="wx-road">—</span><i data-i18n="unit.c">°C</i></span>
           </div>
-          <div class="wx">
+          <div class="wx" data-cap="ventoVelocidade">
             <span class="wx-lbl" data-i18n="wx.wind">VENTO</span>
             <span class="wx-val"><span id="wx-wind">—</span><i data-i18n="unit.ms">m/s</i></span>
           </div>
-          <div class="wx">
+          <div class="wx" data-cap="densidadeAr">
             <span class="wx-lbl" data-i18n="wx.density">DENSIDADE</span>
             <span class="wx-val"><span id="wx-density">—</span><i>kg/m³</i></span>
           </div>
@@ -266,7 +321,7 @@
                Quando a funcao nao existe, o valor e' -1 e aqui fica um
                travessao com a dica a dizer porquê. Nunca um zero: zero
                e' "nao chove", e -1 e' "nao se sabe". Ver chuva.md. -->
-          <div class="wx" id="wx-rain-box">
+          <div class="wx" id="wx-rain-box" data-cap="chuva">
             <span class="wx-lbl" data-i18n="wx.rain">CHUVA</span>
             <span class="wx-val"><span id="wx-rain">—</span><i id="wx-rain-u">%</i></span>
           </div>
@@ -538,22 +593,84 @@
     <span class="dot-sep"></span>
     <span id="status">—</span>
     <span class="grow"></span>
-    <span class="src" data-i18n="foot.src">memória do AC, sem SimHub</span>
+    <!-- O NOME DO JOGO, e o unico sitio onde se diz de que jogo se esta'
+         a falar. Sem ele os dois paineis mostram os mesmos numeros, e
+         quem os conhece nao sabe qual esta' a ver. E o sintoma que o
+         piloto relata nao seria "o mapa parece estranho", seria "isto
+         aqui devia ser o F1 e nao o do Assetto Corsa". -->
+    <span class="src" id="foot-jogo">—</span>
+    <span class="dot-sep"></span>
+    <span class="src" id="foot-src">—</span>
   </footer>
 </main>
 
-<!-- tempos.js primeiro: e' a matematica pura das voltas, sem DOM nem
-     estado, e o app.js depende dela. tyres.js e' a mesma coisa para a
-     vida do pneu, e combustivel.js para quantas voltas de combustivel
-     ha': as tres sao puras, para correrem no node e serem testadas sem
-     browser. -->
-<script src="/tempos.js"></script>
-<script src="/tyres.js"></script>
-<script src="/combustivel.js"></script>
-  <!-- tempo.js ANTES do app.js: o app.js chama Tempo.cenaDe()
-       ao pintar, e se o modulo ainda nao carregou a cena
-       desaparece em silencio. -->
-  <script src="/tempo.js"></script>
+<!-- ============================================================ NUCLEO
+     A matematica que e' IGUAL nos dois jogos. Puras: sem DOM e sem
+     estado, que e' o que as faz correr no node e serem testadas sem
+     browser. Este bloco e' o unico que os dois jogos partilham, e
+     mexer numa destas funcoes muda os dois paineis de uma vez -- por
+     isso o que nao for comum NAO entra aqui. -->
+<script src="/nucleo/tempos.js"></script>
+<script src="/nucleo/tyres.js"></script>
+<script src="/nucleo/combustivel.js"></script>
+<script src="/nucleo/ers.js"></script>
+<script src="/nucleo/unidades.js"></script>
+<!-- O tempo.js volta para a lista. Estava em `static/` quando o
+     bloco do nucleo foi feito, e a reorganizacao levou o ficheiro
+     para `nucleo/` sem o trazer para o HTML.
+
+     O que acontecia, medido a correr os scripts pela ordem deste
+     ficheiro, sem browser: `global.Tempo` fica UNDEFINED. E o
+     `app.js` chama `Tempo.cenaDe()`, `Tempo.percentDe()`,
+     `Tempo.nivelDe()` e `Tempo.CHUVA_MAXIMA` SEM guarda nenhuma -- um
+     `TypeError` de "Cannot read properties of undefined" a cada
+     pintura do campo do tempo. As 37 cenas do Pure Planner e o eixo
+     do vento, todos mortos, e a unica pista de que a
+     reorganizacao tinha sido feita a meio.
+
+     O `ac.js` tem guarda, `if (!T) return null`, e isso e' o
+     engano maior: a guarda existe e o caminho que pinta o ecra nao
+     passa por ela. Um `if (!T)` num sitio que nao e' o do problema.
+
+     Fica ANTES dos modulos dos jogos, e nao por ordem alfabetica:
+     e' o `ac.js` que o le no topo do script,
+
+         const T = global.Tempo;
+
+     e um modulo que carregue antes de o script existir fica com o
+     `T` capturado como undefined PARA SEMPRE, mesmo que o script
+     venha a seguir. E' a mesma razao pela qual o seletor vem
+     depois dos dois modulos. -->
+<script src="/nucleo/tempo.js"></script>
+
+<!-- ============================================================ JOGOS
+     A logica de cada jogo. Um modulo por jogo, e o app.js carrega
+     o do jogo activo e nao sabe mais nada sobre nenhum dos dois.
+
+     Os dois sao igualmente puros: nenhuma funcao toca no DOM, e todas
+     devolvem um valor ou um objecto pequeno que o app.js pinta. E' o
+     que permite testar as regras de um jogo sem o outro e sem browser,
+     e o que impede a logica de um jogo de se meter no desenho de um
+     painel que mostra o outro.
+
+     O `nucleo/jogo-base.js` diz o que um modulo tem de ter. E' a
+     mesma ideia da interface em Python, e pelo mesmo motivo: o
+     contrato precisa de estar escrito, ou os dois modulos divergem em
+     silencio e o painel do F1 25 acaba a mostrar uma regra do AC. -->
+<script src="/nucleo/jogo-base.js"></script>
+<script src="/jogos/ac.js"></script>
+<script src="/jogos/f125.js"></script>
+  <!-- o seletor DEPOIS dos dois modulos: ele precisa de saber que
+       existem para os poder construir, e um modulo a mudar de jogo antes
+       de o outro estar carregado daria um painel a meio. -->
+<script src="/jogos/seletor.js"></script>
+
+  <!-- O esquema das definicoes. ANTES do app.js, e pela mesma razao
+       do tempo.js: o app.js chama-o no arranque, no `loadDef()`, e um
+       esquema que ainda nao carregou faz o `Defs.validar` dar
+       undefined -- que e' pior do que um esquema vazio,
+       porque um `undefined` rebenta e um vazio so' repete. -->
+  <script src="/defs.js"></script>
 <script src="/app.js"></script>
 </body>
 </html>

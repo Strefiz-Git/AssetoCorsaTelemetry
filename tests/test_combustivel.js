@@ -30,7 +30,7 @@
  */
 'use strict';
 
-const C = require('../static/combustivel.js');
+const C = require('../static/nucleo/combustivel.js');
 
 let passou = 0, falhou = 0;
 
@@ -57,13 +57,13 @@ function perto(recebido, esperado, tol, oQue) {
   }
 }
 
-/* Corre uma serie de leituras [litros, voltas(, connected)] e devolve
+/* Corre uma serie de leituras [quanto, voltas(, connected)] e devolve
    o ultimo resultado. */
 function correr(leituras) {
   let estado = null, ultimo = null;
   for (const l of leituras) {
     ultimo = C.estimarCombustivel(estado, {
-      litros: l[0], voltas: l[1], connected: l[2] !== false
+      quanto: l[0], voltas: l[1], connected: l[2] !== false
     });
     estado = ultimo.estado;
   }
@@ -76,8 +76,8 @@ function comMedia(porVolta, litrosRestantes, quantas) {
   const v = [];
   for (let i = 0; i < quantas; i++) v.push(porVolta);
   return {
-    estado: { litros: litrosRestantes, volta: 99, voltas: v, media: null },
-    dados: { litros: litrosRestantes, voltas: 99, connected: true }
+    estado: { quanto: litrosRestantes, volta: 99, voltas: v, media: null },
+    dados: { quanto: litrosRestantes, voltas: 99, connected: true }
   };
 }
 
@@ -87,7 +87,7 @@ console.log("=== 1. antes de fechar uma volta, nao se sabe nada ===");
   const r = correr([[130, 0], [120, 0], [110, 0]]);
   eq(r.valido, false, "sem voltas fechadas, nao e' valido");
   eq(r.msg, "a medir", "e diz que esta' a medir");
-  eq(r.litrosPorVolta, null, "litros por volta e' null, nunca 0");
+  eq(r.litrosPorVolta, null, "quanto por volta e' null, nunca 0");
   eq(r.voltasRestantes, null, "voltas restantes e' null, nunca 0");
   eq(r.voltasMedidas, 0, "nenhuma volta medida");
 }
@@ -205,7 +205,7 @@ console.log("");
 console.log("=== 10. nada de zeros nem de numeros inventados ===");
 {
   const r = correr([[0, 0]]);
-  eq(r.valido, false, "0 litros nao e' uma estimativa");
+  eq(r.valido, false, "0 quanto nao e' uma estimativa");
   eq(r.litrosPorVolta, null, "e null, nunca 0");
   eq(r.voltasRestantes, null, "e voltas restantes tambem, nunca 0");
 }
@@ -290,7 +290,7 @@ console.log("=== 14. o aviso funciona SEM nenhuma volta medida ===");
 // precisa de medicao.
 {
   const r = C.estimarCombustivel(null,
-    { litros: 9.65, voltas: 0, connected: true }, 7.4);
+    { quanto: 9.65, voltas: 0, connected: true }, 7.4);
   eq(r.valido, false, "'a medir' para o texto: nao sabemos as voltas");
   eq(r.aviso, true, "MAS o aviso esta' ligado");
   eq(r.nivel, "aviso", "e o nivel e' aviso");
@@ -303,7 +303,7 @@ console.log("");
 console.log("=== 15. o critico tambem, e sem voltas medidas ===");
 {
   const r = C.estimarCombustivel(null,
-    { litros: 4, voltas: 0, connected: true }, 3);
+    { quanto: 4, voltas: 0, connected: true }, 3);
   eq(r.nivel, "critico", "3% sem voltas medidas: critico");
   eq(r.aviso, true, "com aviso ligado");
 }
@@ -314,9 +314,9 @@ console.log("=== 16. a MEIRA volta medida, e nao so' a primeira ===");
 // aviso tem de continuar a funcionar em todas.
 {
   let estado = null, ultimo = null;
-  const ler = (litros, voltas, pct) => {
+  const ler = (quanto, voltas, pct) => {
     ultimo = C.estimarCombustivel(estado,
-      { litros, voltas, connected: true }, pct);
+      { quanto, voltas, connected: true }, pct);
     estado = ultimo.estado;
     return ultimo;
   };
@@ -339,13 +339,13 @@ console.log("=== 17. o alarme falso: sem NENHUM dado, nao ha' aviso ===");
 {
   // sem percentagem e sem voltas medidas
   const r = C.estimarCombustivel(null,
-    { litros: 9.65, voltas: 0, connected: true }, null);
+    { quanto: 9.65, voltas: 0, connected: true }, null);
   eq(r.aviso, false, "sem nenhum dado, sem aviso");
   eq(r.nivel, "desconhecido", "e o nivel e' desconhecido, nao normal");
 
   // com percentagem boa: normal, e isso e' uma RESPOSTA
   const bom = C.estimarCombustivel(null,
-    { litros: 100, voltas: 0, connected: true }, 77);
+    { quanto: 100, voltas: 0, connected: true }, 77);
   eq(bom.aviso, false, "77% sem voltas medidas: sem aviso");
   eq(bom.nivel, "normal", "e o nivel e' normal, porque sabemos que esta' bem");
 }

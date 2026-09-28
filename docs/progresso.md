@@ -3,7 +3,7 @@
 Registo das alterações, do que foi feito e do que se aprendeu pelo caminho.
 Serve para não se perder e para não repetir erros.
 
-**Estado actual:** funcional, a correr a 60 fps, sem SimHub.
+**Estado actual:** funcional, a correr a 60 fps, sem SimHub. Dois jogos (Assetto Corsa e F1 25), escolhidos no ecra.
 
 ---
 
@@ -469,6 +469,396 @@ hardcoded no HTML, ligado ao idioma e não à definição de velocidade.
 
 ---
 
+## 2026-09-28 — skills de organização e AGENTS.md
+
+### Porque
+O projecto cresceu com ficheiros enormes (`app.js` com mais de 3000
+linhas) e sem regras escritas de como trabalhar nele. Faltavam skills que
+mandassem partir o código em módulos e helpers reutilizáveis, e um
+`AGENTS.md` que apontasse para o registo e para o commit automático.
+
+### O que foi feito
+| Ficheiro | |
+|---|---|
+| `.opencode/skill/codigo-modular/` | limites de tamanho, helpers em ficheiros próprios, funções puras, ficheiros grandes congelados |
+| `.opencode/skill/sessao-de-trabalho/` | começar, procurar sem abrir ficheiros grandes, editar em Windows, a ordem do fecho |
+| `.opencode/skill/progresso/` | como e quando escrever aqui |
+| `.opencode/skill/testes/` | que teste correr, como registar um novo, como garantir que morde |
+| `.opencode/skill/jogos-e-capacidades/` | campo novo, capacidade nos três sítios, jogo novo |
+| `.opencode/skill/documentacao/` | onde vive cada informação, como nasce uma Regra |
+| `.opencode/skill/git-workflow/` | ligado ao progresso e ao fecho; nota sobre o BOM nas mensagens |
+| `AGENTS.md` | topo novo: skills, registo, índice das Regras por assunto; `static/tempos.js` passou a `static/nucleo/tempos.js` |
+
+Nenhuma pasta nem ficheiro de código foi movido.
+
+### Verificado
+`verificar_texto`, `mutacao_texto`, `auditar_frontend`, `verificar_js` e os
+cinco testes em node passam. `tabela_testes.py` deixa o `AGENTS.md`
+idêntico. **Não verificado:** `run_all.py` completo e `verificar_readme.py`,
+porque precisam de Windows (`ctypes.WinDLL`); o `verificar_readme.py` falha
+da mesma forma no zip original.
+
+## 2026-09-28 (2.ª parte) — F1 25, e o painel passa a ter dois jogos
+
+### Porque
+
+Pedido de acrescentar compatibilidade com o F1 25, com escolha de jogo
+ao abrir o site, frontend separado **sem lógica**, módulos de lógica por
+jogo, e a pasta melhor estruturada.
+
+### O que foi feito
+
+| Ficheiro | |
+|---|---|
+| `docs/f1-25.md` | a telemetria do F1 25: 17 packets, dois formatos, e as medições |
+| `docs/assetto-corsa.md` | a do AC, ao mesmo nível, com o que **não** está resolvido |
+| `actelemetry/` | o núcleo (hub, http, defs) que **não sabe qual é o jogo**, e `jogos/{ac,f125}/` |
+| `static/nucleo/`, `static/jogos/` | matemática partilhada, e um módulo de regras por jogo |
+| `static/index.html`, `app.js` | ecrã de escolha do jogo, e o `app.js` sem regras de jogo |
+| `tests/` | `test_f125_parser.py`, `test_jogos.js`, `verificar_servidor.py`, `mutacao_texto.py` |
+
+### Dificuldades
+
+1. **O teste apanhou um bug de ordem nas rodas que não se via.** As
+   temperaturas dos travões ficaram de fora da tradução — as outras três
+   estavam feitas. Quatro números muito parecidos não denunciam nada.
+   Está escrito como Regra nº 22.
+2. **Um `getattr` perdeu as aspas** e o servidor dava 500 em
+   `/api/capabilities`. **Não** se via nos testes: só com o servidor a
+   arrancar. Saiu com o `verificar_servidor.py`.
+3. **O import do `defs` no mapa do AC tinha um ponto a menos**, e o
+   sintoma era um 500 em `/api/games` — três pastas longe da causa.
+4. **`mutacao_loop.py` escrevia as mutações com LF e o ficheiro está em
+   CRLF**, por isso a terceira mutação era saltada em qualquer checkout do
+   Windows. Estava a passar sem provar nada.
+5. **Um `\t` numa string Python partiu dois caminhos** no `AGENTS.md`
+   (`tests<TAB>est_jogos.js`). O `verificar_texto.py` passou a apanhar
+   isso, e o `mutacao_texto.py` confirma que a regra morde.
+
+### Falta / não verificado
+6. **O teste dos `.bat` bloqueava para sempre, e o `timeout` não
+   chegava a disparar.** O `arrancar.ps1` lança o servidor com
+   `Start-Process`, e o filho herda as duas pontas do pipe. O
+   `communicate()` do Python fica à leitura até ver EOF, e o EOF só
+   chega quando o servidor sai — que foi quando a sessão acaba. Com
+   `capture_output` o teste não voltava. É `DEVNULL`, e a prova de
+   que o servidor arrancou é o HTTP, não a saída do PowerShell.
+
+- **O F1 25 nunca foi lido do jogo a correr.** Tudo o que está no
+  `docs/f1-25.md` vem da especificação da EA e dos 33 tamanhos medidos
+  com `ctypes`; a leitura real ainda não foi confirmada. É o mesmo
+  buraco que a Regra nº 4 descreve, e só `verify_real.py` com o jogo
+  aberto o fecha.
+- A zona de DRS lida do Season Pack 2026 (a lista de zonas) não está
+  desenhada no mapa: a capacidade está declarada, a pintura não.
+- Os `.bat` e o `.ps1` já são testados: o `verificar_servidor.py` corre o
+  `arrancar.ps1` com e sem `-Jogo`, e pergunta ao HTTP se o jogo ficou o
+  certo. O que **não** se verificou é o browser: ninguém abriu a página
+  para ver o ecrã de escolha a funcionar.
+
+## 2026-09-28 (3.ª parte) — abrir o browser apanhou o que os testes nao apanhavam
+
+### Porque
+
+OUtilizador pediu para verificar tudo. A suite passava, e o browser nunca
+tinha sido aberto. A regra do `AGENTS.md` e' a do `sessao-de-trabalho`: a
+suite prova a logica, e o ecra' e' uma coisa diferente.
+
+### O que foi feito
+
+| Ficheiro | |
+|---|---|
+| `static/app.js`, `static/index.html` | o rodape' passa a dizer o transporte do jogo, e o titulo e o ecra' de espera deixam de nomear um jogo |
+| `arrancar.ps1` | valida o jogo em 1 s, e a espera pela porta deixa de levar 69 s |
+| `actelemetry/jogos/ac/mapa.py` | `/api/track-map-image` devolveva bytes e rebentava o handler |
+| `tests/auditar_frontend.py` | duas verificacoes novas, e uma delas le' o registo de jogos |
+| `tests/verificar_servidor.py` | §3b mete todas as rotas de todos os jogos por HTTP; §4c-1 mede o tempo |
+| `tests/mutacao_rodape.py` | prova que as duas verificacoes novas mordem |
+
+### Dificuldades
+
+1. **O rodape' dizia duas coisas, uma certa e outra errada.** Com o F1 25
+   escolhido, "F1 25" ao lado de "memoria do AC, sem SimHub". Sem erro na
+   consola e sem teste a falhar -- a errada e' a que tem a forma de frase,
+   e uma frase le-se sem reparar. Regra no 25.
+2. **A imagem do mapa da pista nunca carregou.** A rota devolvia os bytes
+   do PNG em vez do dicionario, o handler rebentava com
+   `AttributeError: 'bytes' object has no attribute 'get'`, e o
+   `socketserver` fechava a ligacao sem responder. Ninguem notou porque o
+   mapa desenhado da sempre a pista certa. Regra no 26.
+3. **O `Get-NetTCPConnection` leva 2,0 s numa porta sem nada.** O ciclo de
+   30 tentativas do `arrancar.ps1` prometia 9 segundos e levava 69. Com um
+   jogo escrito errado, a janela ficava um minuto em silencio. Regra no 27.
+4. **O `Start-Process` com redireccionamento e' o que prende um `run` do
+   Python**, porque o filho herda as duas pontas do pipe e o
+   `communicate()` fica a ler ate o servidor sair. `DEVNULL` no teste, e
+   o HTTP como prova de que arrancou.
+
+### Falta / não verificado
+
+- O F1 25 continua nunca lido do jogo a correr. E' o buraco da Regra no 4
+  e so `verify_real.py` com o jogo aberto o fecha.
+- O painel so' foi visto com o **AC** e com o **F1 25** sem ligacao. Nao ha
+  telemetria real de nenhum dos dois no ecra'.
+- A zona de DRS do Season Pack 2026 esta' declarada como capacidade e nao
+  desenhada no mapa.
+
+
+## 2026-09-28 (4. parte) - um modulo nunca chegou ao browser, e outro eu parti
+
+O `feat/f125` reorganizou o `static/` em `nucleo/` e `jogos/`. Fez-o
+bem: os modulos de jogo ficaram puros e ha' agora 145 casos de regras a
+correr sem nenhum jogo a correr. Mas a reorganizacao **esqueceu-se de um
+`<script>`**, e foi preciso abrir o browser para dar com isso.
+
+### O que se encontrou
+
+| | Sintoma | Causa |
+|---|---|---|
+| o tempo | `TypeError` a cada pintura do campo do tempo | `nucleo/tempo.js` nao esta' na lista do HTML, e o `app.js` chama `Tempo.cenaDe()` sem guarda |
+
+O `tempo.js` voltou a lista de scripts, **antes** dos modulos dos jogos, e
+nao por ordem alfabetica: e' o `ac.js` que o le no topo do script
+(`const T = global.Tempo;`), e um modulo que carregue antes fica com o `T`
+capturado como `undefined` PARA SEMPRE.
+
+O `ac.js` **tem** guarda, `if (!T) return null`, e isso e' o engano
+maior: a guarda existe e o caminho que pinta o ecra nao passa por ela.
+
+**Nenhum teste apanhou isto.** E' o ponto: um modulo carregado por
+`require` traz as dependencias que o FICHEIRO declara; um modulo
+carregado por `<script>` so' tem as que o HTML LISTA. Sao worlds
+diferentes, e o `test_jogos.js` vive no primeiro. Regra no 28.
+
+### O resto que eu achei que estava partido NAO estava
+
+A vida do pneu do AC esta' ligada e bem ligada:
+
+- o `acshm.py` traz o `tyreWearUsed` dos quatro pneus;
+- o `app.js` mede com `Pneus.estimarPneus(S.pneuStint, ...)`;
+- e escreve `S.pneuStint = r.estado`.
+
+**O estado do stint vive em `S`, no `app.js`** -- que e' exactamente onde
+o `AGENTS.md` diz que o estado vive. O modulo puro nao tem onde o guardar,
+e por isso nao tem `vidaPneu` nenhum. O do `ac.js` e' que era codigo
+morto, contra uma API que nao existe: o `app.js` nunca o chama.
+
+O combustivel e' igual, `Combustivel.estimarCombustivel(S.combustivel, ...)`.
+E o `nucleo/jogo-base.js` traz `vidaPneu` como omissao para um modulo que
+nao o implemente -- por isso o do AC tem de la estar.
+
+So' o `VOLTA_MINIMA_S` e' mesmo uma publicacao morta: o `tempos.js` usa-o
+nas proprias contas, publica no `window`, e ninguem vai la buscá-lo.
+
+### O erro que eu cometi
+
+O relatorio de orfaos do `test_scripts.js` -- que eu mesmo escrevi --
+disse que **`Pneus` nao tinha consumidor**. Mudei o modulo para `Tyres`
+com essa informacao, e a vida do pneu passou a dar `Pneus is not defined`
+na pintura, **com a suite toda a passar, trinta grupos verdes**.
+
+O relatorio so' via `global.X`, e o `app.js` consome o modulo NU:
+
+```javascript
+const r = Pneus.estimarPneus(S.pneuStint, { ... });
+//                   ^^^^^ sem `global.` a frente
+```
+
+que e' legal. `root.Pneus = api` poe `Pneus` no objecto global, e uma
+propriedade do objecto global E' uma variavel global. O consumo nu e' o
+mais normal de todos.
+
+Isto e' a Regra no 19 pelo avesso, e a pior versao dela: **um numero
+plausivel e errado e' o pior resultado possivel, mas um RELATORIO
+plausivel e errado e' ainda pior**, porque o relatorio manda agir. Nao ha
+nada no ecra para se opor a ele -- a suite passou, e eu acreditei.
+
+Corrigido em tres pontos:
+
+- o nome passa a ser procurado por PALAVRA, e nao por `global.X`;
+- a resposta distingue "usado noutro ficheiro" de "usado so' no ficheiro
+  que o publica", que e' o caso do `VOLTA_MINIMA_S`;
+- ha' uma seccao que diz o que o teste NAO apanha. Uma leitura nua de um
+  global inexistente continua a nao ser detectada, e essa e' exactamente
+  a limitacao que me teria parado se estivesse escrita antes.
+
+### Dificuldades
+
+1. **Corrigi um bug e criei outro.** O `ac.js` lia `global.Tyres` contra
+   uma API que nao existe, e isso era verdade. Mas o nome do modulo
+   estava certo e o `ac.js` e' que estava morto, e troquei o nome certo
+   pelo errado. Alem disso, tirei `vidaPneu` da exportacao do modulo por
+   ser codigo morto, e o `nucleo/jogo-base.js` exige que todos os
+   modulos a tenham -- o `test_jogos.js` acusou logo. A funcao ficou,
+   com o comentario certo.
+2. **O stripper de comentarios do teste novo tinha um erro de
+   precedencia** e escondeu-o bem. Escrito sem parenteses,
+   `if (!dentro && c === '"' || c === "'")` le-se como
+   `(!dentro && c === '"') || (c === "'")`, e entao um apostrofo DENTRO de
+   um comentario abria uma string, engolia o resto da linha, e o fecho do
+   comentario deixava de contar. Descobriu-o a mutacao: a falha apontava
+   para uma linha de comentario em vez do `ac.js` que le o global.
+3. **O relatorio de orfaos ja deu onze falsos positivos** -- os ganchos
+   que o `seletor.js` chama sob `if (global.X)`. Passou a ser relatorio e
+   nao falha, depois passou a procurar por palavra, e foi pela via
+   contraria que deixou de dar falsos positivos: achou mais coisa.
+
+### Falta / nao verificado
+
+- **O browser continua por abrir.** E' a unica camada que apanha uma
+  leitura nua de um global inexistente, e foi por nao a ter que o bug do
+  `Pneus` passou. O proprio teste o diz, na seccao 4.
+- **`JogoBase` nao tem consumidor.** E' o contrato que cada modulo de jogo
+  tem de cumprir, e nao esta' ligado a lado nenhum. E' a ferramenta que
+  teria apanhado o `ac.js` a chamar `T_.vida`.
+- **`MontarDefinicoesJogo`, `AbrirEcraJogos`, `FecharEcraJogos` e
+  `FecharGavetaAberta` tambem nao tem consumidor.** O `app.js` publica-os
+  e ninguem os chama; em particular o `aplicar()` do `seletor.js` chama
+  `AplicarIdioma`, `AplicarUnidades`, `RepintarTudo` e
+  `AplicarJogoNaInterface`, e nao `MontarDefinicoesJogo`. Trocar de jogo
+  pelo selector pode nao reconstruir as definicoes do jogo. Nao
+  verificado no browser.
+- O `feat/f125` nao foi fundido com o `definicoes`. A fusao de ensaio da
+  conflito em `AGENTS.md`, `index.html` e `mutacao_loop.py`; o `app.js`
+  funde sozinho e o bloco do `Defs.validar` sobrevive no sitio certo.
+
+
+
+## 2026-09-28 (5.ª parte) — um nome de variável que escondia a função de tradução
+
+O que se passou: escrevi `const t = tempDoPneu(d);` dentro do
+`renderTyres`, e **`t` é a função de tradução do ficheiro inteiro**. Duas
+linhas abaixo, `t('tyres.surface')` rebentava com
+`TypeError: t is not a function` — e o `render` é uma função só, portanto
+**abortava a meio**.
+
+O que se via no ecrã era um cartão de pneus com a roda 0 pintada e as
+outras três vazias, sem desgaste e sem pressão, o combustível a dizer
+"0.0 L" e os setores a "—". Foi lido como "faltam coisas".
+
+Não faltava nada: era uma excepção a abortar a pintura. E a suite estava
+**verde**, 34 de 34, porque isto só rebenta com o jogo a correr.
+
+Medido, com o jogo a correr, depois de corrigido:
+
+```
+roda 0: temp=98°C  desgaste=10.0  sup=73°  pressao=25.4 psi
+roda 1: temp=102°C desgaste=9.9   sup=82°  pressao=25.6 psi
+roda 2: temp=95°C  desgaste=7.7   sup=63°  pressao=22.6 psi
+roda 3: temp=99°C  desgaste=9.1   sup=87°  pressao=22.9 psi
+```
+
+E o que a consola disse, que é a razão de isto ser uma lição e não um
+incidente:
+
+```
+TypeError: t is not a function
+    at renderTyres (app.js:1881:24)
+    at render        (app.js:2980:3)
+```
+
+### O combustível, que era o mesmo bug pelo outro lado
+
+`setTxt('fuel-l', (d.fuelL || 0).toFixed(1) + ' L')` lia `d.fuelL`, que o
+F1 25 não publica: envia `fuelKg`. O ecrã mostrava **"0.0 L" com 7,34
+quilos no depósito**, e o `m-fuel` do modo misto tinha a mesma linha.
+
+Os **dois** módulos já devolviam `{txt, pct, laps, unidade}` com a
+unidade certa, e a pintura não usava nada disso. A correcção foi o mesmo
+arranjo da temperatura: `combustivelDoJogo(d)`, e a pintura deixa de saber
+nomes de campos. E no estimador o parâmetro passou de `litros` para
+`quanto`, porque o que interessa é a **ração** por volta, e uma ração de
+quilos por volta é válida como uma de litros.
+
+Isto é a **Regra nº 22** a ser violada em dois sítios ao mesmo tempo, e a
+ser lido como um problema de dados.
+
+### O que ficou aprendido
+
+- **Um nome curto não é um nome seguro.** `t` é uma função usada dezenas de
+  vezes no ficheiro; terminar uma variável local não muda nada, o ficheiro
+  continua a fazer parse, e `node --check` não diz nada.
+- **A excepção que aborta o render é o pior tipo de bug**: não mostra um
+  campo a zeros, mostra os campos **de antes da linha** pintados e os de
+  depois a vazios. Lê-se como um dado em falta.
+- **A pista: um cartão meio pintado tem sempre uma excepção por trás.** A
+  consola disse-o em dois segundos; ler o DOM errou o sítio, e durante esse
+  tempo a estrutura da página e o `requestAnimationFrame` da aba de fundo
+  pareceram a causa.
+
+---
+
+## 2026-09-28 (6.ª parte) — quando os dois jogos divergem, manda o F1 25
+
+Decisão de quem decide, por escrito: **o F1 25 é o jogo mais relevante**,
+e quando os dois divergem numa apresentação, **o AC muda para a convenção
+do F1 25**. O exemplo dado: em vez de "12 % restante de pneu",
+"**88 % de pneu usado**" — e os 88 % são para os dois.
+
+Não ficou num commit só. A regra está em **seis** sítios, porque cada um
+é lido por alguém diferente:
+
+| onde | porque |
+|---|---|
+| `AGENTS.md` Regra nº 30 | a lei, com o porquê, e a linha no índice |
+| `docs/f1-25.md` | quem mexe no F1 25 lê esse ficheiro, e não o `AGENTS.md` |
+| `docs/assetto-corsa.md` | **é o AC que muda**, e quem mexe no AC tem de saber |
+| `README.md` | a tabela do "o que muda entre os dois jogos" ficava incompleta |
+| skill `mesma-convencao` | o **procedimento**, e não a lei — e é nova |
+| `docs/progresso.md` | esta entrada |
+
+### A distinção que a regra obriga a fazer
+
+Escrever a regra foi o fácil. O que demorou foi perceber que ela só manda
+em **uma** das três coisas, e que sem isso a regra era uma forma de
+introduzir números plausíveis e errados:
+
+| | o que é | quem resolve |
+|---|---|---|
+| **apresentação** | como o número se escreve | **a Regra nº 30 — o F1 25 manda** |
+| **unidade** | litros ou quilos | a Regra nº 24, no módulo do jogo |
+| **campo** | qual array se lê, e em que ordem | a Regra nº 22, na fronteira |
+
+O exemplo do "88 % usado" **não se aplica a tudo**: o `tyreWear` do AC
+não é desgaste, é aderência, e a Regra nº 18 mediu porquê (desce 0,45 %
+por volta, e um pneu que durasse 220 voltas não é um pneu). Escrever
+"usado" a partir de um valor que é aderência seria a Regra nº 19 com outro
+nome.
+
+### Três erros meus no caminho, os três apanhados por um guarda
+
+O texto da regra foi escrito com um carácter **chinês** a meio de uma
+palavra portuguesa, e o guarda apanhou-o. Corrigi, e o guarda foi alargado
+— porque na vez seguinte o carácter era um **hangul**, e o guarda só
+cabria kana e han. Um guarda que não conhece o hangul é um guarda meio
+feito.
+
+E o guarda de idempotência — o que diz "isto já está aqui" — era largo
+demais: procurava uma frase que aparecia **no título da regra que acabou de
+inserir**. Apanhou-se a si próprio, e o título entrou sem a linha do
+índice.
+
+E o mesmo guarda, reescrito, ficou a provar `'' in linha`, que é sempre
+verdade, e portanto anunciava "já está" sem ter inserido nada. **Três
+guardas, e os três se cumpriram a si próprios.** Um guarda que passa
+sempre não está a guardar nada, e um guarda largo demais impede a inserção
+— os dois parecem prudência e são o contrário.
+
+### O que a regra não faz, e porquê
+
+Não obriga a mostrar o mesmo número (o F1 25 tem `m_lifeSpan`, o AC não
+tem vida de pneu e estima-se), não obriga a inventar um máximo (o ERS do
+F1 25 não diz quanto cabe, e escreve-se joules sem barra em vez de uma
+percentagem de mentira), e não obriga a trocar o que se mede pelo que o
+outro mede. **A regra diz como se escreve, não o que se mede.**
+
+E um teste não pode verificar uma convenção de linguagem. O que pode é
+verificar que os dois jogos dizem a mesma coisa, e é isso que o
+`test_jogos.js` faz. O que a regra proíbe é o pior silêncio do projecto:
+cada módulo escolher a sua convenção, e ninguém comparar.
+
+---
+
 ## Resumo do que se aprendeu
 
 | Lição | Onde está registada |
@@ -479,6 +869,7 @@ hardcoded no HTML, ligado ao idioma e não à definição de velocidade.
 | Um teste auto-consistente não valida o mundo real | AGENTS.md, regra nº 4 |
 | Escalas verificadas, não supostas | AGENTS.md, regra nº 5 |
 | ctypes: handles, FILE_MAP vs PAGE, arrays | AGENTS.md, regra nº 6 |
+| Os dois jogos dizem a mesma coisa, e não cada um a sua maneira | AGENTS.md, regra nº 30 |
 
 A lição maior: **quatro dos bugs mais caros apareceram por validar a
 estrutura contra si própria em vez de contra dados reais.** A verificação

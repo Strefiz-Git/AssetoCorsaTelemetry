@@ -6,8 +6,8 @@
 
    PORQUE MEDIR E NAO CALCULAR
    ----------------------------
-   O AC da `fuelL` (litros no deposito), `fuelPct` e `maxFuelL`. Nao da'
-   litros por volta, e `Fuel_LastLapConsumption` nao existe na memoria
+   O AC da `fuelL` (quanto no deposito), `fuelPct` e `maxFuelL`. Nao da'
+   quanto por volta, e `Fuel_LastLapConsumption` nao existe na memoria
    partilhada -- ver AGENTS.md Regra no 7, a tabela do que nao existe.
 
    Logo, mede-se: a diferenca entre o inicio e o fim de cada volta. E'
@@ -26,7 +26,7 @@
    ---------
    Se o deposito SUbe (box, delta de seguranca), a diferenca e' negativa
    e nao quer dizer nada. Descarta-se essa volta em vez de dar um
-   "litros por volta" negativo, que apareceria como um numero enorme de
+   "quanto por volta" negativo, que apareceria como um numero enorme de
    voltas restantes e que seria o pior sitio para estar errado.
 
    Devolve SEMPRE a mesma forma, com todos os campos, para o consumidor
@@ -40,7 +40,7 @@
      nao muda por ordem de grandeza. */
   var MIN_L = 0.05;
 
-  /* Acima disto, os litros que sobram nao servem para um descento nem
+  /* Acima disto, os quanto que sobram nao servem para um descento nem
      para uma paragem. Nao e' um palpite: um F1 consome mais de 100 L
      por volta, e o que fica e' a margem de seguranca. */
   var MAX_L = 400;
@@ -159,7 +159,7 @@
 
     var porVoltas = 'normal';
     if (media != null && media > 0) {
-      var restantes = estado.litros / media;
+      var restantes = estado.quanto / media;
       porVoltas = restantes < AVISO_VOLTAS
         ? (restantes < CRITICO_VOLTAS ? 'critico' : 'aviso') : 'normal';
     }
@@ -209,25 +209,25 @@
 
   /* Estimativa a partir do que ja foi medido.
 
-     dados: { litros: Number, voltas: Number, connected: Boolean }
+     dados: { quanto: Number, voltas: Number, connected: Boolean }
 
      connected false = o jogo nao esta' a correr, ou o carro esta' no
      box sem telemetria. Nao se mede nada disso: o deposito enche-se com
      o motor ligado e sem conduzir, e isso nao e' consumo de corrida. */
   function estimarCombustivel(estado, dados, pctRestante) {
-    if (!dados || !num(dados.litros) || !dados.connected) {
+    if (!dados || !num(dados.quanto) || !dados.connected) {
       return vazio(estado, null, pctRestante);
     }
-    var litros = dados.litros;
+    var quanto = dados.quanto;
     var volta = dados.voltas;
 
     // --- stint novo ---------------------------------------------------
     // Mudanca de sessao (o contador vai para tras), primeira leitura, ou
     // o estado que veio de outro sitio.
-    if (!estado || !num(estado.litros) || !num(estado.volta)
+    if (!estado || !num(estado.quanto) || !num(estado.volta)
         || volta < estado.volta) {
       var novo = {
-        litros: litros,
+        quanto: quanto,
         volta: volta,
         voltas: [],
         media: null
@@ -239,7 +239,7 @@
 
     // --- a mesma volta que da ultima vez: nada a fazer ---------------
     if (volta === estado.volta) {
-      return _resultado(estado, litros, null, pctRestante);
+      return _resultado(estado, quanto, null, pctRestante);
     }
 
     // --- fechou uma ou mais voltas -----------------------------------
@@ -249,7 +249,7 @@
     // uma volta e nao da' para usar. Fica registado como "saltou", e
     // descarta-se.
     if (volta === estado.volta + 1) {
-      var gasto = estado.litros - litros;
+      var gasto = estado.quanto - quanto;
       if (gasto > MIN_L && gasto < MAX_L) {
         estado.voltas.push(gasto);
         while (estado.voltas.length > MAX_VOLTAS_MEDIDAS) {
@@ -260,9 +260,9 @@
       // porque a media tem de reflectir so' o que foi medido a serio.
     }
 
-    estado.litros = litros;
+    estado.quanto = quanto;
     estado.volta = volta;
-    return _resultado(estado, litros, null, pctRestante);
+    return _resultado(estado, quanto, null, pctRestante);
   }
 
   function _media(voltas) {
@@ -272,7 +272,7 @@
     return s / voltas.length;
   }
 
-  function _resultado(estado, litros, _ignorado, pctRestante) {
+  function _resultado(estado, quanto, _ignorado, pctRestante) {
     var media = _media(estado.voltas);
     var n = estado.voltas.length;
 
@@ -284,7 +284,7 @@
       return vazio(estado, 'a medir', pctRestante);
     }
 
-    var restantes = litros / media;
+    var restantes = quanto / media;
     var a = _aviso(estado, pctRestante);
 
     // Uma media de uma volta e' melhor do que nada, mas e' uma amostra

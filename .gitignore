@@ -41,3 +41,7 @@ servidor.log.err
 tests/mapa_*.json
 tests/mapa_prova.png
 tests/forma_*.png
+# um .zip do projecto dentro do projecto: 3,4 MB que nao buildam
+# nada e que se versione isso. Foi committed por engano e saiu em
+# vez de ser reescrito o historico.
+AssetoCorsaTelemetry.zip

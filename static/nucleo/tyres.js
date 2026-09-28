@@ -152,5 +152,27 @@
     MAX_VOLTAS: MAX_VOLTAS
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  /* O nome e' `Pneus`, e fica `Pneus`.
+   *
+   * JA FOI `Tyres`, e era engano. O `ac.js` lia `global.Tyres`, e
+   * pareceu que o modulo e' que estava mal por se publicar como
+   * `Pneus` -- os outros tres publicam pelo nome do ficheiro
+   * (`tempo.js` -> `Tempo`, `combustivel.js` -> `Combustivel`,
+   * `jogo-base.js` -> `JogoBase`) e este era o unico fora do padrao.
+   *
+   * `Pneus` e' que estava certo. O `app.js` consome-o, e consome-o NU,
+   * sem `global.` a frente:
+   *
+   *     const r = Pneus.estimarPneus(S.pneuStint, { ... });
+   *                    ^^^^^
+   *
+   * E um teste que so' ve `global.X` nao o ve. Mudei o nome, a vida do
+   * pneu passou a dar `Pneus is not defined` na pintura, e a suite
+   * passou na mesma -- trinta grupos, todos verdes.
+   *
+   * O `ac.js` que lia `Tyres` e' que estava morto. O `app.js` nunca
+   * chama `vidaPneu` ao modulo: mede ele, com o estado em
+   * `S.pneuStint`, e escreve o resultado. O `vidaPneu` do modulo era uma
+   * segunda copia, e contra uma API que nao existe. */
   root.Pneus = api;
 })(typeof window !== 'undefined' ? window : globalThis);

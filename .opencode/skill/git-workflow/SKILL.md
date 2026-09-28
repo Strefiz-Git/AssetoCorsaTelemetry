@@ -42,8 +42,12 @@ commits. Não misturar bug fix com reformatação.
 ```
 
 **5. Commitar depois de verificar.** Antes de commitar, correr o que
-verifica a alteração. Um commit que não compila ou que parte os testes é
-pior do que nenhum commit.
+verifica a alteração (skill `testes` diz o quê). Um commit que não compila
+ou que parte os testes é pior do que nenhum commit.
+
+**6. O registo vai no commit.** Quando o trabalho tem entrada em
+`docs/progresso.md` (skill `progresso` diz quando), essa entrada vai no
+**mesmo** commit desse trabalho, e não num commit à parte no fim.
 
 ## Antes de mexer
 
@@ -64,14 +68,16 @@ seguinte hipótese de onde está o erro fica mais fácil de testar.
 
 ## No fim de cada sessão
 
-1. Correr os testes
-2. `git status` para confirmar que não ficou nada de fora
-3. Commit final com o que se fez nessa sessão
-4. Dizer ao utilizador onde ficou a branch e o hash
+A ordem completa do fecho (testes, progresso, documentação) está na skill
+`sessao-de-trabalho`. O que é do git:
+
+1. `git status` para confirmar que não ficou nada de fora
+2. Commit final com o que se fez nessa sessão
+3. Dizer ao utilizador onde ficou a branch e o hash
 
 ## Nunca fazer
 
-Isto é onde a automatização pára. Não é cautiousa a mais — é que estas
+Isto é onde a automatização pára. Não é cautela a mais — é que estas
 operações **não se desfazem** e publicam coisas.
 
 | Nunca | Porquê |
@@ -97,6 +103,10 @@ disser, push para a branch de trabalho, nunca para o `main`, e nunca com
 ## Mensagens
 
 Primeira linha: até 72 caracteres, imperativo, sem ponto final.
+Sem BOM e sem caracteres estranhos: em PowerShell 5.1 o `Out-File
+-Encoding utf8` escreve um BOM que o `git commit -F` lê como parte do texto.
+Escrever a mensagem com `-m`, ou com o ficheiro gravado em UTF-8 **sem** BOM
+(`tests\verificar_commits.py` confere).
 Corpo: em branco depois da primeira linha. Explicar o porquê e as
 consequências, incluindo o que **não** foi feito e porquê.
 

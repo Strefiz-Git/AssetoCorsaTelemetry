@@ -8,7 +8,7 @@
  */
 'use strict';
 const path = require('path');
-const P = require(path.join(__dirname, '..', 'static', 'tyres.js'));
+const P = require(path.join(__dirname, '..', 'static', 'nucleo', 'tyres.js'));
 
 let ok = 0, n = 0;
 function eq(recebido, esperado, msg) {
