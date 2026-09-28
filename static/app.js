@@ -62,6 +62,7 @@ const I18N = {
     'ers.short': 'ERS', 'pit.short': 'PIT',
     'state.lim': 'LIM',
     'map.title': 'MAPA DA PISTA', 'pedals.title': 'PEDAIS',
+    'map.vazio': 'Sem mapa ainda. Conduz uma volta e ele desenha-se sozinho.',
     'wheel.title': 'VOLANTE', 'wheel.note': 'Angulo do volante, de -1 a 1. O alcance do valor esta'
     + ' por confirmar a conduzir.',
     'map.drsKey': 'zona de DRS',
@@ -202,6 +203,7 @@ const I18N = {
     'unit.mph': 'mph', 'unit.rpm': 'rpm', 'ers.short': 'ERS', 'pit.short': 'BOX',
     'state.lim': 'LIM',
     'map.title': 'MAPA DA PISTA', 'pedals.title': 'PEDAIS',
+    'map.vazio': 'Sem mapa ainda. Conduz uma volta e ele se desenha sozinho.',
     'wheel.title': 'VOLANTE', 'wheel.note': 'Angulo do volante, de -1 a 1. O alcance do valor esta'
     + ' por confirmar dirigindo.',
     'map.drsKey': 'zona de DRS',
@@ -341,6 +343,7 @@ const I18N = {
     'unit.mph': 'mph', 'unit.rpm': 'rpm', 'ers.short': 'ERS', 'pit.short': 'PIT',
     'state.lim': 'LIM',
     'map.title': 'MAPA DE LA PISTA', 'pedals.title': 'PEDALES',
+    'map.vazio': 'Sin mapa todavia. Conduce una vuelta y se dibuja solo.',
     'wheel.title': 'VOLANTE', 'wheel.note': 'Angulo del volante, de -1 a 1. El alcance del valor esta'
     + ' por confirmar conduciendo.',
     'map.drsKey': 'zona de DRS',
@@ -483,6 +486,7 @@ const I18N = {
     'unit.mph': 'mph', 'unit.rpm': 'rpm', 'ers.short': 'ERS', 'pit.short': 'PIT',
     'state.lim': 'LIM',
     'map.title': 'TRACK MAP', 'pedals.title': 'PEDALS',
+    'map.vazio': 'No map yet. Drive a lap and it draws itself.',
     'wheel.title': 'STEERING', 'wheel.note': 'Steering angle, from -1 to 1. The range of the value is'
     + ' not confirmed yet, measured while driving.',
     'map.drsKey': 'DRS zone',
@@ -1261,9 +1265,27 @@ function drawMapReal(c, w, h, rm) {
    encontrada nos ficheiros do jogo, ou pasta do AC nao configurada). */
 function drawMapTraced(c, w, h) {
   if (S.path.length < 2) {
-    c.fillStyle = '#555C5D'; c.font = '600 12px Titillium, sans-serif';
+    /* O QUE DIZER QUANDO O MAPA ESTA VAZIO
+     *
+     * Dizia o TITULO do mapa -- "MAPA DA PISTA" -- dentro do sitio onde o
+     * mapa devia estar. Nao e' mentira, mas nao ajuda: o painel mostrava
+     * um campo vazio sem razao, e quem conduz pensava que o mapa nao
+     * funcionava.
+     *
+     * E a razao importa porque **no F1 25 nao ha' mapa para carregar**:
+     * `/api/games` diz `temMapaFicheiro: false`. O Assetto Corsa tem
+     * `content/tracks/<pista>/map.png` e o F1 25 nao tem nada equivalente.
+     * Portanto no F1 25 o mapa so existe DEPOIS de conduzido, tracado a
+     * partir das posicoes -- e isso nao e' uma falha, e o que a frase tem
+     * de dizer.
+     *
+     * E a espera e' o jogo em pausa: o `pushMapPoint` esta' gateado por
+     * `d.connected && d.live` de proposito, para o mapa nao se encher de
+     * ruido nos menus. */
+    c.fillStyle = '#555C5D';
+    c.font = '600 12px Titillium, sans-serif';
     c.textAlign = 'center';
-    c.fillText(t('map.title'), w / 2, h / 2);
+    c.fillText(t('map.vazio'), w / 2, h / 2);
     return;
   }
 
