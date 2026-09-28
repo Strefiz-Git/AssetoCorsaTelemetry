@@ -127,6 +127,8 @@ const I18N = {
       'O servidor não respondeu com a lista de jogos. Reinicia-o e volta a abrir esta página.',
     'jog.precisaInstalar':
       'Precisa da app instalada no jogo',
+    'jog.divergencia':
+      'O servidor arrancou para <b>{jogo}</b> e este browser ficou com <b>{outro}</b> da última vez. Escolhe qual queres.',
     'abs.off':
       'desligado',
     'drs.on':
@@ -262,6 +264,8 @@ const I18N = {
       'O servidor não respondeu com a lista de jogos. Reinicie-o e abra esta página de novo.',
     'jog.precisaInstalar':
       'Precisa do app instalado no jogo',
+    'jog.divergencia':
+      'O navegador se acordou con <b>{outro}</b> de la última vez, pero el servidor arrancó para <b>{jogo}</b>. Elige cuál quieres.',
     'abs.off':
       'desligado',
     'drs.on':
@@ -397,6 +401,8 @@ const I18N = {
       'El servidor no respondió con la lista de juegos. Reinícialo y abre esta página otra vez.',
     'jog.precisaInstalar':
       'Necesita la app instalada en el juego',
+    'jog.divergencia':
+      'O navegador ficou com <b>{outro}</b> da última vez, mas o servidor arrancou para <b>{jogo}</b>. Escolhe qual queres.',
     'abs.off':
       'desconectado',
     'drs.on':
@@ -535,6 +541,8 @@ const I18N = {
       'The server did not return the list of games. Restart it and open this page again.',
     'jog.precisaInstalar':
       'Needs the app installed in the game',
+    'jog.divergencia':
+      'The browser still had <b>{outro}</b> from last time, but the server was started for <b>{jogo}</b>. Pick the one you want.',
     'abs.off':
       'off',
     'drs.on':
@@ -3278,7 +3286,7 @@ function loop() {
  * F1 25 -- e nao ha' nenhum sinal de erro no ecra, porque os dois estao
  * a falar do mesmo `Hub`. E' a mesma classe de bug da Regra no 16, com
  * duas vistas do mesmo mundo e convencoes diferentes. */
-function montarEcraJogos() {
+function montarEcraJogos(notaDeDesacordo) {
   const lista = document.getElementById('jogos-lista');
   const nota = document.getElementById('jogos-nota');
   if (!lista) return;
@@ -3287,7 +3295,7 @@ function montarEcraJogos() {
     /* O servidor respondeu e nao tem jogos. Nao se inventa uma lista
      * aqui: um botao para um jogo que o servidor nao tem e' um botao que
      * nao faz nada, e nao faz nada sem dizer porquê. */
-    if (nota) nota.textContent = t('jog.semJogos');
+    if (nota) nota.innerHTML = notaDeDesacordo || esc(t('jog.semJogos'));
     return;
   }
   lista.innerHTML = hoje.map((j) => {
@@ -3321,8 +3329,8 @@ function montarEcraJogos() {
   });
 }
 
-function abrirEcraJogos() {
-  montarEcraJogos();
+function abrirEcraJogos(nota) {
+  montarEcraJogos(nota);
   const e = document.getElementById('jogos');
   if (e) e.classList.remove('hidden');
   if (globalThis.FecharGavetaAberta) globalThis.FecharGavetaAberta();
@@ -3428,6 +3436,22 @@ function boot() {
   buildTyres('tyres2');
   buildTyres('tyres3');
   bindSettings();
+  /* O BOTAO DE ESCOLHER O JOGO, que existia sem handler nenhum.
+   *
+   * O `#btn-jogo` estava no `index.html` desde o inicio, com icone,
+   * com `aria-label` e com a chave `jog.abrir` nos quatro idiomas --
+   * e sem um unico listener. O unico sitio que abria o ecra de escolha
+   * era o arranque, e so na primeira vez, porque a escolha fica no
+   * `localStorage` para sempre.
+   *
+   * O resultado era um painel que abria, nao perguntava nada, e ficava a
+   * aguardar um jogo -- e sem caminho para trocar. O comentario do
+   * proprio HTML diz que este botao e' "o unico sitio onde se troca de
+   * jogo sem reiniciar o servidor", e ele nao fazia nada.
+   *
+   * Sem guarda: o ecra ja' esta' no HTML e `abrirEcraJogos` e'
+   * idempotente -- chama-la duas vezes nao estraga nada. */
+  $('btn-jogo').addEventListener('click', () => abrirEcraJogos());
   syncSettingsUI();
   applyMode();
   document.body.classList.remove('booting');
@@ -3435,10 +3459,38 @@ function boot() {
   globalThis.Jogos.lerLista().then(() => {
     montarDefinicoesJogo();
     const jaEscolheu = globalThis.Jogos.lista.escolha;
-    if (jaEscolheu) {
-      /* Havia escolha guardada. Reenvia-se ao servidor na mesma, porque o
-       * `localStorage` e' do browser e o ficheiro de definicoes e' do
-       * servidor: podem discordar, e quem ganha e' o servidor. */
+    const doServidor = globalThis.Jogos.lista.servidor;
+
+    if (jaEscolheu && doServidor && jaEscolheu !== doServidor) {
+      /* O SERVIDOR E' O BROWSER, E VAOO DIFERENTE.
+       *
+       * O servidor foi arrancado com `--jogo f125` na linha de comando:
+       * essa e' a intencao de quem o arrancou, e e' explicita. O
+       * `localStorage` e' do browser, e pode ser de uma sessao em que se
+       * jogou o outro.
+       *
+       * A versao anterior reenviava a escolha do browser ao servidor, e o
+       * servidor trocava -- em silencio. O comentario logo ao lado dizia
+       * "quem ganha e' o servidor", e o codigo fazia o contrario. O
+       * resultado era um painel a mostrar a telemetria de um jogo que
+       * ninguem pediu, com o rodape' a dizer o nome desse jogo, e sem nada
+       * no ecra' que explicasse porque.
+       *
+       * Um desacordo nao se resolve a adivinhar: pergunta-se. E a nota diz
+       * qual dos dois esta' a mandar, para quem escolhe saber o que
+       * estava a acontecer. */
+      const nomeDe = (id) => {
+        const j = (globalThis.Jogos.lista.jogos || []).find(x => x.id === id);
+        return (j && j.nome) || id;
+      };
+      abrirEcraJogos(t('jog.divergencia')
+        .replace('{jogo}', esc(nomeDe(doServidor)))
+        .replace('{outro}', esc(nomeDe(jaEscolheu))));
+    } else if (jaEscolheu) {
+      /* Havia escolha guardada E o servidor esta' no mesmo jogo. Reenvia-se
+       * na mesma, porque o `localStorage` e' do browser e o ficheiro de
+       * definicoes e' do servidor: podem discordar, e quem ganha e' o
+       * servidor. */
       globalThis.Jogos.escolher(jaEscolheu).then(arrancarAposEscolher);
     } else {
       /* NINGUEM jogo escolhido: o ecra de escolha e' a primeira coisa que

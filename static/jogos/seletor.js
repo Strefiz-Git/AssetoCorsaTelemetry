@@ -214,6 +214,18 @@
     if (global.AplicarUnidades) global.AplicarUnidades();
     if (global.RepintarTudo) global.RepintarTudo();
     if (global.AplicarJogoNaInterface) global.AplicarJogoNaInterface();
+    /* E AS DEFINICOES DO JOGO, que faltavam.
+     *
+     * O `app.js` publica `MontarDefinicoesJogo` e este `aplicar()` nunca o
+     * chamava. O grupo de jogo na gaveta ficava com o que o jogo
+     * anterior tinha -- e o que o jogo publica e' diferente: o AC da
+     * litros e o F1 25 da quilos, e o F1 25 nao publica vento. Trocar de
+     * jogo deixava a gaveta a oferecer galoes a um jogo que manda
+     * quilos, ou vento a um jogo que nao o publica.
+     *
+     * A ordem e' a do esquema: as capacidades primeiro, para o resto do
+     * `app.js` ja' saber o que o jogo activo tem. */
+    if (global.MontarDefinicoesJogo) global.MontarDefinicoesJogo();
   }
 
   global.Jogos = {
