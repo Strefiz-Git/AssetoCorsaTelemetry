@@ -404,6 +404,51 @@ for rota, porque in (("/api/game", "o POST que troca de jogo"),
                      ("/api/diagnostics", "o diagnostico")):
     chk(rota in HTTP, "e o servidor tem %s (%s)" % (rota, porque))
 
+# ===================================================================
+# OS DOCUMENTOS
+# ===================================================================
+# O `docs/` tem um indice que diz o que e' cada documento. Um indice que
+# lista ficheiros que nao la esta' e' pior do que nao haver indice: da a
+# confianca de que a documentacao esta' completa, e a falta so' se ve
+# quando se vai procurar o que se precisava.
+print()
+print("=== 14. os documentos ===")
+INDICE = 'docs/README.md'
+chk(os.path.isfile(os.path.join(RAIZ, INDICE)), "%s existe" % INDICE)
+if os.path.isfile(os.path.join(RAIZ, INDICE)):
+    D = io.open(os.path.join(RAIZ, INDICE), encoding='utf-8').read()
+    ligados = re.findall(r"\]\(([^)]+\.md)\)", D)
+    quebrados = [l for l in ligados
+                 if not os.path.isfile(os.path.join(RAIZ, 'docs', l))]
+    chk(not quebrados, "os %d documentos que o indice lista existem %s"
+        % (len(ligados), quebrados or ''))
+    # E o indice tem de apontar para os DOIS textos de telemetria, que
+    # sao os que se leem antes de mexer num jogo.
+    for doc in ('f1-25.md', 'assetto-corsa.md'):
+        chk(doc in ligados, "e o indice aponta para %s" % doc)
+    # As tres mais importantes: telemetria, regras, e onde estao as
+    # respostas para o que falta.
+    chk('AGENTS.md' in D, "e diz onde estao as regras, que e' o AGENTS.md")
+    chk('não está respondida' in D,
+        "e diz que os ficheiros de ali sao perguntas por responder, e nao "
+        "conclusoes")
+    chk('resources/docs' in D,
+        "e onde estao os ficheiros da EA, que nao sao nossos")
+
+# O README principal tem de chegar ao indice, senao a pasta e' um sitio
+# onde ninguem vai procurar.
+chk('docs/' in R, "o README aponta para a pasta docs/")
+chk('f1-25.md' in R, "e para o texto do F1 25")
+chk('assetto-corsa.md' in R, "e para o do Assetto Corsa")
+
+# NENHUM .md na raiz, a nao ser o README e o AGENTS. E' a forma de a
+# pasta nao voltar a encher-se de ficheiros soltos: um documento que
+# entra na raiz e' um documento que ninguem sabe onde esta'.
+md_raiz = sorted(f for f in os.listdir(RAIZ) if f.endswith('.md'))
+esperados = ['AGENTS.md', 'README.md']
+chk(md_raiz == esperados,
+    "a raiz so' tem o README e o AGENTS: %s" % md_raiz)
+
 if problemas:
     print("!!! %d FALHA(S) de %d" % (len(problemas), ok + len(problemas)))
     for p in problemas:

@@ -7,6 +7,47 @@ tempo. Estão todas aqui para não se repetirem.
 
 ---
 
+## Por onde começar
+
+1. **Lê a skill `sessao-de-trabalho`.** Diz a ordem: começar, procurar sem
+   abrir ficheiros grandes, editar sem estragar, e fechar.
+2. **Este ficheiro não se lê inteiro.** Tem mais de mil linhas. Lê esta
+   secção, o *Índice das regras* logo a seguir, e só a Regra ou a secção que
+   a tarefa toca.
+3. Se a tarefa continua trabalho anterior, lê o fim de `docs/progresso.md`.
+
+### As skills
+
+Ficam em `.opencode/skill/<nome>/SKILL.md`. Cada uma manda numa coisa só, e
+as outras apontam para ela em vez de a repetir.
+
+| Skill | Usar quando |
+|---|---|
+| `git-workflow` | **sempre**: commits automáticos, branches, o que nunca se faz |
+| `sessao-de-trabalho` | início e fim de qualquer tarefa; eficiência; a ordem do fecho |
+| `codigo-modular` | ao escrever ou alterar código: ficheiros pequenos, módulos, helpers, funções puras e reutilizáveis |
+| `testes` | antes de commitar; ao criar ou registar um teste |
+| `jogos-e-capacidades` | campo novo no `snapshot()`, capacidade nova, jogo novo |
+| `progresso` | no fim de cada bloco de trabalho: a entrada em `docs/progresso.md` |
+| `documentacao` | Regra nova, arquitectura ou contagens alteradas, docs a crescer |
+
+### O registo do que se faz
+
+`docs/progresso.md` é o diário: o que se fez, porquê, o que correu mal e o
+que ainda não foi verificado. Cada bloco de trabalho fechado acrescenta-lhe
+uma entrada (skill `progresso`), **no mesmo commit** do trabalho. O que
+sobrar desse diário e for uma armadilha para outros passa a Regra aqui.
+
+### Código pequeno e modular
+
+Nenhum ficheiro novo cresce sem limite: partem-se em módulos, e o que outro
+código possa reutilizar vive num helper próprio, com funções puras. Os
+limites de tamanho e o sítio de cada coisa estão na skill `codigo-modular`
+(e só lá). Os ficheiros que já são grandes ficam **congelados**: código novo
+vai para um módulo novo. Não se reorganizam pastas por iniciativa própria.
+
+---
+
 ## Obrigatório: git automático
 
 **Lê a skill `git-workflow` antes de fazer a primeira alteração.**
@@ -23,8 +64,31 @@ Resumo, sem desculpas:
   grande) — antes de começar a mexer, não no fim. Bug fix pequeno vai
   directo ao `main`.
 - **Um commit, uma coisa.** A mensagem explica o **porquê**.
+- **A entrada do `docs/progresso.md` vai no mesmo commit** do trabalho que
+  descreve.
 - **Nunca** `push`, `--force`, `reset --hard`, `clean -fd` ou
   `checkout .` sobre trabalho por guardar. Essas não se desfazem.
+
+---
+
+## Índice das regras
+
+Procura por assunto, e lê só a Regra que interessa
+(`grep -n "^## Regra nº 18" AGENTS.md`). As Regras não estão por ordem no
+ficheiro, e **não se renumeram**: outros ficheiros citam-nas pelo número.
+
+| Quando mexes em… | Lê as Regras nº |
+|---|---|
+| memória partilhada, `ctypes`, structs do AC | 1, 2, 3, 6, 7, 19 |
+| unidades, escalas e nomes de campos | 5, 8, 24 |
+| pneus (desgaste, temperaturas) | 18 |
+| tempos de volta, delta, início de volta | 13, 14, 20 |
+| mapa e canvas | 10, 11, 16, 17 |
+| F1 25 (formatos, rodas, adversários) | 21, 22, 23, 24 |
+| testes que passam sem provar nada | 4, 12, 15, 19 |
+| dar uma causa ou uma conclusão | 9 |
+
+Uma Regra nova é a nº 25 e vai à tabela acima (skill `documentacao`).
 
 ---
 
@@ -1203,7 +1267,7 @@ correr tambem nao prova nada quando o jogo nao esta a abrir.
 
 ## Ao mexer na matemática das voltas
 
-A parte testável está em `static/tempos.js`, **sem DOM e sem estado
+A parte testável está em `static/nucleo/tempos.js`, **sem DOM e sem estado
 global** — é por isso que dá para a correr no node. O `app.js` fica só
 com o estado (`S`) e delega. Se acrescentar lógica de tempos, pô-la
 aí, não no `app.js`.

@@ -1,7 +1,19 @@
 # Para o servidor, em segundo plano, e espera que a porta responda.
 #
-#   powershell -File arrancar.ps1              # porta 8765
-#   powershell -File arrancar.ps1 -Porta 9000
+#   powershell -File arrancar.ps1                  # porta 8765, jogo guardado
+#   powershell -File arrancar.ps1 -Porta 9000      # outra porta
+#   powershell -File arrancar.ps1 -Jogo f125       # o F1 25
+#   powershell -File arrancar.ps1 -Jogo ac         # o Assetto Corsa
+#
+# O JOGO E' OPCIONAL de proposito. Sem ele, o servidor usa o que esta
+# gravado nas definicoes -- que e' o que se escolheu no ecra. Passa-lo
+# aqui e' para o caso de se querer forcar sem ir ao browser, e NAO grava:
+# o `--jogo` da linha de comando tem precedencia sobre as definicoes, e
+# quem o escreve esta' a ver o que faz.
+#
+# E porque e' que o jogo nao e' um argumento obrigatorio: escolher o jogo
+# e' uma coisa de utilization, nao de arranque. Obrigar a decidir na
+# linha de comandos seria obrigar a abrir uma consola para usar o painel.
 #
 # O que este script resolve: o servidor tem de ficar a correr MESMO
 # depois de fechar a janela do INICIAR.bat. Por isso e' lancado com o
@@ -16,7 +28,11 @@
 
 param(
     [int]$Porta = 8765,
-    [switch]$SemBrowser
+    [switch]$SemBrowser,
+    # Vazio = usa o que esta nas definicoes. Os valores validos sao os ids
+    # que o registo de jogos conhece; o servidor valida e, se nao
+    # reconhecer, cai no padrao e diz isso no terminal.
+    [string]$Jogo = ''
 )
 
 $ErrorActionPreference = 'Continue'
@@ -53,12 +69,18 @@ if (-not $py) {
     Write-Host ''
     exit 1
 }
-if ($py -eq 'py') { $pyArgs = @('-3', 'server.py', '--port', $Porta) }
-else { $pyArgs = @('server.py', '--port', $Porta) }
+if ($py -eq 'py') { $pyArgs = @('-3', 'server.py', '--porta', $Porta) }
+else { $pyArgs = @('server.py', '--porta', $Porta) }
+
+# O `--jogo` so' vai quando foi pedido. Sem ele nao se passa a flag, para
+# o servidor nao gravar a escolha: quem arranca pelo .bat sem dizer nada
+# nao deve trocar o jogo guardado.
+if ($Jogo) { $pyArgs += @('--jogo', $Jogo) }
 
 # --- 2) arrancar, independente e sem janela -------------------------
 Write-Host ''
 Write-Host "  A arrancar o servidor na porta $Porta ..."
+if ($Jogo) { Write-Host "  Jogo pedido: $Jogo" }
 
 # -RedirectStandardError/-Output num ficheiro: um servidor sem janela
 # nao tem onde mostrar um erro. Com o log, se algo correr mal ha

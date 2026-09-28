@@ -17,8 +17,12 @@ import time
 import urllib.error
 import urllib.request
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# a RAIZ e' o que torna `actelemetry` importavel. Sem esta linha o
+# script so' via `tests/`, e a seccao 4d -- que importa o modulo das
+# definicoes -- falha com ModuleNotFoundError. E' a mesma linha que o
+# `verificar_readme.py` tem, e pelo mesmo motivo.
+sys.path.insert(0, RAIZ)
 sys.stdout.reconfigure(encoding='utf-8')
 
 FALHAS = []
@@ -70,6 +74,77 @@ def arrancar(porta, jogo):
             time.sleep(0.25)
     return p, 'a porta nao abriu'
 
+
+def porta_livre(porta):
+    """True se nada esta' a responder nesta porta.
+
+    E' o contrario de `pedir`, e existe para o caso em que o teste QUER
+    que o servidor nao tenha arrancado. Sem ela, um "o servidor nao
+    levantou" so' se provava pelo facto de o pedido seguinte dar
+    excepcao -- e uma excepcao que rebenta o teste em vez de o fazer
+    falhar e' pior do que um `ok` que falha."""
+    try:
+        urllib.request.urlopen('http://127.0.0.1:%d/api/games' % porta,
+                               timeout=1).read()
+        return False
+    except Exception:
+        return True
+
+
+def parar_ps1(porta):
+    """Para um servidor que o `arrancar.ps1` lancou.
+
+    Diferente do `parar()`, que mata um processo do Python lancado por
+    este script: aqui quem lanca o servidor e' o PowerShell, e o caminho
+    e' o `parar.ps1` -- o mesmo que o `PARAR.bat` usa.
+
+    Espera que a porta deixe de responder, porque o SO fecha a ligacao
+    antes de o processo sair, e dar o retrato a seguir seria estar a
+    testar o servidor seguinte."""
+    # mesmo DEVNULL pela razao do `correr_ps1`: o `parar.ps1` tambem
+    # passa por um processo filho, e herdar o pipe prende o `run`.
+    subprocess.run(
+        ['powershell', '-NoProfile', '-ExecutionPolicy', 'Bypass',
+         '-File', os.path.join(RAIZ, 'parar.ps1'), '-Porta', str(porta)],
+        cwd=RAIZ, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        timeout=60)
+    for _ in range(40):
+        try:
+            urllib.request.urlopen('http://127.0.0.1:%d/api/games' % porta,
+                                   timeout=1).read()
+            time.sleep(0.25)
+        except Exception:
+            return
+    return
+
+
+def correr_ps1(porta, args):
+    """Corre o `arrancar.ps1` e devolve o codigo de saida.
+
+    O `DEVNULL` em vez de `capture_output` nao e' falta deaptured a saida:
+    e' a unica forma disto funcionar no Windows.
+
+    O `arrancar.ps1` lanca o servidor com `Start-Process`, e o filho
+    HERDA as duas pontas do pipe que o Python abriu. O `communicate()` do
+    Python fica a ler ate ver EOF, e o EOF so' chega quando o servidor
+    -- que foi lancado para viver muito tempo -- sai. Com
+    `capture_output` o teste bloqueava para sempre, com um `timeout` de
+    90 s que nunca chegava a disparar porque o `run` estava preso na
+    leitura, e nao a esperar o comando.
+
+    O que se quer daqui e' o CODIGO DE SAIDA, e a prova de que o
+    servidor arrancou e' o HTTP -- que e' o que se pergunta a seguir, por
+    `api/games`. A saida do ps1 nao acrescenta nada, e o que ela
+    escrevesse fica em `servidor.log`."""
+    env = dict(os.environ, PYTHONDONTWRITEBYTECODE='1',
+               PYTHONIOENCODING='utf-8')
+    cmd = ['powershell', '-NoProfile', '-ExecutionPolicy', 'Bypass',
+           '-File', os.path.join(RAIZ, 'arrancar.ps1'),
+           '-Porta', str(porta), '-SemBrowser'] + args
+    return subprocess.run(cmd, cwd=RAIZ, env=env,
+                          stdout=subprocess.DEVNULL,
+                          stderr=subprocess.DEVNULL,
+                          timeout=90).returncode
 
 def parar(p):
     """Fecha o servidor e devolve o que ele escreveu no terminal."""
@@ -213,6 +288,117 @@ for jogo in ('ac', 'f125'):
         parar(p)
 
 print()
+print()
+print("=== 4. os .bat e o .ps1, que e' o que o utilizador toca ===")
+# Ate aqui os testes so confirmavam que o INICIAR.bat, o PARAR.bat, o
+# REINICIAR.bat, o arrancar.ps1 e o parar.ps1 EXISTEM e que o README os
+# menciona. Existir nao e' funcionar: o `-Jogo` novo nao tinha sido
+# corrido uma unica vez, e e' a primeira coisa que alguem que rode o F1
+# 25 toca.
+REINICIAR = os.path.join(RAIZ, 'REINICIAR.bat')
+ARRANCAR = os.path.join(RAIZ, 'arrancar.ps1')
+PORTA2 = 8805
+
+ok(os.path.isfile(REINICIAR), "o REINICIAR.bat existe")
+ok(os.path.isfile(ARRANCAR), "o arrancar.ps1 existe")
+
+# --- o que o ps1 promete, lido no ps1
+ps1 = io.open(ARRANCAR, encoding="utf-8").read()
+ok("[string]$Jogo" in ps1, "o arrancar.ps1 aceita -Jogo")
+ok("Jogo = ''" in ps1,
+   "e o jogo e' opcional, com omissao: sem ele usa as definicoes")
+ok("if ($Jogo) { $pyArgs += @('--jogo', $Jogo) }" in ps1,
+   "e so' passa a flag quando foi pedido, para nao gravar a escolha")
+# O `--port` antigo trocou de nome, e o ps1 tem de usar o novo. O
+# `server.py` aceita os dois por causa de quem ja tinha scripts, mas o
+# ps1 nao precisa da compatibilidade.
+ok("'--porta', $Porta" in ps1, "e passa a porta com o nome novo, --porta")
+ok("'--port', $Porta" not in ps1,
+   "e nao usa o nome antigo, que o README ja nao menciona")
+
+# --- 4a) com o jogo
+rc = correr_ps1(PORTA2, ['-Jogo', 'f125'])
+ok(rc == 0, "o arrancar.ps1 arranca com -Jogo f125")
+try:
+    st, corpo = pedir(PORTA2, '/api/games')
+    d = json.loads(corpo)
+    ok(d.get('jogo') == 'f125', "e o servidor ficou mesmo no f125")
+finally:
+    parar_ps1(PORTA2)
+
+# --- 4b) sem o jogo, que e' o caminho normal e o que mais importa
+rc = correr_ps1(PORTA2, [])
+ok(rc == 0, "o arrancar.ps1 arranca sem -Jogo")
+try:
+    st, corpo = pedir(PORTA2, '/api/games')
+    d = json.loads(corpo)
+    ok(d.get('jogo') in ('ac', 'f125'),
+       "e usa o jogo das definicoes (%r)" % d.get('jogo'))
+finally:
+    parar_ps1(PORTA2)
+
+# --- 4c) um jogo que nao existe NA LINHA DE COMANDO
+#
+# A primeira versao deste teste afirmava que o servidor tinha de
+# arrancar na mesma, e caia no padrao. Isso e' o comportamento ERRADO, e
+# o proprio teste estava a pedir a mudanca que ha' de nao acontecer.
+#
+# Sao dois sitios diferentes, e a distincao e' o utilizador:
+#
+#   na LINHA DE COMANDO e' um pedido explicito, e um erro de escrita tem
+#   de dar erro. O `--jogo naoexiste` que arranca na mesma com o AC
+#   seria um painel a mostrar o jogo errado sem dizer nada -- e o
+#   utilizador que errou o nome nem percebe porque e' que o F1 25 nao
+#   aparece. O argparse recusa e diz as opcoes validas, que e' o
+#   comportamento certo.
+#
+#   no FICHEIRO DE DEFINICOES nao e' um pedido: e' um valor guardado, que
+#   alguem pode ter escrito a mao ou que pode ter ficado de um jogo que
+#   ja nao existe. Aí sim se cai no padrao -- e a verificado no
+#   `verificar_readme.py`.
+rc = correr_ps1(PORTA2, ['-Jogo', 'nao-existe'])
+ok(rc != 0,
+   "com um jogo inventado na linha de comando o arranque FALHA, e nao "
+   "arrancar com o jogo errado")
+ok(porta_livre(PORTA2),
+   "e nao fica nenhum servidor a ocupar a porta")
+
+# --- 4d) um jogo invalido no FICHEIRO DE DEFINICOES: ahi sim se cai
+from actelemetry import defs as _defs
+_anterior = _defs.jogo_escolhido()
+_guardado = {}
+try:
+    _d = _defs.definicoes()
+    _guardado = dict(_d)
+    _d['jogo'] = 'nao-existe'
+    _defs.guardar(_d)
+    from actelemetry.jogos import obter
+    ok(obter(_defs.jogo_escolhido()) is None,
+       "um jogo invalido no ficheiro de definicoes da None, e nao um jogo")
+
+    # A DEVOLTA ao padrao nao e' no `obter()`: e' no `Hub`, que e' quem
+    # decide. E o teste anterior escrevia `obter(valor or 'ac')` a
+    #pretender que o `or` fizesse a magica, e nao faz -- `'nao-existe'`
+    # e' uma string verdadeira, portanto o `or` devolve a string, e o
+    # `obter` devolve None como deve ser. O que se queria provar e' que
+    # o SERVIDOR arranca na mesma, e isso prova-se pelo Hub.
+    from actelemetry.hub import Hub
+    h = Hub(jogo_id=_defs.jogo_escolhido())
+    try:
+        ok(h.jogo_id in ('ac', 'f125'),
+           "e o Hub cai no padrao (%r) em vez de ficar sem painel"
+           % h.jogo_id)
+        ok(h.erro is not None,
+           "e escreve o porque, para o painel poder dizer que o jogo "
+           "guardado nao e' conhecido")
+    finally:
+        h.stop()
+finally:
+    _d = _defs.definicoes()
+    _d.clear()
+    _d.update(_guardado)
+    _defs.guardar(_d)
+
 if FALHAS:
     print('%d FALHA(S):' % len(FALHAS))
     for f in FALHAS:

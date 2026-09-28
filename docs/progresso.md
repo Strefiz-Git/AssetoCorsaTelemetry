@@ -3,7 +3,7 @@
 Registo das alterações, do que foi feito e do que se aprendeu pelo caminho.
 Serve para não se perder e para não repetir erros.
 
-**Estado actual:** funcional, a correr a 60 fps, sem SimHub.
+**Estado actual:** funcional, a correr a 60 fps, sem SimHub. Dois jogos (Assetto Corsa e F1 25), escolhidos no ecra.
 
 ---
 
@@ -468,6 +468,93 @@ transbordava do cartão.
 hardcoded no HTML, ligado ao idioma e não à definição de velocidade.
 
 ---
+
+## 2026-09-28 — skills de organização e AGENTS.md
+
+### Porque
+O projecto cresceu com ficheiros enormes (`app.js` com mais de 3000
+linhas) e sem regras escritas de como trabalhar nele. Faltavam skills que
+mandassem partir o código em módulos e helpers reutilizáveis, e um
+`AGENTS.md` que apontasse para o registo e para o commit automático.
+
+### O que foi feito
+| Ficheiro | |
+|---|---|
+| `.opencode/skill/codigo-modular/` | limites de tamanho, helpers em ficheiros próprios, funções puras, ficheiros grandes congelados |
+| `.opencode/skill/sessao-de-trabalho/` | começar, procurar sem abrir ficheiros grandes, editar em Windows, a ordem do fecho |
+| `.opencode/skill/progresso/` | como e quando escrever aqui |
+| `.opencode/skill/testes/` | que teste correr, como registar um novo, como garantir que morde |
+| `.opencode/skill/jogos-e-capacidades/` | campo novo, capacidade nos três sítios, jogo novo |
+| `.opencode/skill/documentacao/` | onde vive cada informação, como nasce uma Regra |
+| `.opencode/skill/git-workflow/` | ligado ao progresso e ao fecho; nota sobre o BOM nas mensagens |
+| `AGENTS.md` | topo novo: skills, registo, índice das Regras por assunto; `static/tempos.js` passou a `static/nucleo/tempos.js` |
+
+Nenhuma pasta nem ficheiro de código foi movido.
+
+### Verificado
+`verificar_texto`, `mutacao_texto`, `auditar_frontend`, `verificar_js` e os
+cinco testes em node passam. `tabela_testes.py` deixa o `AGENTS.md`
+idêntico. **Não verificado:** `run_all.py` completo e `verificar_readme.py`,
+porque precisam de Windows (`ctypes.WinDLL`); o `verificar_readme.py` falha
+da mesma forma no zip original.
+
+## 2026-09-28 (2.ª parte) — F1 25, e o painel passa a ter dois jogos
+
+### Porque
+
+Pedido de acrescentar compatibilidade com o F1 25, com escolha de jogo
+ao abrir o site, frontend separado **sem lógica**, módulos de lógica por
+jogo, e a pasta melhor estruturada.
+
+### O que foi feito
+
+| Ficheiro | |
+|---|---|
+| `docs/f1-25.md` | a telemetria do F1 25: 17 packets, dois formatos, e as medições |
+| `docs/assetto-corsa.md` | a do AC, ao mesmo nível, com o que **não** está resolvido |
+| `actelemetry/` | o núcleo (hub, http, defs) que **não sabe qual é o jogo**, e `jogos/{ac,f125}/` |
+| `static/nucleo/`, `static/jogos/` | matemática partilhada, e um módulo de regras por jogo |
+| `static/index.html`, `app.js` | ecrã de escolha do jogo, e o `app.js` sem regras de jogo |
+| `tests/` | `test_f125_parser.py`, `test_jogos.js`, `verificar_servidor.py`, `mutacao_texto.py` |
+
+### Dificuldades
+
+1. **O teste apanhou um bug de ordem nas rodas que não se via.** As
+   temperaturas dos travões ficaram de fora da tradução — as outras três
+   estavam feitas. Quatro números muito parecidos não denunciam nada.
+   Está escrito como Regra nº 22.
+2. **Um `getattr` perdeu as aspas** e o servidor dava 500 em
+   `/api/capabilities`. **Não** se via nos testes: só com o servidor a
+   arrancar. Saiu com o `verificar_servidor.py`.
+3. **O import do `defs` no mapa do AC tinha um ponto a menos**, e o
+   sintoma era um 500 em `/api/games` — três pastas longe da causa.
+4. **`mutacao_loop.py` escrevia as mutações com LF e o ficheiro está em
+   CRLF**, por isso a terceira mutação era saltada em qualquer checkout do
+   Windows. Estava a passar sem provar nada.
+5. **Um `\t` numa string Python partiu dois caminhos** no `AGENTS.md`
+   (`tests<TAB>est_jogos.js`). O `verificar_texto.py` passou a apanhar
+   isso, e o `mutacao_texto.py` confirma que a regra morde.
+
+### Falta / não verificado
+6. **O teste dos `.bat` bloqueava para sempre, e o `timeout` não
+   chegava a disparar.** O `arrancar.ps1` lança o servidor com
+   `Start-Process`, e o filho herda as duas pontas do pipe. O
+   `communicate()` do Python fica à leitura até ver EOF, e o EOF só
+   chega quando o servidor sai — que foi quando a sessão acaba. Com
+   `capture_output` o teste não voltava. É `DEVNULL`, e a prova de
+   que o servidor arrancou é o HTTP, não a saída do PowerShell.
+
+- **O F1 25 nunca foi lido do jogo a correr.** Tudo o que está no
+  `docs/f1-25.md` vem da especificação da EA e dos 33 tamanhos medidos
+  com `ctypes`; a leitura real ainda não foi confirmada. É o mesmo
+  buraco que a Regra nº 4 descreve, e só `verify_real.py` com o jogo
+  aberto o fecha.
+- A zona de DRS lida do Season Pack 2026 (a lista de zonas) não está
+  desenhada no mapa: a capacidade está declarada, a pintura não.
+- Os `.bat` e o `.ps1` já são testados: o `verificar_servidor.py` corre o
+  `arrancar.ps1` com e sem `-Jogo`, e pergunta ao HTTP se o jogo ficou o
+  certo. O que **não** se verificou é o browser: ninguém abriu a página
+  para ver o ecrã de escolha a funcionar.
 
 ## Resumo do que se aprendeu
 

@@ -52,7 +52,10 @@ não sei" são coisas diferentes, e esconder a segunda seria mentir.
 
 A telemetria dos dois jogos está escrita em
 [`docs/assetto-corsa.md`](docs/assetto-corsa.md) e
-[`docs/f1-25.md`](docs/f1-25.md).
+[`docs/f1-25.md`](docs/f1-25.md). As regras do projecto — com a medição
+que justifica cada uma — estão no [`AGENTS.md`](AGENTS.md), e a
+documentação toda está indexesada em
+[`docs/`](docs/README.md).
 
 ![paleta](https://img.shields.io/badge/paleta-F1-FFD700) ![licença](https://img.shields.io/badge/licença-MIT-blue)
 
@@ -435,7 +438,7 @@ AssettoCorsaTelemetry/
 │       ├── actelemetry_strefiz.py    a app, dentro do jogo
 │       └── actelemetry_shm.py        a struct e o nome da página
 ├── tests/                   44 ficheiros — ver AGENTS.md
-└── docs de desenho          ideia.md, chuva2.md, acessibilidade.md, ...
+└── docs de desenho          docs/ideia.md, docs/chuva2.md, docs/acessibilidade.md, ...
 ```
 
 ---

@@ -489,7 +489,7 @@ A chuva que o painel mostra vem da **API Python**, dentro do jogo, via
 `ac.ext_rainParams()` e `ac.ext_weatherFxActive()` — funções do **Custom
 Shaders Patch**, e que só existem se o CSP estiver instalado. Quando não
 existem, a app publica **-1**, que o painel pinta a neutro. Nunca um zero.
-Ver `chuva.md` e `chuva2.md`.
+Ver `docs/chuva.md` e `docs/chuva2.md`.
 
 ---
 
@@ -647,7 +647,7 @@ a causa sem o dado é pior do que dizer "não sei".
 3. **A caixa tem +1 deBug.** O `gearApi` da API e o `gear` da página de
    física discordam, e ninguém consegue ler os dois ao mesmo tempo. Os
    dois valores estão gravados no mesmo ciclo de leitura para se
-   separarem. Ver `caixa.md`.
+   separarem. Ver `docs/caixa.md`.
 4. **A caixa pela API Lua (`ac.getCar`) e a da memória partilhada são
    campos diferentes com o mesmo nome.** O HUD do Content Manager lê
    `ac.getCar(focused)` — a câmara, não o jogador — e `focused` muda se a
