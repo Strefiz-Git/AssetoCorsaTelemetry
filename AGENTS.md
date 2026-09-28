@@ -89,10 +89,11 @@ ficheiro, e **não se renumeram**: outros ficheiros citam-nas pelo número.
 | rotas de um jogo, e o contrato com o núcleo | 26 |
 | `.bat` e `.ps1`, e o que demora | 27 |
 | `<script src>`, globais entre ficheiros, e módulos que não chegam ao browser | 28 |
+| HTML partido, ecras aninhados, e as saidas de um ecra | 29 |
 | testes que passam sem provar nada | 4, 12, 15, 19 |
 | dar uma causa ou uma conclusão | 9 |
 
-Uma Regra nova é a nº 29 e vai à tabela acima (skill `documentacao`).
+Uma Regra nova e a nº 30 e vai à tabela acima (skill `documentacao`).
 
 ---
 
@@ -1390,7 +1391,48 @@ Ao mover, renomear ou dividir um ficheiro em `static/`, abrir o browser.
 E ao acrescentar um `<script>`, confirmar que o ficheiro está no disco
 — um `/defs.js` apagado dá `null`, não dá erro, e é um 404 silencioso.
 
+## Regra nº 29 — o ecra de espera tinha duas saidas que nao
+funcionavam, e nenhuma
+
+O ecra de espera tinha duas saidas que nao funcionavam, e nenhuma
+
+Medido no browser, com o servidor a correr e a pagina aberta:
+
+    #boot         VISIVEL 1223x886   z-index 60
+    #jogos        VISIVEL 1223x886   z-index 50
+    main.app      display:none
+
+E duas coisas erradas, e a segunda esconde a primeira.
+
+**O `abrirEcraJogos()` nao escondia o ecra de espera.** O `showMenu()` ja'
+fazia, uma linha, e o `abrirEcraJogos()` nao. O ecra de escolha abria POR
+BAIXO do ecra de espera: o boot e' `z-index:60` e o overlay e' `50`, e quem
+abria a pagina via "A aguardar o jogo" por cima de uns botoes que nao
+aparecem. O `z-index` nao se mexe -- o `60` e' certo para uma espera. O que
+estava errado e' o boot continuar visivel por cima de um ecra que se abriu
+depois dele.
+
+**E o `main.app` estava a `display:none`**, porque o painel so aparece
+depois de escolhida a VISTA. Por isso o botao `#btn-jogo` do cabecalho --
+que se tinha ligado no commit anterior -- tinha **zero de tamanho** e nao
+tinha onde ser clicado. Ligar o botao foi preciso e nao chegou.
+
+A correccao tem as duas metades, e a segunda e' a que foi pedida:
+
+- `abrirEcraJogos()` esconde o `#boot`, como `showMenu()` ja' fazia.
+- o ecra de espera tem um **botao para escolher o jogo**. Um ecra de
+  espera sem saida e' um beco sem saida: quem abre o painel com o jogo
+  errado ve uma roda a girar e nada que diga que ha' uma opcao. E o
+  botao vai com o TEXTO e nao so' com o icone, porque a razao para aqui
+  e' nao perceber o que se pode fazer.
+
+E `fecharEcraJogos()` volta ao ecra de espera, e nao ao painel: fechar o
+ecra de escolha deixava o ecra a vazio, sem painel e sem espera.
+
+O `z-index` nao se mexeu. O que se mexeu foi quem esconde quem.
+
 ---
+
 
 ## Ao mexer no frontend
 
@@ -1449,7 +1491,7 @@ certo, não uma falha. Os testes de memória escrevem em páginas
 
 Corre com `python tests\run_all.py`. Sai com codigo diferente de zero se
 algo falhar, e com codigo 2 (que nao e' falha) se o AC
-estiver a correr e os testes de memoria forem saltados. Sao 31 grupos.
+estiver a correr e os testes de memoria forem saltados. Sao 33 grupos.
 
 | Ficheiro | O que prova |
 |---|---|
@@ -1469,6 +1511,8 @@ estiver a correr e os testes de memoria forem saltados. Sao 31 grupos.
 | `test_combustivel.js` | voltas de combustivel e a percentagem (node) |
 | `test_jogos.js` | as regras dos dois jogos no browser: embraiagem, ABS, vida do pneu, combustivel, clima, delta e as 81 capacidades -- sem nenhum jogo a correr (node) |
 | `auditar_frontend.py` | o frontend inteiro: ids, traduccoes, contraste, chaves CSS, movimento reduzido |
+| `verificar_html.py` | que o HTML fecha, que cada ecra e' filho do <body> e nao de outro ecra, e que o ecra de espera tem saida -- o que ninguem media |
+| `mutacao_html.py` | que essa verificacao morde: um `</div>` comido, o botao da espera apagado, e o botao fora do ecra |
 | `mutacao_acessibilidade.py` | que a regra 2.3.3 morde, partindo o CSS |
 | `mutacao_rodape.py` | que o rodape' nao fica a dizer o jogo errado |
 | `verificar_finitos.py` | que nenhum valor chega a NaN ou infinito |

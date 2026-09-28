@@ -16,6 +16,21 @@
     <div class="spinner"></div>
     <h1 data-i18n="boot.waiting">A aguardar o jogo</h1>
     <p id="boot-msg" data-i18n="boot.reading">A ler a telemetria directamente do jogo…</p>
+
+    <!-- ESCOLHER O JOGO TAMBEM DAQUI.
+         O ecra de espera cobre o ecra inteiro, e enquanto ele esta' em
+         cima o cabecalho -- onde esta' o botao de trocar de jogo -- nem
+         esta' visivel. E um ecra de espera onde a unica coisa a fazer e'
+         esperar, e a espera nao traz instrucao nenhuma: quem abriu o
+         painel com o jogo errado fica a ver uma roda a girar sem
+         perceber que ha' uma opcao.
+
+         O botao vai com o TEXTO e nao so' com o icone, porque a razao
+         para aqui e' nao perceber o que se pode fazer -- e um icone de
+         uma bola com uma cruz nao diz "isto escolhe o jogo". -->
+    <button id="boot-jogo" class="boot-btn" data-i18n="jog.escolher">
+      Escolher o jogo
+    </button>
   </div>
 </div>
 

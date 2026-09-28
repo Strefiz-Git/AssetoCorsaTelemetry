@@ -129,6 +129,8 @@ const I18N = {
       'Precisa da app instalada no jogo',
     'jog.divergencia':
       'O servidor arrancou para <b>{jogo}</b> e este browser ficou com <b>{outro}</b> da última vez. Escolhe qual queres.',
+    'jog.escolher':
+      'Escolher o jogo',
     'abs.off':
       'desligado',
     'drs.on':
@@ -266,6 +268,8 @@ const I18N = {
       'Precisa do app instalado no jogo',
     'jog.divergencia':
       'O navegador se acordou con <b>{outro}</b> de la última vez, pero el servidor arrancó para <b>{jogo}</b>. Elige cuál quieres.',
+    'jog.escolher':
+      'Elegir el juego',
     'abs.off':
       'desligado',
     'drs.on':
@@ -403,6 +407,8 @@ const I18N = {
       'Necesita la app instalada en el juego',
     'jog.divergencia':
       'O navegador ficou com <b>{outro}</b> da última vez, mas o servidor arrancou para <b>{jogo}</b>. Escolhe qual queres.',
+    'jog.escolher':
+      'Escolher o jogo',
     'abs.off':
       'desconectado',
     'drs.on':
@@ -543,6 +549,8 @@ const I18N = {
       'Needs the app installed in the game',
     'jog.divergencia':
       'The browser still had <b>{outro}</b> from last time, but the server was started for <b>{jogo}</b>. Pick the one you want.',
+    'jog.escolher':
+      'Choose the game',
     'abs.off':
       'off',
     'drs.on':
@@ -3329,15 +3337,47 @@ function montarEcraJogos(notaDeDesacordo) {
   });
 }
 
+/* ESCOLHER O JOGO TAMBIM DESDE O ECRA DE ESPERA.
+ *
+ * Faltava a linha que esconde o `#boot`, e e' a mesma que o `showMenu()`
+ * ja' tem. Sem ela o ecra de escolha abre POR BAIXO do ecra de espera: o
+ * boot e' `z-index:60` e o overlay e' `z-index:50`, e quem abre a pagina
+ * ve "A aguardar o jogo" por cima de uns botoes que nao aparecem.
+ *
+ * Medido no browser antes da correccao:
+ *
+ *     #boot     VISIVEL 1223x886   z-index 60
+ *     #jogos    VISIVEL 1223x886   z-index 50
+ *     main.app  display:none
+ *
+ * E o `main.app` estava `display:none` porque o painel so aparece depois
+ * de escolhida a VISTA -- por isso o `#btn-jogo` do cabecalho, que se
+ * acabou de ligar, tinha zero de tamanho e nao tinha onde ser clicado.
+ * Ligar o botao foi preciso e nao chegou.
+ *
+ * O `z-index` nao se mexe: o `60` do boot e' o que o poe a cima de tudo, e
+ * isso e' certo para uma espera. O que estava errado e' o boot continuar
+ * visivel por cima de um ecra que se abriu depois dele. */
 function abrirEcraJogos(nota) {
   montarEcraJogos(nota);
   const e = document.getElementById('jogos');
   if (e) e.classList.remove('hidden');
+  $('boot').classList.add('hidden');
+  $('jogos').inert = true;
   if (globalThis.FecharGavetaAberta) globalThis.FecharGavetaAberta();
 }
+/* Fechar o ecra de escolha VOLTA ao ecra de espera, e nao ao painel.
+ *
+ * Sem isto, fechar o ecra de escolha deixava o ecra inteiro a vazio: nem
+ * o painel, que so aparece depois de escolhida a vista, nem a espera, que
+ * esconder ja' estava. O ecra de espera e' o estado HONESTO depois de
+ * escolher um jogo que ainda nao da' telemetria -- e' o que diz que o
+ * painel esta' vivo e a espera pelo jogo. */
 function fecharEcraJogos() {
   const e = document.getElementById('jogos');
   if (e) e.classList.add('hidden');
+  $('jogos').inert = false;
+  $('boot').classList.remove('hidden');
 }
 
 /* O nome do jogo no rodape.
@@ -3452,6 +3492,14 @@ function boot() {
    * Sem guarda: o ecra ja' esta' no HTML e `abrirEcraJogos` e'
    * idempotente -- chama-la duas vezes nao estraga nada. */
   $('btn-jogo').addEventListener('click', () => abrirEcraJogos());
+  /* E O BOTAO DO ECRA DE ESPERA, que e' onde se chega na pratica.
+   *
+   * Durante a espera o ecra cobre tudo a `z-index:60`, e o `main.app`
+   * esta' a `display:none` porque a vista ainda nao foi escolhida --
+   * entao o `#btn-jogo` do cabecalho tem zero de tamanho e nao ha' nada
+   * para clicar. Sem este botao, quem abre o painel com o jogo errado ve
+   * uma roda a girar e nenhuma opcao. */
+  $('boot-jogo').addEventListener('click', () => abrirEcraJogos());
   syncSettingsUI();
   applyMode();
   document.body.classList.remove('booting');

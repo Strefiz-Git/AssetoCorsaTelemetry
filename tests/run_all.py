@@ -46,6 +46,12 @@ SUITE = [
     # assim durante meses. Ver `static/jogos/`.
     ("as regras dos dois jogos", "node", "test_jogos.js"),
     ("o frontend aguenta-se de pe", "py", "auditar_frontend.py"),
+    # O HTML fechou mal uma vez -- um `</div>` comido, e o ecra de escolha
+    # de jogo passou a ser FILHO do ecra de espera. Os 31 grupos passaram,
+    # porque com o HTML partido o `getElementById` encontra TUDO: nao falta
+    # elemento, esta' todos la, so' aninhados no sitio errado. Ver a Regra.
+    ("o HTML fecha e ninguem esta dentro de ninguem", "py", "verificar_html.py"),
+    ("essa verificacao morde", "py", "mutacao_html.py"),
     ("a regra 2.3.3 morde mesmo", "py", "mutacao_acessibilidade.py"),
     # o rodape' e' a unica linha que diz COMO se le o jogo. A regra e'
     # que nao fique a dizer "memoria do AC" com o F1 25 no ecra, e que o

@@ -60,6 +60,23 @@ body{
 .boot-box{text-align:center;padding:24px}
 .boot h1{font-weight:900;font-size:clamp(20px,3vw,34px);letter-spacing:.04em;margin-top:18px}
 .boot p{color:var(--grey);font-weight:600;margin-top:6px;font-size:14px}
+/* O BOTAO DE ESCOLHER O JOGO, dentro do ecra de espera.
+ *
+ * Um ecra de espera sem saida e' um beco sem saida: quem o abriu com
+ * o jogo errado ve uma roda a girar e nada que diga que ha' uma opcao.
+ * O botao esta' aqui por isso, e nao so' no cabecalho -- que durante a
+ * espera esta' por baixo deste ecra, a `z-index:60`, e nao ha' nada
+ * para clicar.
+ *
+ * As cores sao as de `.wide-btn`, que e' o botao largo que ja' existe
+ * na gaveta. Nao se inventa um terceiro estilo de botao. */
+.boot-btn{
+  margin-top:22px;background:var(--block);border:1px solid var(--line);
+  color:var(--grey);font-family:inherit;font-weight:700;font-size:13px;
+  letter-spacing:.04em;padding:11px 22px;border-radius:6px;cursor:pointer;
+}
+.boot-btn:hover{color:var(--white);border-color:var(--grey)}
+.boot-btn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 /* O `spin` fica dentro do no-preference. Uma roda a girar e' movimento
    infinito, e a regra 2.3.3 e' sobre movimento infinito, sem exception
    para "mas so' quando se esta' a carregar". Quem pediu para nao ver
