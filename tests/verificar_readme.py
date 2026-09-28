@@ -44,6 +44,14 @@ def ler(*partes):
 
 R = ler('README.md')
 S = ler('server.py')
+# O codigo do HTTP saiu do server.py, que passou a ser a linha de
+# comando. O nucleo e' ctelemetry/http.py, e e' la que a porta, a
+# cadencia e o --bind sao declarados -- por isso e' ele que este teste
+# tem de ler, e nao o server.py. Verificar a linha de comando quando se
+# quer verificar o servidor e' a forma de o teste continuar a passar sem
+# estar a medir nada.
+H = ler('actelemetry', 'http.py')
+BASE = ler('actelemetry', 'jogos', 'base.py')
 A = ler('acshm.py')
 APP = ler('python_app', 'actelemetry_strefiz', 'actelemetry_strefiz.py')
 SHM = ler('python_app', 'actelemetry_strefiz', 'actelemetry_shm.py')
@@ -103,7 +111,7 @@ chk(m and versao and m.group(1) == versao.group(1),
 
 print()
 print("=== 3. a porta e a cadencia por omissao ===")
-porta = re.search(r'--port["\'],\s*type=int,\s*default=(\d+)', S)
+porta = re.search(r'--(?:porta|port)["\'],\s*type=int,\s*default=(\d+)', S)
 chk(porta and ('localhost:%s' % porta.group(1)) in R,
     "o README usa a porta por omissao do servidor", porta and porta.group(1))
 rate = re.search(r'--rate["\'],\s*type=int,\s*default=(\d+)', S)
@@ -119,7 +127,8 @@ chk('0.0.0.0' in R, "o README diz que o 0.0.0.0 e' a predefinicao")
 chk('palavra-passe' in R, "o README avisa que nao ha' palavra-passe")
 chk('/api/settings' in R, "e que da' para mudar a pasta do jogo")
 # e o aviso tem de ser verdade: o endpoint tem mesmo de escrever
-chk('def _api_settings_post' in S, "o POST /api/settings existe mesmo")
+chk('/api/settings' in H and 'do_POST' in H,
+    "o POST /api/settings existe mesmo, e esta' no nucleo e' nao no server.py")
 
 print()
 print("=== 5. os quatro idiomas ===")

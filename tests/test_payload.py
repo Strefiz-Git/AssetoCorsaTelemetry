@@ -51,10 +51,13 @@ from http.server import ThreadingHTTPServer
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.stdout.reconfigure(encoding="utf-8")
 
-import server as srv  # noqa: E402
+# O nucleo do painel. O server.py passou a ser so' a linha de comando, e
+# o que serve o HTTP e' ctelemetry/http.py -- que nao sabe qual e' o
+# jogo. Ver 	ests/test_handler.py, que faz a mesma mudanca.
+from actelemetry.http import Handler  # noqa: E402
+from actelemetry.defs import STATIC  # noqa: E402
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-STATIC = srv.STATIC
 
 import acshm  # noqa: E402
 
@@ -153,8 +156,8 @@ def main():
             print("  FALHA  %s" % msg)
 
     hub = HubDeMentira()
-    srv.Handler.hub = hub
-    httpd = ThreadingHTTPServer(("127.0.0.1", 0), srv.Handler)
+    Handler.hub = hub
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
     httpd.daemon_threads = True
     porta = httpd.server_address[1]
     t = threading.Thread(target=httpd.serve_forever, daemon=True)

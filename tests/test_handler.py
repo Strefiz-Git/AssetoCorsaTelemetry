@@ -37,6 +37,16 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.stdout.reconfigure(encoding="utf-8")
 
 import server as srv
+# O Servidor passou para o nucleo. O server.py deixou de ter o codigo
+# do HTTP e passou a ser a linha de comando, que e' o que deve ser: o
+# nucleo e' ctelemetry/http.py e nao sabe qual e' o jogo.
+#
+# E' por isso que o teste importa os DOIS. Se algum dia o server.py
+# voltar a ter uma classe de servidor dentro, este import fica obsoleto
+# e o teste mede a regra no sitio errado -- que e' precisamente o que a
+# nota do topo deste ficheiro diz que aconteceu da primeira vez.
+from actelemetry.http import Servidor
+from actelemetry.defs import STATIC
 
 
 def erro_de(classe, excecao):
@@ -68,7 +78,7 @@ def main():
         TimeoutError("tempo esgotado"),
     ]
     for exc in silenciosos:
-        saida = erro_de(srv.Servidor, exc)
+        saida = erro_de(Servidor, exc)
         if saida.strip():
             problemas.append("%s devia ser silencioso, mas imprimiu %d linhas"
                              % (type(exc).__name__, len(saida.splitlines())))
@@ -81,7 +91,7 @@ def main():
         (RuntimeError("o hub morreu"), "RuntimeError"),
     ]
     for exc, nome in falados:
-        saida = erro_de(srv.Servidor, exc)
+        saida = erro_de(Servidor, exc)
         if "Traceback" not in saida:
             problemas.append("%s devia imprimirse (um erro a serio nao se "
                              "esconde), e nao imprimiu nada" % nome)
@@ -105,7 +115,7 @@ def main():
     # nao outros parecidos.
     reais = [ConnectionAbortedError, ConnectionResetError, BrokenPipeError]
     for cls in reais:
-        if cls not in srv.Servidor.DESLIGUE_ESPERADO:
+        if cls not in Servidor.DESLIGUE_ESPERADO:
             problemas.append("%s devia estar em DESLIGUE_ESPERADO" % cls.__name__)
 
     print()

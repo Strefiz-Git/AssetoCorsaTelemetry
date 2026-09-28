@@ -25,6 +25,7 @@ SUITE = [
     ("leitura de telemetria", "py", "test_acshm.py"),
     ("a aderencia morde mesmo", "py", "mutacao_grip.py"),
     ("leitura de adversarios", "py", "test_opponents.py"),
+    ("o F1 25 le-se nos dois formatos", "py", "test_f125_parser.py"),
     ("a app compila", "py", "compilar.py"),
     ("o JavaScript faz parse", "py", "verificar_js.py"),
     ("a app e o leitor falam igual", "py", "test_contrato.py"),

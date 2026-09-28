@@ -40,7 +40,43 @@ MUTACOES = [
 
 ENV = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", PYTHONIOENCODING="utf-8")
 
+# AS MUTACOES E AS NEWLINES
+# --------------------------
+# As mutacoes escrevem-se com LF, e o ficheiro no disco pode estar com
+# CRLF. O `.gitattributes` deste repositorio tem `* text=auto` e o
+# `core.autocrlf` do Windows esta' a true, por isso um ficheiro versionado
+# chega ao disco com CRLF -- e uma mutacao escrita com LF nao aparece
+# NUNCA num ficheiro CRLF.
+#
+# A terceira mutacao -- "o loop volta a terminar no nome, e volta a
+# esconder a falha" -- e' a unica que tem uma quebra de linha dentro, e
+# por isso era a unica a ser saltada. O script imprimia "??" e contava-a
+# como problema, mas o teste da suite nao a contava como falha, porque o
+# `run_all.py` tratava o codigo de saida... e o codigo de saida era 1.
+# Ou seja: a suite acusava. Mas quem corria `mutacao_loop.py` a mao via
+# cinco "OK" e um "??" e podia nao dar importancia ao "??".
+#
+# Isto e' a Regra no 4, e a razao de o script ser COPIA: correr o teste
+# contra um ficheiro em que o codigo nao esta e' a forma mais facil de
+# um teste de mutacao passar sem provar nada. Ver `test_mutation.py`,
+# que tem a mesma regra pelo mesmo motivo.
+#
+# O que se passa agora: a procura e' feita sobre texto NORMALIZADO, e o
+# que vai para o disco tem as mesmas newlines que o ficheiro ja tinha.
+# Funciona com LF e com CRLF, e o resto do script fica igual.
+
+
+def _normaliza(t):
+    return t.replace("\r\n", "\n").replace("\r", "\n")
+
+
 original = io.open(ALVO, encoding='utf-8', newline='').read()
+plano = _normaliza(original)
+# A newline do disco, para reescrever o ficheiro no mesmo formato em que
+# o encontrámos. Sem isto, guardar o resultado normalizado transformava
+# o ficheiro inteiro em LF, e o `git diff` no fim mostrava 662 linhas
+# alteradas.
+_newline_disco = "\r\n" if "\r\n" in original else "\n"
 
 
 def correr():
@@ -59,12 +95,12 @@ print()
 
 problemas = []
 for desc, certo, partido in MUTACOES:
-    if certo not in original:
+    if certo not in plano:
         problemas.append("  nao encontrei o codigo a mutar: %r" % certo[:50])
         print("  ??   %s" % desc)
         continue
     io.open(ALVO, 'w', encoding='utf-8', newline='').write(
-        original.replace(certo, partido, 1))
+        plano.replace(certo, partido, 1).replace("\n", _newline_disco))
     try:
         rc, _ = correr()
     finally:
