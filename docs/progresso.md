@@ -788,6 +788,77 @@ ser lido como um problema de dados.
 
 ---
 
+## 2026-09-28 (6.ª parte) — quando os dois jogos divergem, manda o F1 25
+
+Decisão de quem decide, por escrito: **o F1 25 é o jogo mais relevante**,
+e quando os dois divergem numa apresentação, **o AC muda para a convenção
+do F1 25**. O exemplo dado: em vez de "12 % restante de pneu",
+"**88 % de pneu usado**" — e os 88 % são para os dois.
+
+Não ficou num commit só. A regra está em **seis** sítios, porque cada um
+é lido por alguém diferente:
+
+| onde | porque |
+|---|---|
+| `AGENTS.md` Regra nº 30 | a lei, com o porquê, e a linha no índice |
+| `docs/f1-25.md` | quem mexe no F1 25 lê esse ficheiro, e não o `AGENTS.md` |
+| `docs/assetto-corsa.md` | **é o AC que muda**, e quem mexe no AC tem de saber |
+| `README.md` | a tabela do "o que muda entre os dois jogos" ficava incompleta |
+| skill `mesma-convencao` | o **procedimento**, e não a lei — e é nova |
+| `docs/progresso.md` | esta entrada |
+
+### A distinção que a regra obriga a fazer
+
+Escrever a regra foi o fácil. O que demorou foi perceber que ela só manda
+em **uma** das três coisas, e que sem isso a regra era uma forma de
+introduzir números plausíveis e errados:
+
+| | o que é | quem resolve |
+|---|---|---|
+| **apresentação** | como o número se escreve | **a Regra nº 30 — o F1 25 manda** |
+| **unidade** | litros ou quilos | a Regra nº 24, no módulo do jogo |
+| **campo** | qual array se lê, e em que ordem | a Regra nº 22, na fronteira |
+
+O exemplo do "88 % usado" **não se aplica a tudo**: o `tyreWear` do AC
+não é desgaste, é aderência, e a Regra nº 18 mediu porquê (desce 0,45 %
+por volta, e um pneu que durasse 220 voltas não é um pneu). Escrever
+"usado" a partir de um valor que é aderência seria a Regra nº 19 com outro
+nome.
+
+### Três erros meus no caminho, os três apanhados por um guarda
+
+O texto da regra foi escrito com um carácter **chinês** a meio de uma
+palavra portuguesa, e o guarda apanhou-o. Corrigi, e o guarda foi alargado
+— porque na vez seguinte o carácter era um **hangul**, e o guarda só
+cabria kana e han. Um guarda que não conhece o hangul é um guarda meio
+feito.
+
+E o guarda de idempotência — o que diz "isto já está aqui" — era largo
+demais: procurava uma frase que aparecia **no título da regra que acabou de
+inserir**. Apanhou-se a si próprio, e o título entrou sem a linha do
+índice.
+
+E o mesmo guarda, reescrito, ficou a provar `'' in linha`, que é sempre
+verdade, e portanto anunciava "já está" sem ter inserido nada. **Três
+guardas, e os três se cumpriram a si próprios.** Um guarda que passa
+sempre não está a guardar nada, e um guarda largo demais impede a inserção
+— os dois parecem prudência e são o contrário.
+
+### O que a regra não faz, e porquê
+
+Não obriga a mostrar o mesmo número (o F1 25 tem `m_lifeSpan`, o AC não
+tem vida de pneu e estima-se), não obriga a inventar um máximo (o ERS do
+F1 25 não diz quanto cabe, e escreve-se joules sem barra em vez de uma
+percentagem de mentira), e não obriga a trocar o que se mede pelo que o
+outro mede. **A regra diz como se escreve, não o que se mede.**
+
+E um teste não pode verificar uma convenção de linguagem. O que pode é
+verificar que os dois jogos dizem a mesma coisa, e é isso que o
+`test_jogos.js` faz. O que a regra proíbe é o pior silêncio do projecto:
+cada módulo escolher a sua convenção, e ninguém comparar.
+
+---
+
 ## Resumo do que se aprendeu
 
 | Lição | Onde está registada |

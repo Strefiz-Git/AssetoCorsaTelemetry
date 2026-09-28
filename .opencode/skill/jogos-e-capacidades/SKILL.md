@@ -12,7 +12,8 @@ procedimento; as armadilhas de cada jogo estão nas Regras e em `docs/`.
 
 Antes de começar: ler a parte do jogo em `docs/f1-25.md` ou
 `docs/assetto-corsa.md`, e as Regras nº 3, 7, 8, 22 e 24 quando a mudança
-toca em campos, unidades ou ordem das rodas.
+toca em campos, unidades ou ordem das rodas. E a skill `mesma-convencao`
+quando o que se acrescenta também aparece no outro jogo.
 
 ## Campo novo que só um jogo tem
 
@@ -36,6 +37,13 @@ toca em campos, unidades ou ordem das rodas.
    lista de capacidades incompleta. Depois `auditar_frontend.py`.
 6. Se o número de capacidades mudou (hoje 81), actualizar as contagens
    escritas nos documentos (skill `documentacao`, *Quando actualizar*).
+
+## Os dois jogos têm de dizer a mesma coisa
+
+Ver a skill `mesma-convencao`, que é onde isto vive. Em uma linha: quando
+os dois jogos divergem numa **apresentação**, **manda o F1 25**, e o AC
+muda para ele. O que diverge em **unidade** ou em **campo** não é esta
+regra — é a 24 e a 22, e cada módulo resolve a sua.
 
 ## Ordem das rodas e unidades
 

@@ -714,6 +714,26 @@ As que mais custaram tempo neste jogo:
 | 17 | o `SCALE_FACTOR` é a escala | e `1 / SCALE_FACTOR` é que são os px por metro |
 | 19 | o contrato é binário e ninguém o verifica | por isso `test_contrato.py` e a página com versão no nome |
 | 20 | a tabela do tempo, e o que dela se lê | 37 cenas, 12 secas, 1 legível |
+| 30 | quando os dois jogos divergem, o F1 25 manda | quem salta entre
+os dois e' a mesma pessoa, e "12 % restante" e "88 % usado" sao o mesmo
+fato com duas leituras -- **uma delas esta errada** |
+
+
+### A unica regra em que o AC muda de habito (Regra nº 30)
+
+Todas as outras linhas desta tabela sao "o AC e' assim". A 30 e'
+a unica em que **o AC se passa a parecer com o F1 25**: quando os
+dois jogos divergem numa apresentacao -- como se expressa uma
+percentagem, que lado de uma barra e' o bom -- a convencao do
+F1 25 passa a ser a do painel, e o AC muda para ela.
+
+Isto **inclui este ficheiro**. O `tyreWear` do AC nao muda de
+sentido, nao muda de escala e nao deixa de ser aderencia (veja a
+Regra nº 18, e o `tyreWear` desta pagina): o que muda e' **como se
+escreve** uma percentagem, nao **o que se mede**.
+
+Ver [`../AGENTS.md`](../AGENTS.md), Regra nº 30, para o porquê e
+para o exemplo -- 12 % restante contra 88 % usado.
 
 ---
 

@@ -28,6 +28,7 @@ as outras apontam para ela em vez de a repetir.
 | `codigo-modular` | ao escrever ou alterar código: ficheiros pequenos, módulos, helpers, funções puras e reutilizáveis |
 | `testes` | antes de commitar; ao criar ou registar um teste |
 | `jogos-e-capacidades` | campo novo no `snapshot()`, capacidade nova, jogo novo |
+| `mesma-convencao` | quando os dois jogos divergem no que mostram, e qual dos dois manda |
 | `progresso` | no fim de cada bloco de trabalho: a entrada em `docs/progresso.md` |
 | `documentacao` | Regra nova, arquitectura ou contagens alteradas, docs a crescer |
 
@@ -85,6 +86,7 @@ ficheiro, e **não se renumeram**: outros ficheiros citam-nas pelo número.
 | tempos de volta, delta, início de volta | 13, 14, 20 |
 | mapa e canvas | 10, 11, 16, 17 |
 | F1 25 (formatos, rodas, adversários) | 21, 22, 23, 24 |
+| os dois jogos divergirem numa apresentação — e o F1 25 manda | 30 |
 | texto que descreve o jogo (rodapé, título, ecrã de espera) | 25 |
 | rotas de um jogo, e o contrato com o núcleo | 26 |
 | `.bat` e `.ps1`, e o que demora | 27 |
@@ -93,7 +95,7 @@ ficheiro, e **não se renumeram**: outros ficheiros citam-nas pelo número.
 | testes que passam sem provar nada | 4, 12, 15, 19 |
 | dar uma causa ou uma conclusão | 9 |
 
-Uma Regra nova e a nº 30 e vai à tabela acima (skill `documentacao`).
+Uma Regra nova e a nº 31 e vai à tabela acima (skill `documentacao`).
 
 ---
 
@@ -1502,6 +1504,81 @@ de cada mutação, e imprime a acusação de cada uma: um teste que falha
 pelo motivo errado não prova nada, e é pior do que um que falha pelo
 certo, porque dá a sensação de que a regra pega quando quem a escreveu
 não sabe o que ela apanha.
+
+
+---
+
+## Regra nº 30 — quando os dois jogos divergem, o F1 25 manda
+
+**O F1 25 é o jogo mais relevante, e o AC acompanha-o.**
+
+Quando os dois jogos divergem numa escolha de apresentação — como se
+expressa uma percentagem, que unidade se mostra, que lado de uma barra é
+o "bom" — **a convenção do F1 25 passa a ser a do painel inteiro, e o AC
+muda para ela.** Não fica "cada jogo à sua maneira", e não fica "o AC fica
+como estava".
+
+O exemplo dado por quem decide: em vez de dizer **12 % restante de pneu**,
+diz-se **88 % de pneu usado**. E os 88 % são para todos, F1 25 e AC.
+
+### Porquê, e o que muda na prática
+
+O painel tem **dois** jogos e **um** utilizador. Um painel que mostra
+"12 % restante" no AC e "88 % usado" no F1 25 obriga a traduzir de cabeça
+de um para o outro, e quem salta entre os dois é a mesma pessoa.
+
+E o risco aqui é o inverso do habitual: os dois números são verdadeiros, é
+a **leitura** que muda. E a leitura que muda é a que se adivinha. Quem lê
+"12 %" num pneu e entende "quase estragado" lê "88 %" no mesmo pneu e
+entende "quase novo". **O mesmo facto, duas opiniões, e uma delas está
+errada.**
+
+> **O número que representa uma quantidade wears-se do lado que quem vende
+> usa.** Ninguém põe "resta 12 %" numa peça; põe "88 % usado". E o F1 25 é
+> o que o jogador vê no MFD, vinte vezes por volta.
+
+### O que NÃO muda
+
+A regra é sobre **apresentação**, e não sobre **medida**:
+
+- a **unidade** continua a ser a que o jogo manda — litros no AC, quilos
+  no F1 25 (Regra nº 24);
+- a **tradução** continua a ser feita na fronteira, pelo módulo do jogo
+  (Regra nº 22);
+- e o **campo** que se lê não muda por isto. O `tyreWear` do AC não é
+  desgaste: é aderência, e a Regra nº 18 mediu porquê — desce 0,45 % por
+  volta, e um pneu que durasse 220 voltas não é um pneu. Se o painel
+  passar a dizer "usado", tem de estar a dizer o desgaste **medido**, e não
+  a mesma grandeza com o nome trocado.
+
+Ou seja: **a regra diz como se escreve, não o que se mede.** Mudar o que se
+mede é uma medição, e fica à espera de ela ser feita.
+
+Isto é a Regra nº 19 pelo avesso, e é por isso que a frase "88 % usado" não
+se aplica a tudo: aplicá-la a um valor que é aderência produziria um número
+plausível e errado, que é o pior resultado possível porque ninguém o
+questiona.
+
+### Onde isto está escrito, e porque em tantos sítios
+
+| ficheiro | porque a regra aparece lá |
+|---|---|
+| `AGENTS.md`, esta regra | é a lei, e é a única com o porquê |
+| `docs/f1-25.md` | quem mexer no módulo do F1 25 lê esse ficheiro, e não este |
+| `docs/assetto-corsa.md` | **é o AC que muda**, e quem mexe no AC tem de saber |
+| `README.md` | a tabela "o que muda entre os dois jogos" fica incompleta sem isto |
+| `.opencode/skill/jogos-e-capacidades/SKILL.md` | a regra entra no procedimento, não só na lei |
+
+### O que um teste não pode verificar
+
+Um teste não verifica uma convenção de linguagem. O que um teste **pode**
+verificar é que os dois jogos **dizem a mesma coisa**, e é isso que
+`tests/test_jogos.js` faz com as capacidades: quando um jogo acrescenta um
+campo, os dois têm de o ter.
+
+E o que esta Regra **proíbe** é o pior silêncio do projecto: cada módulo
+escolher a sua convenção e ninguém comparar. A escolha passa a ser uma, e
+fica escrita num sítio só.
 
 ---
 

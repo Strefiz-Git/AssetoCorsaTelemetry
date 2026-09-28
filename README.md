@@ -41,6 +41,15 @@ O que muda, e que está medido ou na documentação do jogo:
 | zona de DRS | dois flags que mediram 98,9% e 18,5% | **os metros que faltam** |
 | delta | calculado contra uma volta de referência | **vem do jogo** |
 
+E o que **não** muda é a apresentação. Quando os dois jogos
+divergem numa escolha de como se mostra — que lado de uma percentagem
+é o "bom", como se expressa uma quantidade — **manda o F1 25, e o AC
+muda para ele**. Porquê: quem conduz os dois é a mesma pessoa, e
+"12 % restante" e "88 % usado" são o mesmo facto com duas leituras,
+e uma delas está errada. A regra está no
+[`AGENTS.md`](AGENTS.md) (Regra nº 30) e a unidade de cada campo
+continua a ser a que o jogo publica — litros no AC, quilos no F1 25.
+
 E o que o F1 25 dá e o AC não: o **setup** inteiro, a idade e a vida do
 pneu, bolhas, o desgaste dos seis componentes do motor, o ângulo real da
 roda, o escorregamento em *ratio* e em ângulo, o estado do céu com
