@@ -795,6 +795,11 @@ Planner, em
 `ac_info/apps/lua/PurePlanner/settings/settings_defaults.lua`, em 37
 linhas: o nome da cena e as quantidades que o próprio jogo reconhece.
 
+A pasta foi apagada depois de a tabela ser transcrita para 
+`static/nucleo/tempo.js`, que é agora onde a tabela vive e é o
+ficheiro que o `test_tempo.js` confere. O caminho fica escrito
+porque é de onde veio, e não porque se vá lá buscar nada.
+
 **O comentário de cabeçalho desse ficheiro está certo** — nomeia as
 treze colunas e batem com a linha, uma a uma:
 
@@ -1240,6 +1245,21 @@ podem.
 | `static/jogos/f125.js` | as regras do F1 25. Pura. |
 | `static/jogos/seletor.js` | a ponte: qual é o jogo activo, e o que ele consegue mostrar. |
 
+O que está dentro de `static/nucleo/`, que a tabela não descobre por si:
+
+| Ficheiro | O que decide |
+|---|---|
+| `tempos.js` | os tempos, a referência da volta e o delta |
+| `tempo.js` | as 37 cenas do clima e os seus limiares |
+| `tyres.js` | a vida do pneu, a partir de duas voltas medidas |
+| `combustivel.js` | as voltas de combustível que o depósito ainda dá |
+| `ers.js` | o ERS: percentagem quando há máximo, joules quando não há, e **nunca** `0 %` com bateria dentro |
+| `unidades.js` | a tabela de factos das unidades, por jogo — a que a Regra nº 24 manda consultar antes de escrever um número |
+| `jogo-base.js` | o que os dois módulos de jogo têm em comum |
+
+Todos se ligam por `<script>` no `index.html`, e não por `require` — o que
+é a diferença entre dois mundos e o que a Regra nº 28 trata.
+
 **Por que é que os módulos de jogo são puros.** Uma regra dentro do
 `app.js` só se pode testar com o jogo a correr e olhando para o ecrã. E
 os cortes do clima do AC estavam errados assim durante meses: via-se o
@@ -1649,7 +1669,7 @@ certo, não uma falha. Os testes de memória escrevem em páginas
 
 Corre com `python tests\run_all.py`. Sai com codigo diferente de zero se
 algo falhar, e com codigo 2 (que nao e' falha) se o AC
-estiver a correr e os testes de memoria forem saltados. Sao 34 grupos.
+estiver a correr e os testes de memoria forem saltados. Sao 35 grupos.
 
 | Ficheiro | O que prova |
 |---|---|
@@ -1658,6 +1678,7 @@ estiver a correr e os testes de memoria forem saltados. Sao 34 grupos.
 | `mutacao_grip.py` | que a regra da aderencia morde, partindo o codigo |
 | `test_opponents.py` | o struct de 128 carros: ordem dos campos, m/s para km/h, tempos, filtro de carros vazios |
 | `test_f125_parser.py` | o F1 25 nos DOIS formatos: os 33 tamanhos, a ordem das rodas, o truque dos minutos, o /1000 das forcas G, e o formato desconhecido recusado |
+| `comparar_spec.py` | que o `protocolo.py` tem TODOS os campos que a EA publica, e nao so os que ele proprio inventou -- a outra metade da Regra no 4, porque o `test_f125_parser.py` so confirma os tamanhos contra o proprio protocolo. Sai a vermelho se a EA acrescentar um campo. |
 | `compilar.py` | que os `.py` compilam -- apanha erro de sintaxe |
 | `verificar_js.py` | que os 20 `.js` fazem parse no node |
 | `test_contrato.py` | que a app e o leitor falam a mesma linguagem |
@@ -1710,12 +1731,14 @@ correr tambem nao prova nada quando o jogo nao esta a abrir.
 | `mapa.py` | grava um trajecto conduzido e desenha o mapa |
 | `mapa_todas_pistas.py` | mede o `map.ini` das 76 pistas |
 | `medir_bandeira.py` | ONDE ESTA A BANDEIRA DE PISTA DO F1 25, E PROVA QUE A POSICAO E' A CERTA. O painel mostra a bandeira do PROPRIO CARRO (`vehicleFIAFlags`) e nao a de pista, que vive no bitfield `vehicleFlags` -- e esse nao esta' no struct. Acrescentar um campo ao offset errado desloca tudo o que vem a seguir, sem erro nenhum (Regra no 19), e por isso este mede em vez de adivinhar. Precisa do jogo a conduzir |
+| `medir_pneu_f125.py` | FORA: precisa do F1 25 a conduzir. Descobre se o `m_tyresWear` e' quanto ja foi usado ou quanto resta, medindo o desgaste ao mesmo tempo que as voltas que faltam -- e as duas coisas nao podem descer. A medicao que ele fez esta em `docs/medicao-desgaste-f125.md` |
 | `medir_tyrewear.py` | mede a queda do desgaste por volta, a conduzir |
 | `probe_layout.py` | despeja os valores e procura grupos de 4 -- a assinatura de uma temperatura |
 | `run_all.py` | NAO E' UM TESTE -- e' o que corre todos os outros, por ordem |
 | `tabela_testes.py` | NAO E' UM TESTE -- e' o que escreve esta tabela |
 | `tamanho_real.py` | mede o tamanho real das paginas. O resultado fica registado de proposito |
 | `test_tempos.html` | os mesmos casos de tempos, para abrir no browser |
+| `texto_pdf.py` | FORA: precisa de um PDF concreto e de o texto sair legivel. Nao ha `pypdf` nem `pdftotext` nesta maquina, e este le um PDF so com `zlib`. E' a ferramenta que permitiu ler os cabecalhos das especificacoes da EA |
 | `verificar_combustivel.py` | precisa do jogo a correr e do deposito a descer |
 | `verify_real.py` | os valores reais, so' com o jogo aberto |
 | `vida_pneu.py` | a vida do pneu a partir de uma serie ja gravada |

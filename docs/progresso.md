@@ -859,6 +859,184 @@ cada módulo escolher a sua convenção, e ninguém comparar.
 
 ---
 
+## 2026-09-28 (7.ª parte) — os repos de referência: o que estava dentro e o que se perdeu
+
+### Porque
+
+Apagamento pedido, **condicionado**: "desde que já tenhas extraído e
+guardado a informação útil". A condição **não se cumpria**, e por isso
+primeiro se extraiu e só depois se apagou. Os dois ficheiros do fórum do AC
+que vinham em `ac_info/` tinham física de pneu que não estava em lado
+nenhum do projecto — 0 ocorrências da curva, do `vKM` e do `DY0` em
+`AGENTS.md` e nos quatro `docs/` de telemetria.
+
+### O que foi feito
+
+| Ficheiro | o que mudou |
+|---|---|
+| `docs/pneu-fisica-ac.md` | **novo.** A curva temperatura→aderência (9 pontos), o `vKM`, a `WEAR_CURVE`, o `DY0`/`DX0`, e o `BLISTER_GAIN`. Com a proveniência: quem, quando, e como |
+| `docs/README.md` | a página nova no índice |
+| `static/nucleo/tempo.js` | o `39 cenas` do cabeçalho era **`37`**, e a linha 88 do mesmo ficheiro já dizia 37 |
+
+### Dificuldades
+
+1. **O ficheiro contradizia-se a si próprio.** `tempo.js` linha 15 dizia
+   39 cenas e a linha 88 dizia 37. Contadas: a fonte tem 37 linhas de
+   preset, e o `Default_WeatherPresets.json` tem 37 entradas. O número
+   certo já estava no ficheiro e não foi lido.
+2. **O `ac_info/` são 4 GB, e 3944 MB são 116 texturas `.dds` do SimHub.**
+   Ou seja, 99 % do volume não tinha informação nenhuma. A parte com
+   conteúdo são 197 ficheiros de texto.
+3. **O `ac_info/` não está no git e está no `.gitignore`.** Apagá-lo é
+   irreversível a sério — sem histórico, sem remoto, sem segunda cópia. O
+   `resources/` está no git e apaga-se com um commit. A diferença entre os
+   dois decide se a operação é um `rm` ou um `git rm`.
+
+### Falta / não verificado
+
+- **A curva não foi medida por nós.** Vem de uma transcrição de 2014 e é de
+  um **slick GT3**, não de um F1. Por isso os cortes de cor a 95 e 105 °C
+  **não se mexeram**: a curva diz que 105 °C está no meio da banda de
+  aderência máxima, mas trocar um número sem base por outro número sem base
+  não é uma correcção, e o primeiro ao menos era visível. Medir com o AC
+  aberto é o que falta, e está escrito na página.
+- **A `WEAR_CURVE` explica o porquê dos 0,45 % por volta** (o desgaste é
+  função de *slip*, não de voltas) e reforça a conclusão do
+  `mutacao_grip.py`. Mas **não fecha a Regra nº 18**: continua por
+  identificar o que o HUD do Content Manager lê.
+- O `BLISTER_GAIN` dá um significado ao `m_tyreBlisters` do F1 25 que o
+  painel mostra como número. **Não foi ligado a nada** — é um dado do AC
+  e usá-lo no F1 25 seria inventar.
+
+---
+
+## 2026-09-28 (8.ª parte) — o protocolo confere com a spec da EA, campo a campo
+
+### Porque
+
+O `test_f125_parser.py` confirma que os 33 tamanhos batem ao byte, mas
+**contra o próprio protocolo**. É a Regra nº 4: um teste auto-consistente
+passa com o protocolo errado, desde que o protocolo esteja coerente
+consigo. Metade do buraco estava por fechar.
+
+### O que foi feito
+
+| Ficheiro | o que mudou |
+|---|---|
+| `tests/comparar_spec.py` | **novo, e na suite.** Compara os 372 campos `m_` da spec com os nomes do `protocolo.py`. Sai a vermelho se a EA acrescentar um campo |
+| `tests/texto_pdf.py` | **novo, fora da suite.** Lê um PDF só com `zlib` — não há `pypdf` nem `pdftotext` nesta máquina |
+| `docs/f1-25.md` | o resultado, com o `m_driverId` da spec ao lado do nosso |
+| `ac_info/` (4 GB) | **apagado**, depois de extraído e verificado |
+| `resources/…/f1-2021-udp-main/` | **apagado** — spec de 2021, superada; recuperável por `git checkout` |
+
+### Dificuldades
+
+1. **Não sabia ler os PDFs, e disse-o em vez de adivinhar.** Sem
+   `pypdf`, sem `PyPDF2`, sem `pdftotext`. Escrevi o extractor, e ele
+   chegou ao cabeçalho — *Version 1.2, Added F2 Driver IDs* — mas **não**
+   às tabelas de campos. Um resultado a meio é resultado, não é falha a
+   ignorar.
+2. **A spec também estava em texto simples**, e eu não tinha olhado. O
+   `2026 Season Pack Telemetry Output Structures (1).txt` é a fonte
+   pesquisável, e resolve o que o PDF não resolvia. Isto é a segunda vez
+   nesta sessão que só de **listar** o que existe se descobre a fonte
+   certa — e a listagem é o passo que o meu Reflexo pulou duas vezes.
+3. **A comparação deu 37 buracos e eram mentira.** Nenhuns: o protocolo
+   usa `posX` e a spec diz `m_worldPositionX`. Metade dos "37" era o mesmo
+   campo com outro nome.
+4. **O mapa estava no sentido errado.** Traduzia a spec para o nosso nome
+   *depois* de subtrair, em vez de antes — e acusava buracos que o mapa
+   já resolvia. De 37 para 6 com o sentido certo, e para **0** com as
+   entradas certas.
+
+### Falta / não verificado
+
+- **Um campo por decidir, e está declarado:** o `m_sliProNativeSupport` é
+  o suporte do jogo para um ecrã de LEDs externo. Não se acrescenta — um
+  painel não escreve para LEDs — mas fica no `ACEITOS` com o motivo, para
+  que o vermelho do teste signifique buraco **novo** e não este.
+- **A nota de revisão do *Season 8* só a headline.** O documento diz
+  *Version 1.2 — Added F2 Driver IDs* e o nosso `m_driverId` é `u16` em
+  2026, o que bate. Mas o texto do Season 8 não foi lido campo a campo.
+- **`ac_info/` apagado é irreversível.** Estava no `.gitignore`, sem
+  histórico e sem remoto. A verificação antes de apagar foi: 16 de 16
+  valores extraídos no commit anterior, e **zero** campos `m_` por
+extrair. O resto dos 4 GB eram 3 944 MB de texturas `.dds` do SimHub.
+
+---
+
+## 2026-09-28 (9.ª parte) — os 25 campos que listei não são alcançáveis, e eu não fui ler a medição
+
+### Porque
+
+Na 8.ª parte listei 25 campos que o AC publica e que "não estão nos docs
+nem no código", com o `wheel.tyreOptimumTemperature` em destaque. A
+implicação era clara: dava para os usar.
+
+**Não dá.** E a prova estava escrita no disco, pelo nosso próprio plugin,
+cinco minutos antes de eu escrever a lista — e eu não a fui ler.
+
+### O que foi feito
+
+| Ficheiro | o que mudou |
+|---|---|
+| `docs/assetto-corsa.md` | a secção passou a dizer que os campos são **inalcançáveis**, com a saída do log do plugin como prova |
+| `docs/assetto-corsa.md` | o `tyreOptimumTemperature` passou de "a resposta do jogo" a "seria a resposta do jogo" |
+
+### O que a medição diz
+
+O `actelemetry_strefiz.py` tem uma sonda que corre no arranque e escreve
+no `py_log.txt`. Saiu, e a resposta é uma linha:
+
+```
+AssettoCorsaTelemetry: ac.getCar NAO existe em Python. O desgaste fica so
+com o campo de aderencia da memoria partilhada, que e' outra grandeza.
+```
+
+`ac.getCar()` devolve o objecto-carro, e é de onde vêm `tyreWear`,
+`tyreOptimumTemperature` e os outros 24. É uma interface **só de Lua** — o
+HUD do Content Manager usa-a porque é Lua; nós somos Python.
+
+**A assimetria, no mesmo log:** `clima disponivel (7 funcoes)`. O Custom
+Shaders Patch expõe `ac.ext_*` como *funções*, e funções chegam ao Python.
+O objecto-carro não é uma função, e objectos não atravessam esta fronteira.
+
+### O que isto fecha
+
+A rota para corrigir os cortes de cor da temperatura do pneu (95 e 105 °C)
+usando a temperatura ideal do próprio jogo **está fechada**. Fechada antes
+de se gastar tempo nela.
+
+O que sobra para os cortes é a curva do `docs/pneu-fisica-ac.md` — que é
+de um **GT3 de 2014** e não de um F1 — ou uma medição nossa com o AC
+aberto. Nenhuma das duas se fez.
+
+### Dificuldades
+
+1. **A resposta estava no disco e eu não a procurei.** Escrevi um
+   levantamento de campos "que não temos" sem ir ver o que a nossa própria
+   sonda já tinha medido sobre a mesma interface. Uma lista do que falta
+   é mais valiosa depois de se saber **porquê** falta.
+2. **A lista continua verdadeira**, e é o que salva o erro: os campos
+   existem, a proveniência está certa, e o `bestLapSplits` ser sempre 0
+   continua a ser o aviso mais importante dela. O que estava errado era a
+   conclusão, não o levantamento.
+
+### Falta / não verificado
+
+- A **nota de revisão do Season 8** (*Version 1.2 — Added F2 Driver IDs*)
+  foi lida só na headline. O campo `m_driverId` confere — `uint16` na
+  spec, `u16` no nosso protocolo para 2026 — mas o Season 8 está em PDF e o
+  meu extractor (`tests/texto_pdf.py`) lê o cabeçalho e **não** as tabelas
+  de campos.
+- A **bandeira de pista** do F1 25 continua por fazer, à espera de
+  `python tests\medir_bandeira.py` com o jogo a conduzir e uma bandeira
+  no ecrã.
+- Os **cortes de temperatura** continuam sem base medida, agora com a
+  rota alternativa fechada.
+
+---
+
 ## Resumo do que se aprendeu
 
 | Lição | Onde está registada |

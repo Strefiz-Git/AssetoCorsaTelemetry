@@ -2662,13 +2662,15 @@ function pintarClima(d) {
  * A tabela das cenas -- os limiares, a escala e as bandas -- estava aqui
  * dentro, escrita a mao. Saiu para o modulo por duas razoes:
  *
- *  - e' a ESCOLA DO JOGO, e a escala esta' em
- *    `ac_info/apps/lua/PurePlanner/settings/settings_defaults.lua`, com 39
- *    cenas e as quantidades do proprio AC. Uma copia feita a mao e' uma
- *    copia que diverge (Regra nº 16).
+ *  - e' a ESCOLA DO JOGO. A escala veio do Pure Planner, em
+ *    `ac_info/apps/lua/PurePlanner/settings/settings_defaults.lua`, com 37
+ *    cenas e as quantidades do proprio AC; essa pasta foi apagada depois
+ *    de a tabela ser transcrita para `nucleo/tempo.js`, que e' agora quem a
+ *    define e o que o `test_tempo.js` confere. Uma copia feita a mao e'
+ *    uma copia que diverge (Regra nº 16).
  *  - dentro desta IIFE nao se testa. E' por isso que os cortes errados
  *    so' apareceram ao olhar para o ecra, tarde demais. No node
- *    alimentam-se as 39 quantidades e ve-se logo qual cai onde.
+ *    alimentam-se as 37 quantidades e ve-se logo qual cai onde.
  */
 function pintarChuva(id, d) {
   const el = $(id);
