@@ -392,6 +392,26 @@
     id: 'f125',
     nome: 'F1 25',
     capacidades: function () { return CAPACIDADES; },
+
+    /* A UNIDADE DE CADA GRANDEZA, e a unica vez que se escreve. E' o
+     * que o `defs.js` pede para saber que opcoes oferecer. Ver o mesmo
+     * bloco no `ac.js`.
+     *
+     * O F1 25 da `m_fuelInTank` em QUILOS, e nao em litros. Nao e' uma
+     * diferenca de escala: sao grandezas diferentes, com densidades
+     * diferentes. Converter exigiria saber a densidade do combustivel
+     * naquele momento, e 42,5 quilos escritos como "42,5 L" seria um
+     * numero plausivel e errado -- o pior resultado possivel (Regra
+     * no 24). Por isso a opcao de unidade do F1 25 e' quilos e libras,
+     * e a de galoes nem aparece.
+     *
+     * E o VENTO: `vento: null` no `clima()` deste modulo. O F1 25 nao
+     * publica vento -- nao e' um dado em falta nem uma ligacao perdida,
+     * e' um dado que o jogo nao tem. Por isso o `vento: null` aqui, e o
+     * esquema nao oferece m/s nem km/h. Uma opcao de unidade para um
+     * numero que nunca chega e' uma opcao que nao muda nada. */
+    UNIDADES: { fuel: 'kg', vento: null },
+
     embraiagem: embraiagem,
     volante: volante,
     abs: abs,

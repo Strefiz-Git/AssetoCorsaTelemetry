@@ -389,6 +389,26 @@
     id: 'ac',
     nome: 'Assetto Corsa',
     capacidades: function () { return CAPACIDADES; },
+
+    /* A UNIDADE DE CADA GRANDEZA, e a unica vez que se escreve.
+     *
+     * E' o que o `defs.js` pede para saber que opcoes oferecer, e a
+     * razao de ser uma declaracao ESTATICA e nao tirada de uma medicao
+     * e' que as definicoes sao validadas no arranque -- antes de haver um
+     * unico packet. Se a unidade so' se soubesse depois de o jogo
+     * comecar, nao serviria para validar o que esta' guardado, e o
+     * esquema ofereceria litros a um jogo que manda quilos.
+     *
+     * O esquema nao tem uma tabela "unidades por jogo": seria um
+     * segundo sitio a saber o que este modulo publica, ao lado deste
+     * modulo. O esquema sabe so' os factos -- que `L` e `gal` sao a
+     * mesma grandeza -- e deriva a lista de opcoes daqui.
+     *
+     * O AC da `fuelL` em LITROS e o `windSpeedApi` em m/s. A razao do m/s
+     * esta' na Regra no 20: o AC documenta m/s, a tabela do Pure Planner
+     * nao diz nada, e a medicao que resolve ainda nao foi feita. */
+    UNIDADES: { fuel: 'L', vento: 'ms' },
+
     embraiagem: embraiagem,
     volante: volante,
     abs: abs,

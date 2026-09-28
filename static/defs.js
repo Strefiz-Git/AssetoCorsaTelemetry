@@ -81,6 +81,45 @@
  * devolve o número JÁ convertido e a etiqueta correspondente, e o painel
  * escreve os dois. Não há caminho em que um mude e o outro não, porque
  * não há duas funções que decidir em separado.
+ *
+ * ---------------------------------------------------------------------------
+ * A UNIDADE QUE O JOGO MANDA VEM DO MÓDULO DO JOGO
+ *
+ * Duas definições dependem do jogo, e a razão delas é a mais importante
+ * do projecto:
+ *
+ *     combustível   o AC publica LITROS. O F1 25 publica QUILOS.
+ *     vento         o AC publica m/s. O F1 25 não publica vento.
+ *
+ * Quilos e litros não são a mesma grandeza, e convertê-los exigiria uma
+ * densidade — a do combustível, que muda com a temperatura e com a
+ * mistura. Escolher 42,5 kg e escrever "42,5 L" é o número plausível e
+ * errado, que é o pior resultado possível (Regra nº 24). E um F1 25 sem
+ * vento não tem o que converter: oferecer m/s e km/h para um número que
+ * nunca chega é oferecer uma opção que não muda nada.
+ *
+ * Então quem decide é o MÓDULO DO JOGO, e diz de forma **estática**:
+ *
+ *     global.JogoAC.UNIDADES   = { fuel: 'L',  vento: 'ms'  }
+ *     global.JogoF125.UNIDADES = { fuel: 'kg', vento: null }
+ *
+ * Estática, e não tirada de uma medição, porque as definições são
+ * validadas no arranque — antes de haver um único packet. Uma unidade que
+ * só se sabe depois de o jogo começar não serve para validar o que está
+ * guardado.
+ *
+ * O que este esquema sabe, e é tudo o que lhe compete, são FACTOS SOBRE
+ * UNIDADES — e factos não são do jogo:
+ *
+ *     L   e gal   são a mesma grandeza. 1 galão imperial = 4,54609 L.
+ *     kg  e lb    são a mesma grandeza. 1 libra = 0,45359237 kg.
+ *     L   e kg    NÃO são a mesma grandeza, e por isso nunca se cruzam.
+ *
+ * Daí a lista de valores de cada opção não se escreve: deriva-se. A base
+ * que o jogo manda é o primeiro valor, e as alternativas são as que a
+ * tabela diz serem da mesma grandeza. Se um dia o AC passar a publicar
+ * BTU, o esquema não tem lista nenhuma para actualizar — tem uma entrada
+ * nova, e é o módulo do AC que muda.
  */
 (function (root) {
   'use strict';
@@ -92,6 +131,136 @@
       { valor: sim, rotulo: 'sim' },
       { valor: nao, rotulo: nao === 'off' ? 'esconder' : nao }
     ];
+  }
+
+  /* ---------------------------------------------------------------------
+   * FACTOS SOBRE UNIDADES
+   *
+   * Não é uma lista de opções, e essa é a diferença que importa. Uma
+   * lista de opções diz "para este jogo valem estas"; isto diz "estas
+   * grandezas são a mesma, e por que factor". A primeira tem de ser
+   * mantida quando um jogo muda; a segunda só cresce.
+   *
+   * `fator` multiplica o número que está NA BASE para ficar na unidade de
+   * destino. O caminho inverso é o mesmo factor à potência de menos um, e
+   * por isso cada entrada escreve só um factor e não dois.
+   *
+   * `casas` são as casas decimais de CADA unidade deste par, e não são
+   * simétricas: 20,0 L em galões são 4,4, e três algarismos que não
+   * existem são três algarismos que a régua do depósito obriga a escrever.
+   *
+   * Não há entrada de `L` contra `kg`, e é de propósito: não são a mesma
+   * grandeza. Quem a acrescentasse estaria a inventar uma densidade.
+   * ------------------------------------------------------------------- */
+  var UNIDADES = {
+    L:   { rotulo: 'L',    casas: 1, para: [{ unidade: 'gal', fator: 1 / 4.54609,     casas: 2 }] },
+    gal: { rotulo: 'gal',  casas: 2, para: [{ unidade: 'L',   fator: 4.54609,       casas: 1 }] },
+    kg:  { rotulo: 'kg',   casas: 1, para: [{ unidade: 'lb',  fator: 2.2046226,    casas: 2 }] },
+    lb:  { rotulo: 'lb',   casas: 2, para: [{ unidade: 'kg',  fator: 1 / 2.2046226, casas: 1 }] },
+
+    /* A temperatura não cabe num factor: 0 °C não são 32 °F, e o
+     * deslocamento é o que faz a conta ser `v * 9/5 + 32`. Por isso é a
+     * única com `desloca`. */
+    C:   { rotulo: '°C',   casas: 0, para: [{ unidade: 'F',   fator: 9 / 5, desloca: 32,  casas: 0 }] },
+    F:   { rotulo: '°F',   casas: 0, para: [{ unidade: 'C',   fator: 5 / 9, desloca: -32, casas: 0 }] },
+    ms:  { rotulo: 'm/s',  casas: 1, para: [{ unidade: 'kmh', fator: 3.6,          casas: 1 }] },
+    kmh: { rotulo: 'km/h', casas: 1, para: [{ unidade: 'ms',  fator: 1 / 3.6,      casas: 1 }] }
+  };
+
+  /* O JOGO ACTIVO, e a unidade que ele manda.
+   *
+   * `defs.js` é puro — sem DOM, sem estado, sem `require` — e mesmo
+   * assim tem de saber de que unidade é o número que o painel vai
+   * pintar. A solução não é o `defs.js` ir buscar: é RECEBER. O `app.js`
+   * é que tem o módulo do jogo activo, e é esse módulo que publica a
+   * unidade (ver o cabeçalho).
+   *
+   * Sem isto, o esquema teria uma tabela de "unidades por jogo", e essa
+   * tabela seria um segundo sítio a saber o que cada jogo publica, ao
+   * lado do próprio módulo que já o diz. Dois sítios divergem em silêncio,
+   * e o sintoma é um número com a etiqueta de outro jogo. */
+  var JOGO = { id: null, unidades: {} };
+
+  /* Diz a este esquema o que o jogo activo manda. Chamar outra vez ao
+   * trocar de jogo, ANTES de voltar a validar. */
+  function usarJogo(id, unidades) {
+    JOGO.id = (id === undefined) ? null : id;
+    JOGO.unidades = (unidades && typeof unidades === 'object') ? unidades : {};
+    return JOGO;
+  }
+
+  function jogoAtual() { return JOGO; }
+
+  /* A unidade que este jogo manda para esta chave, ou `null` se não
+   * publica a grandeza. `null` é uma resposta útil: é o que some a
+   * opção do painel, em vez de a oferecer à toa.
+   *
+   * E `sabidoDesteJogo` é uma função à parte de propósito, porque há uma
+   * diferença que um `null` só não distingue:
+   *
+   *   - o jogo NÃO FALOU desta grandeza   -> ainda não se sabe, e a
+   *     omissão do esquema serve. E é o caso normal no arranque, antes
+   *     de o `app.js` dizer qual é o jogo.
+   *   - o jogo FALOU, e disse `null`       -> o jogo não publica, e a
+   *     opção não se oferece. É o `vento: null` do F1 25. */
+  function baseDoJogo(chave) {
+    const u = JOGO.unidades;
+    if (!u || !Object.prototype.hasOwnProperty.call(u, chave)) return null;
+    return u[chave];
+  }
+
+  function sabeDesteJogo(chave) {
+    const u = JOGO.unidades;
+    return !!(u && Object.prototype.hasOwnProperty.call(u, chave));
+  }
+
+  /* Os valores que uma opção oferece, NESTE jogo.
+   *
+   * O jogo não publica nada: `[]`, e a opção desaparece. Publica uma
+   * unidade que a tabela não conhece: só essa, e sem conversão — que é
+   * melhor do que inventar o factor. E uma definição que não é de jogo
+   * devolve `null`, para o `declarados()` saber que há outra lei. */
+  function valoresDoJogo(def) {
+    if (!def || def.unidadeChave === undefined) return null;
+    if (!sabeDesteJogo(def.unidadeChave)) {
+      /* Ainda nao se sabe o jogo. A omissao do esquema e' a base. */
+      const base = def.omissao;
+      if (!Object.prototype.hasOwnProperty.call(UNIDADES, base)) return [base];
+      return [base].concat(UNIDADES[base].para.map(function (p) { return p.unidade; }));
+    }
+    const base = baseDoJogo(def.unidadeChave);
+    if (base === null || base === undefined) return [];
+    if (!Object.prototype.hasOwnProperty.call(UNIDADES, base)) return [base];
+    return [base].concat(UNIDADES[base].para.map(function (p) { return p.unidade; }));
+  }
+
+  /* O que se guarda é a UNIDADE QUE SE QUER VER — que é uma das que o
+   * jogo permite, e por omissão a própria do jogo.
+   *
+   * A medida que chega do painel está sempre na unidade do jogo, e a
+   * conversão acontece no momento de pintar, nunca no que fica guardado.
+   * Regra nº 24: a unidade nunca se converte para ser guardada,
+   * escreve-se a que o jogo manda. */
+  function omissaoDoJogo(def) {
+    if (def.omissao === undefined) return null;
+    if (def.unidadeChave === undefined) return def.omissao;
+    if (!sabeDesteJogo(def.unidadeChave)) return def.omissao;
+    const base = baseDoJogo(def.unidadeChave);
+    /* O jogo nao publica a grandeza: nao ha' unidade para escolher, e a
+     * omissao e' `null` em vez de uma unidade que nao existe. */
+    return (base === null || base === undefined) ? null : base;
+  }
+
+  /* O factor e as casas de um par. `null` quando o par não existe, que é
+   * quando o número não pode ser convertido — e a resposta tem de ser o
+   * número CRU, nunca um zero e nunca um `NaN`. */
+  function parDeUnidade(de, para) {
+    if (!de || !Object.prototype.hasOwnProperty.call(UNIDADES, de)) return null;
+    const lista = UNIDADES[de].para;
+    for (let i = 0; i < lista.length; i++) {
+      if (lista[i].unidade === para) return lista[i];
+    }
+    return null;
   }
 
   /* ---------------------------------------------------------------------
@@ -166,31 +335,31 @@
     },
     {
       chave: 'fuel', tipo: 'enum',
-      valores: ['L', 'gal'],
+      /* NAO ha' lista de valores aqui, e essa e' a parte nova.
+       *
+       * O AC publica litros e o F1 25 publica quilos, e as duas coisas nao
+       * sao a mesma grandeza. Por isso a lista nao se escreve:
+       * DERIVA-SE. A base que o modulo do jogo manda e' o primeiro valor,
+       * e as alternativas sao as que a tabela `UNIDADES` diz serem da
+       * mesma grandeza. `L -> gal` porque sao a mesma; `L -> kg` nunca,
+       * porque nao sao.
+       *
+       * O F1 25, que manda quilos, nunca chega a oferecer galoes -- e isso
+       * e' a verdade, nao uma limitacao. */
+      unidadeChave: 'fuel',
       omissao: 'L',
       rotulo: 'set.fuel', grupo: 'unidades', ordem: 40,
-      nota: null,
-      unidade: {
-        sufixo: { L: 'L', gal: 'gal' },
-        // 1 galão imperial = 4,54609 L. O galão americano são 3,78541 L,
-        // e a diferença de 20% é grande demais para ser um arredondamento.
-        de: function (v) { return v; },
-        para: function (v, alvo) { return alvo === 'gal' ? v / 4.54609 : v; },
-        casas: function (alvo) { return alvo === 'gal' ? 2 : 1; }
-      }
+      nota: null
     },
     {
       chave: 'vento', tipo: 'enum',
-      valores: ['ms', 'kmh'],
+      /* O F1 25 NAO publica vento -- `vento: null` no `f125.js`. Nao e' um
+       * dado em falta, e' um dado que nao existe, e por isso a opcao SOME
+       * em vez de oferecer m/s e km/h para um numero que nunca chega. */
+      unidadeChave: 'vento',
       omissao: 'ms',
       rotulo: 'set.vento', grupo: 'unidades', ordem: 50,
-      nota: null,
-      unidade: {
-        sufixo: { ms: 'm/s', kmh: 'km/h' },
-        de: function (v) { return v; },
-        para: function (v, alvo) { return alvo === 'kmh' ? v * 3.6 : v; },
-        casas: function (alvo) { return 1; }
-      }
+      nota: null
     },
 
     /* ---- envio -------------------------------------------------------- */
@@ -308,7 +477,11 @@
    * dava. Três sítios, uma causa, e nada a dizer. */
   function declarados(def) {
     if (def.tipo !== 'enum') return [];
-    return def.valores;
+    /* Uma definição de unidade não tem lista: tem a base que o jogo
+     * manda, e as alternativas saem da tabela de factos. Uma definição
+     * normal tem lista, e a lista manda. */
+    const doJogo = valoresDoJogo(def);
+    return (doJogo === null) ? def.valores : doJogo;
   }
 
   function valoresDeclarados(def) {
@@ -356,7 +529,7 @@
       var guardado = Object.prototype.hasOwnProperty.call(fonte, def.chave)
         ? fonte[def.chave] : undefined;
       var v = tipoDoValor(def, normalizar(def, guardado));
-      saida[def.chave] = (v === null || v === undefined) ? def.omissao : v;
+      saida[def.chave] = (v === null || v === undefined) ? omissaoDoJogo(def) : v;
     }
     return saida;
   }
@@ -371,7 +544,7 @@
     for (var i = 0; i < LISTA.length; i++) {
       var def = LISTA[i];
       if (def.tipo === 'acao') continue;
-      saida[def.chave] = def.manterNoReset ? actual[def.chave] : def.omissao;
+      saida[def.chave] = def.manterNoReset ? actual[def.chave] : omissaoDoJogo(def);
     }
     return saida;
   }
@@ -398,35 +571,88 @@
    * medida não é um número — para o painel distinguir "não aplicável"
    * de "um número torto", sem repetir a lista das chaves com conversão.
    * ------------------------------------------------------------------- */
+  /* A unidade que se QUER VER: a que esta' guardada, ou a omissao. */
+  function alvoDe(def, definicoes) {
+    if (definicoes && definicoes[def.chave] !== undefined
+        && definicoes[def.chave] !== null) {
+      return definicoes[def.chave];
+    }
+    return omissaoDoJogo(def);
+  }
+
+  /* A unidade de que a MEDIDA vem. Numa definicao normal e' a mesma que
+   * a de ver; numa definicao de unidade e' a que o modulo do jogo manda,
+   * e essa e' a unica forma de saber que 40 sao 40 LITROS ou 40
+   * QUILOS. */
+  function baseDe(def) {
+    if (def.unidadeChave === undefined) return omissaoDoJogo(def);
+    if (!sabeDesteJogo(def.unidadeChave)) return def.omissao;
+    return baseDoJogo(def.unidadeChave);
+  }
+
   function apresentar(chave, medida, definicoes) {
     const def = porChave[chave];
-    if (!def || !def.unidade) return null;
+    if (!def) return null;
     if (medida === null || medida === undefined) return null;
     const numero = Number(medida);
     if (!isFinite(numero)) return null;
 
-    const alvo = (definicoes && definicoes[chave] !== undefined)
-      ? definicoes[chave] : def.omissao;
+    const alvo = alvoDe(def, definicoes);
+    if (alvo === null || alvo === undefined) return null;
+
+    /* Uma definicao de unidade converte pela TABELA, e a base vem do
+     * modulo do jogo. Uma definicao normal traz a conversao dentro de si,
+     * porque a unidade dela e' igual nos dois jogos. */
+    if (def.unidadeChave !== undefined) {
+      const base = baseDe(def);
+      if (base === null || base === undefined) return null;   /* nao publica */
+      const par = parDeUnidade(base, alvo);
+      const rotulo = UNIDADES[alvo] ? UNIDADES[alvo].rotulo : null;
+      if (rotulo === null) return null;
+      if (par === null) {
+        /* O jogo manda em unidade que a tabela nao conhece. O numero CRU
+         * e' a resposta honesta: melhor o numero sem etiqueta do que o
+         * numero com a etiqueta de outra unidade. Regra no 19. */
+        return { numero: numero.toFixed(UNIDADES[alvo].casas), sufixo: rotulo };
+      }
+      return {
+        numero: (numero * par.fator + (par.desloca || 0)).toFixed(par.casas),
+        sufixo: rotulo
+      };
+    }
+
+    if (!def.unidade) return null;
     const sufixo = def.unidade.sufixo[alvo];
     if (sufixo === undefined) return null;
-
     return {
       numero: def.unidade.para(numero, alvo).toFixed(def.unidade.casas(alvo)),
       sufixo: sufixo
     };
   }
 
-  /* A etiqueta sozinha, para os `<i data-unidade="...">` que estão no
-   * HTML ao lado do número. É a segunda metade do mesmo par — e chama o
-   * mesmo código, para não haver um sítio que saiba a unidade e outro
-   * que não saiba. */
+  /* A etiqueta sozinha, para os `<i data-unidade="...">` que estao no
+   * HTML ao lado do numero. E' a segunda metade do mesmo par -- e chama o
+   * mesmo codigo, para nao haver um sitio que saiba a unidade e outro
+   * que nao sabe. */
   function sufixo(chave, definicoes) {
     const def = porChave[chave];
-    if (!def || !def.unidade) return '';
-    const alvo = (definicoes && definicoes[chave] !== undefined)
-      ? definicoes[chave] : def.omissao;
+    if (!def) return '';
+    const alvo = alvoDe(def, definicoes);
+    if (alvo === null || alvo === undefined) return '';
+    if (def.unidadeChave !== undefined) {
+      /* A MESMA guarda do `apresentar`. Sem ela, um jogo que nao publica
+       * a grandeza devolvia `null` para o numero e "m/s" para a etiqueta
+       * -- e o painel escrevia uma unidade ao lado de nada. O par tem de
+       * cair junto, que e' a razao de o `sufixo` existir. */
+      const base = baseDe(def);
+      if (base === null || base === undefined) return '';
+      if (!UNIDADES[alvo]) return '';
+      return UNIDADES[alvo].rotulo;
+    }
+    if (!def.unidade) return '';
     return def.unidade.sufixo[alvo] !== undefined ? def.unidade.sufixo[alvo] : '';
   }
+
 
   function porGrupo(grupo) {
     return LISTA
@@ -439,13 +665,22 @@
   var api = {
     LISTA: LISTA,
     GRUPOS: GRUPOS,
+    UNIDADES: UNIDADES,
     validar: validar,
     repor: repor,
     apresentar: apresentar,
     sufixo: sufixo,
     porChave: porChave,
     porGrupo: porGrupo,
-    guarda: guarda
+    guarda: guarda,
+    /* O que o painel precisa para oferecer as opções certas ao jogo
+     * certo. `usarJogo` é o que o `app.js` chama quando escolhe um jogo,
+     * e `declarados` é a lista de valores que esse jogo aceita. */
+    usarJogo: usarJogo,
+    jogoAtual: jogoAtual,
+    declarados: declarados,
+    baseDoJogo: baseDoJogo,
+    sabeDesteJogo: sabeDesteJogo
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

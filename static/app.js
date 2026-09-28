@@ -3343,6 +3343,28 @@ function mostrarJogoNaInterface() {
   const el = document.getElementById('foot-jogo');
   if (el && m) el.textContent = m.nome;
 
+  /* O ESQUEMA DAS DEFINICOES DEPENDE DO JOGO, e esta e' a unica linha
+   * que lho diz.
+   *
+   * O AC publica litros e o F1 25 publica quilos, e o F1 25 nao publica
+   * vento. Quem publica a unidade e' o modulo do jogo -- e' ele que sabe
+   * de que campo o numero veio -- e o `defs.js` nao tem uma tabela
+   * "unidades por jogo" porque isso seria um segundo sitio a saber o
+   * que cada jogo manda, ao lado do modulo que ja' o diz.
+   *
+   * E ANTES de validar, nunca depois. O que se validou contra as
+   * unidades do jogo anterior e' um valor que ja' nao e' legal, e
+   * guardar esse valor e' a forma de o painel pintar "1.0 lb" a partir
+   * de um numero em litros. O que a `validar` devolve e' a unidade que
+   * o jogo manda, porque e' a unica que tem significado antes de haver
+   * uma medicao. Regra no 24. */
+  if (m && m.UNIDADES) {
+    Defs.usarJogo(m.id, m.UNIDADES);
+    DEF = Defs.validar(DEF);
+    saveDef();
+    applyUnits();
+  }
+
   /* A SEGUNDA linha do rodape' tambem descreve o jogo, e por isso tambem
    * e' por jogo. Era um texto fixo -- "memoria do AC, sem SimHub" nos
    * quatro idiomas -- que ficava no ecra' com o F1 25 escolhido, ao lado

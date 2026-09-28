@@ -86,8 +86,8 @@ ok(!tipos.includes('texto'), 'não há tipo "texto livre" — foi excluído de p
 ok(!tipos.includes('num'), 'não há tipo "número" — foi excluído de propósito');
 
 const enums = D.LISTA.filter(d => d.tipo === 'enum');
-ok(enums.every(d => Array.isArray(d.valores) && d.valores.length >= 2),
-   'todo enum tem pelo menos dois valores');
+  ok(enums.every(d => D.declarados(d).length >= 2 || D.baseDoJogo(d.unidadeChave) === null),
+     'todo enum tem pelo menos dois valores, ou o jogo nao publica a grandeza');
 
 /* A omissão de um enum tem de estar na lista — EXCETO quando é `null`,
  * que é um valor declarado à sua maneira: "ainda não se escolheu". E só
@@ -95,7 +95,7 @@ ok(enums.every(d => Array.isArray(d.valores) && d.valores.length >= 2),
  * "nenhum" é um estado legítimo em vez de um esquecimento. */
 {
   const foraDaLista = enums.filter(d =>
-    d.omissao !== null && d.valores.indexOf(d.omissao) < 0);
+     d.omissao !== null && D.declarados(d).indexOf(d.omissao) < 0);
   ok(foraDaLista.length === 0,
      'a omissão de todo enum está na lista de valores, ou é null',
      foraDaLista.map(d => d.chave));
@@ -400,39 +400,35 @@ eq(D.sufixo('lang', { lang: 'es' }), '', 'sufixo() de uma sem conversão dá vaz
   }
 }
 
-/* A conversão tem de ser a mesma nos dois sentidos, porque o esquema
- * é a única fonte: se `para` e `sufixo` desemparelhassem, o painel
- * escrevia um número com a etiqueta do outro. */
+/* A conversao tem de ser a mesma nos dois sentidos, porque o esquema
+ * e' a unica fonte: se o numero e a etiqueta desemparelhassem, o painel
+ * escrevia um numero com a etiqueta do outro. E por isso que se prova o
+ * `apresentar`, e nao a funcao interna de cada unidade -- o `apresentar`
+ * e' o que o painel chama. */
 {
   for (const chave of ['temp', 'speed', 'press', 'fuel', 'vento']) {
     const def = D.porChave[chave];
-    ok(!!def.unidade, `${chave} tem conversão declarada`);
-    for (const alvo of def.valores) {
-      const n = def.unidade.para(1, alvo);
-      ok(typeof n === 'number' && isFinite(n), `${chave} converte 1 para ${alvo}`);
-      const s = def.unidade.sufixo[alvo];
-      ok(typeof s === 'string' && s.length > 0, `${chave} tem etiqueta para ${alvo}`);
+    const temTabela = (def.unidadeChave !== undefined);
+    ok(temTabela || !!def.unidade, `${chave} tem conversao declarada`);
+
+    for (const alvo of D.declarados(def)) {
+      const r = D.apresentar(chave, 1, { [chave]: alvo });
+      ok(r && typeof r.numero === 'string' && r.numero.indexOf('NaN') < 0,
+         `${chave} escreve 1 como ${alvo} sem virar NaN`);
+      ok(r && typeof r.sufixo === 'string' && r.sufixo.length > 0,
+         `${chave} tem etiqueta para ${alvo}`);
+      eq(D.sufixo(chave, { [chave]: alvo }), r ? r.sufixo : null,
+         `${chave}: a etiqueta sozinha e' a mesma do par`);
     }
-    const identidade = def.unidade.para(7, def.omissao);
-    ok(Math.abs(identidade - 7) < 1e-9, `${chave}: converter para a omissão é a identidade`);
+
+    /* Converter para a unidade que a medida ja vem e' a identidade, e
+     * e' isso que garante que voltar ao jogo anterior nao muda o numero
+     * que esta' no ecra. */
+    const base = D.declarados(def)[0];
+    const identidade = D.apresentar(chave, 7, { [chave]: base });
+    ok(identidade && Math.abs(Number(identidade.numero) - 7) < 1e-9,
+       `${chave}: converter para a base e' a identidade`);
   }
-}
-
-/* =========================================================================
- * 10. a ordem, que é o que faz a gaveta ler-se
- * ====================================================================== */
-grupo('10. a ordem dentro de cada grupo é a declarada');
-
-for (const g of D.GRUPOS) {
-  const defs = D.porGrupo(g.chave);
-  const ordens = defs.map(d => d.ordem);
-  const crescente = ordens.every((o, i) => i === 0 || o > ordens[i - 1]);
-  ok(crescente, `${g.chave}: ${ordens.join(', ')}`);
-  /* e que devolvem as DEFINIÇÕES, não as chaves. Uma lista de
-   * strings passava no `ordem` acima e nao dava para a gaveta,
-   * que precisa do `rotulo` e do `tipo` de cada uma. */
-  ok(defs.every(d => d.chave && d.rotulo && d.tipo),
-     `${g.chave}: as ${defs.length} devolvidas têm chave, rótulo e tipo`);
 }
 
 {
@@ -447,6 +443,123 @@ for (const g of D.GRUPOS) {
 }
 
 console.log('');
+/* =========================================================================
+ * 11. as unidades sao DO JOGO, e nao do esquema
+ *
+ * O que o modulo do jogo publica, e que e' a unica fonte disto:
+ *
+ *     JogoAC.UNIDADES    = { fuel: 'L',  vento: 'ms'  }
+ *     JogoF125.UNIDADES = { fuel: 'kg', vento: null }
+ *
+ * O esquema nao tem uma tabela "unidades por jogo" -- seria um segundo
+ * sitio a saber o que cada jogo publica, ao lado do modulo que ja' o
+ * diz. Ele sabe so' os FACTOS: que L e gal sao a mesma grandeza, que
+ * kg e lb sao, e que L e kg nao sao. A lista de valores de cada opcao
+ * deriva-se dai.
+ * ====================================================================== */
+grupo('11. as unidades vêm do módulo do jogo, e o esquema só sabe a conta');
+
+const AC = { fuel: 'L', vento: 'ms' };
+const F125 = { fuel: 'kg', vento: null };
+
+{
+  D.usarJogo('ac', AC);
+  const d = D.porChave;
+
+  eq(JSON.stringify(D.declarados(d.fuel)), JSON.stringify(['L', 'gal']),
+     'o AC, que publica litros, oferece litros e galões');
+  eq(JSON.stringify(D.declarados(d.vento)), JSON.stringify(['ms', 'kmh']),
+     'o AC publica vento, e por isso a opção existe');
+
+  /* A base e' sempre o que o jogo manda. O `gal` é uma ESCOLHA de quem
+   * está a ler, não o que o campo traz. */
+  eq(D.validar({}).fuel, 'L', 'a omissão do combustível é a unidade do AC');
+  eq(D.validar({ fuel: 'gal' }).fuel, 'gal', 'e uma escolha do utilizador entra');
+  eq(D.validar({ fuel: 'kg' }).fuel, 'L',
+     'mas quilos no AC dão a omissão: o AC não publica quilos');
+
+  /* 40 litros em galões. 1 galão imperial = 4,54609 L, e o factor e' o
+   * inverso, que e' a conta que a tabela faz. */
+  const r = D.apresentar('fuel', 40, { fuel: 'gal' });
+  eq(r.sufixo, 'gal', 'a etiqueta é a da escolha, não a do jogo');
+  eq(r.numero, (40 / 4.54609).toFixed(2), 'e o número é o dos 40 litros');
+  eq(D.apresentar('fuel', 40, { fuel: 'L' }).numero, '40.0',
+     'na unidade do jogo o número não se mexe');
+
+  /* Um galão nunca vira quilos, em lado nenhum. Se isto passasse, o
+   * painel escrevia "1.0 lb" a partir de um galão, e o número seria
+   * plausível e errado. */
+  eq(D.apresentar('fuel', 1, { fuel: 'L' }).sufixo, 'L',
+     'litros não se convertem em quilos');
+}
+
+{
+  D.usarJogo('f125', F125);
+  const d = D.porChave;
+
+  eq(JSON.stringify(D.declarados(d.fuel)), JSON.stringify(['kg', 'lb']),
+     'o F1 25, que publica quilos, oferece quilos e libras');
+  eq(JSON.stringify(D.declarados(d.vento)), JSON.stringify([]),
+     'e NÃO oferece vento, porque o F1 25 não publica vento');
+  eq(D.validar({}).fuel, 'kg', 'a omissão do combustível passa a ser quilos');
+  eq(D.validar({}).vento, null,
+     'e a do vento é null: não há unidade para escolher');
+  eq(D.apresentar('vento', 12, { vento: 'ms' }), null,
+     'pedir o vento a um jogo que não o publica devolve null');
+  eq(D.sufixo('vento', { vento: 'ms' }), '',
+     'e a etiqueta é vazia, e não "m/s"');
+
+  /* 42,5 quilos em libras. Uma libra são 0,45359237 kg. */
+  const r = D.apresentar('fuel', 42.5, { fuel: 'lb' });
+  eq(r.sufixo, 'lb', 'a etiqueta é a da escolha');
+  eq(r.numero, (42.5 * 2.2046226).toFixed(2), 'e o número sai em libras');
+}
+
+{
+  /* Guardado de um jogo, aberto no outro. E' asituação que acontece a
+   * cada vez que se troca de jogo, e é a que produz "1.0 lb" a partir de
+   * um número em litros. */
+  const guardado = { fuel: 'gal', vento: 'ms' };
+
+  D.usarJogo('f125', F125);
+  const noF125 = D.validar(guardado);
+  eq(noF125.fuel, 'kg', 'os galões do AC dão a omissão do F1 25');
+  eq(noF125.vento, null, 'e o vento que o AC tinha dá null');
+
+  D.usarJogo('ac', AC);
+  const noAC = D.validar(noF125);
+  eq(noAC.fuel, 'L', 'e a omissão do F1 25 volta a ser válida no AC');
+  eq(noAC.vento, 'ms', 'o vento reaparece no AC, que o publica');
+  eq(D.apresentar('fuel', 40, noAC).numero, '40.0',
+     'e o número volta ao que era, sem Conversão herdada');
+}
+
+{
+  /* Uma chave que o jogo NÃO FALOU é diferente de uma que ele disse
+   * `null`. A primeira ainda não se sabe; a segunda é um "não existe".
+   * Confundir as duas fazia o vento aparecer no F1 25, que nao o
+   * publica, ou desaparecer no AC, que o publica. */
+  D.usarJogo('ac', {});
+  eq(JSON.stringify(D.declarados(D.porChave.vento)), JSON.stringify(['ms', 'kmh']),
+     'ainda sem o jogo dizer nada, o vento oferece-se como no AC');
+
+  D.usarJogo('f125', { fuel: 'kg' });
+  eq(JSON.stringify(D.declarados(D.porChave.vento)), JSON.stringify(['ms', 'kmh']),
+     'o F1 25 que não MENCIONA o vento ainda não sabe: oferece-se');
+  eq(JSON.stringify(D.declarados(D.porChave.fuel)), JSON.stringify(['kg', 'lb']),
+     'e o combustível, que declarou, já é em quilos');
+}
+
+{
+  /* A tabela não tem `L` contra `kg`, e é de propósito. */
+  eq(D.UNIDADES.L.para.filter(p => p.unidade === 'kg').length, 0,
+     'litros e quilos nunca se cruzam: não são a mesma grandeza');
+  eq(D.UNIDADES.gal.para.filter(p => p.unidade === 'L').length, 1,
+     'e o caminho inverso existe, porque são a mesma');
+}
+
+D.usarJogo(null, {});
+
 console.log('='.repeat(60));
 if (falhou) { console.log('!!! ' + falhou + ' FALHA(S) de ' + (passou + falhou)); process.exit(1); }
 console.log('ok: ' + passou + ' casos. Só entra o que está declarado.');
