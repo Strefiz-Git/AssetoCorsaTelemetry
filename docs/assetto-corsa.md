@@ -691,7 +691,39 @@ a causa sem o dado é pior do que dizer "não sei".
 | CLASSIFICAÇÃO | a nossa app, página `v2` | **precisa da app instalada** |
 | zona de DRS | `drsAvailable` medido numa volta | **Regra nº 11** |
 
-### Os campos que o AC publica e nós não lemos
+### Os campos que o AC publica, e que estão atrás de uma interface que não temos
+#### Aviso, e é o mais importante desta secção
+
+**Estes campos não são alcançáveis.** `ac.getCar()` devolve o
+objecto-carro, e é de onde vem `wheel.tyreWear`,
+`wheel.tyreOptimumTemperature` e os outros. **Em Python, `ac.getCar`
+não existe** — e isso está medido, pelo nosso próprio plugin, que
+escreve no `py_log.txt` ao arrancar:
+
+```
+AssettoCorsaTelemetry: ac.getCar NAO existe em Python. O desgaste
+fica so com o campo de aderencia da memoria partilhada, que e'
+outra grandeza. Regra no 18.
+```
+
+É uma interface **só de Lua**. O HUD do Content Manager usa-a porque
+é Lua; o nosso plugin é Python e não a vê.
+
+**O que fecha:** a rota para corrigir os cortes de cor da temperatura
+do pneu com a temperatura ideal que o próprio jogo publica. Está
+fechada — e é melhor sabê-lo antes de se gastar tempo nela do que
+depois.
+
+**A assimetria, e porque é que o clima funciona.** O mesmo log diz
+`clima disponivel (7 funcoes)`: o Custom Shaders Patch expõe
+`ac.ext_*` como *funções*, e funções chegam ao Python. O objecto-carro
+não é uma função — é um objecto, e objectos não atravessam esta
+fronteira.
+
+Fica escrito aqui para a próxima pessoa não ir acrescentar campos a
+esta lista como se fossem trabalho a fazer. A lista é verdadeira; o
+que muda é o que se pode fazer com ela — e hoje é nada.
+
 
 Isto não veio da memória partilhada: veio de **ler o código de um HUD de
 terceiros** que usa a *outra* interface do jogo, a API Lua, campo a campo.
@@ -704,11 +736,11 @@ projecto nem em nenhuma linha de código nosso. Estão aqui para se avaliar
 um a um, e **não** foram acrescentados: acrescentá-los todos seria
 transformar um levantamento num envio de campos a meio.
 
-**Os que interessam**
+**Os que interessariam, se houvesse acesso** — e para ficar claro que não há:
 
 | campo | o que é | porque interessa |
 |---|---|---|
-| `wheel.tyreOptimumTemperature` | a temperatura ideal daquele pneu | **a resposta do jogo** à pergunta que os cortes de cor fazem ao contrário (ver §6 e [`pneu-fisica-ac.md`](pneu-fisica-ac.md)) |
+| `wheel.tyreOptimumTemperature` | a temperatura ideal daquele pneu | **seria** a resposta do |
 | `wheel.tyreInsideTemperature` | zona interior | o AC tem **três** zonas por pneu; o painel lê as da *shared memory*, que são outras |
 | `wheel.tyreMiddleTemperature` | zona do meio | idem |
 | `wheel.tyreOutsideTemperature` | zona exterior | idem |

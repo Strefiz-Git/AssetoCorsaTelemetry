@@ -965,6 +965,78 @@ extrair. O resto dos 4 GB eram 3 944 MB de texturas `.dds` do SimHub.
 
 ---
 
+## 2026-09-28 (9.ª parte) — os 25 campos que listei não são alcançáveis, e eu não fui ler a medição
+
+### Porque
+
+Na 8.ª parte listei 25 campos que o AC publica e que "não estão nos docs
+nem no código", com o `wheel.tyreOptimumTemperature` em destaque. A
+implicação era clara: dava para os usar.
+
+**Não dá.** E a prova estava escrita no disco, pelo nosso próprio plugin,
+cinco minutos antes de eu escrever a lista — e eu não a fui ler.
+
+### O que foi feito
+
+| Ficheiro | o que mudou |
+|---|---|
+| `docs/assetto-corsa.md` | a secção passou a dizer que os campos são **inalcançáveis**, com a saída do log do plugin como prova |
+| `docs/assetto-corsa.md` | o `tyreOptimumTemperature` passou de "a resposta do jogo" a "seria a resposta do jogo" |
+
+### O que a medição diz
+
+O `actelemetry_strefiz.py` tem uma sonda que corre no arranque e escreve
+no `py_log.txt`. Saiu, e a resposta é uma linha:
+
+```
+AssettoCorsaTelemetry: ac.getCar NAO existe em Python. O desgaste fica so
+com o campo de aderencia da memoria partilhada, que e' outra grandeza.
+```
+
+`ac.getCar()` devolve o objecto-carro, e é de onde vêm `tyreWear`,
+`tyreOptimumTemperature` e os outros 24. É uma interface **só de Lua** — o
+HUD do Content Manager usa-a porque é Lua; nós somos Python.
+
+**A assimetria, no mesmo log:** `clima disponivel (7 funcoes)`. O Custom
+Shaders Patch expõe `ac.ext_*` como *funções*, e funções chegam ao Python.
+O objecto-carro não é uma função, e objectos não atravessam esta fronteira.
+
+### O que isto fecha
+
+A rota para corrigir os cortes de cor da temperatura do pneu (95 e 105 °C)
+usando a temperatura ideal do próprio jogo **está fechada**. Fechada antes
+de se gastar tempo nela.
+
+O que sobra para os cortes é a curva do `docs/pneu-fisica-ac.md` — que é
+de um **GT3 de 2014** e não de um F1 — ou uma medição nossa com o AC
+aberto. Nenhuma das duas se fez.
+
+### Dificuldades
+
+1. **A resposta estava no disco e eu não a procurei.** Escrevi um
+   levantamento de campos "que não temos" sem ir ver o que a nossa própria
+   sonda já tinha medido sobre a mesma interface. Uma lista do que falta
+   é mais valiosa depois de se saber **porquê** falta.
+2. **A lista continua verdadeira**, e é o que salva o erro: os campos
+   existem, a proveniência está certa, e o `bestLapSplits` ser sempre 0
+   continua a ser o aviso mais importante dela. O que estava errado era a
+   conclusão, não o levantamento.
+
+### Falta / não verificado
+
+- A **nota de revisão do Season 8** (*Version 1.2 — Added F2 Driver IDs*)
+  foi lida só na headline. O campo `m_driverId` confere — `uint16` na
+  spec, `u16` no nosso protocolo para 2026 — mas o Season 8 está em PDF e o
+  meu extractor (`tests/texto_pdf.py`) lê o cabeçalho e **não** as tabelas
+  de campos.
+- A **bandeira de pista** do F1 25 continua por fazer, à espera de
+  `python tests\medir_bandeira.py` com o jogo a conduzir e uma bandeira
+  no ecrã.
+- Os **cortes de temperatura** continuam sem base medida, agora com a
+  rota alternativa fechada.
+
+---
+
 ## Resumo do que se aprendeu
 
 | Lição | Onde está registada |
