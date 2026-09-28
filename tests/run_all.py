@@ -40,6 +40,11 @@ SUITE = [
     ("tempos de volta e delta", "node", "test_tempos.js"),
     ("vida do pneu", "node", "test_tyres.js"),
     ("voltas de combustivel", "node", "test_combustivel.js"),
+    # A decisao do ERS vivia dentro da IIFE do `app.js`, numa linha de
+    # pintura, e por isso nao se conseguia testar. Escrevia "ERS 0%" com
+    # 1 105 744 J guardados, porque `null || 0` da' zero. Va para
+    # `nucleo/ers.js`, que corre no node.
+    ("o ERS diz o que sabe, e nada mais", "node", "test_ers.js"),
     # As REGRAS dos dois jogos, sem browser e sem nenhum deles a correr.
     # Sao as que estavam dentro da IIFE do `app.js`, onde so seavam
     # vistas no ecra -- e os cortes do clima do AC estavam errados

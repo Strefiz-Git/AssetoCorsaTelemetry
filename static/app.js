@@ -2405,6 +2405,32 @@ function syncDrsMarkUI() {
    efeito do clima - ar, pista, densidade, vento - e a aderencia, que e'
    o unico sinal de pista molhada. */
 
+/* A luz e a barra do ERS, a partir do modulo.
+ *
+ * A DECISAO -- percentagem com maximo, joules sem -- esta' em
+ * `nucleo/ers.js`, e nao aqui, porque ja' errou uma vez: o `|| 0` escrevia
+ * "ERS 0%" com 1 105 744 J guardados. Um numero plausivel e errado nao
+ * se denuncia sozinho (Regra no 19), e uma decisao dessas que fique no
+ * meio do codigo de pintura nao se testa.
+ *
+ * Aqui so fica o desenho, e a barra ESCONDE quando nao ha' percentagem:
+ * pintar a zero seria afirmar que a bateria esta' a zeros. */
+function pintarErs(idLuz, idBarra, d) {
+  const e = Ers.estadoErs(d);
+  setLight(idLuz, e.texto, e.estado);
+  const b = $(idBarra);
+  if (!b) return;
+  if (e.pct === null) {
+    b.style.width = '0%';
+    b.classList.add('hidden');
+    return;
+  }
+  b.classList.remove('hidden');
+  b.style.width = e.pct + '%';
+  b.classList.toggle('low', e.pct <= 20);
+}
+
+
 function pintarClima(d) {
   // escrever nos dois modos, para o clima nao desaparecer ao mudar de vista
   // A cena do tempo TAMBEM no cabecalho. A carta vive dentro da
@@ -2794,11 +2820,10 @@ function render(d) {
   $('rpm-fill').style.width = (100 - pct) + '%';
   setTxt('shift-hint', pct > 92 ? '▲' : '');
 
-  const hasE = d.hasERS || d.hasKERS;
-  setLight('l-ers', hasE ? Math.round(d.ersPct || 0) + '%' : '—',
-    hasE ? ((d.ersPct || 0) > 25 ? 'on' : 'warn') : '');
-  const eb = $('ers-bar');
-  if (eb) { eb.style.width = clamp(d.ersPct || 0, 0, 100) + '%'; eb.classList.toggle('low', (d.ersPct || 0) <= 20); }
+  // O ERS, por `estadoErs()`: com maximo e' percentagem, sem maximo e' os
+  // joules e a barra desaparece. O `|| 0` que estava aqui dava "0%" ao F1
+  // 25, que tem bateria e nao diz quanto cabe.
+  pintarErs('l-ers', 'ers-bar', d);
   // ABS e TC sao o NIVEL de ajuste, nao "esta a actuar". Medido: em 4502
   // amostras com travagens duras e aceleracao a fundo, os dois ficaram
   // constantes (0.13 e 0.08). Antes isto mostrava "OFF" sempre que o
@@ -2911,8 +2936,7 @@ function render(d) {
   setTxt('b-gear', d.gear || 'N');
   setTxt('b-rpm', d.rpm || 0);
   $('b-rpm-fill').style.width = (100 - clamp((d.rpm || 0) / (d.maxRpm || 12000) * 100, 0, 100)) + '%';
-  setLight('b-l-ers', hasE ? Math.round(d.ersPct || 0) + '%' : '—', hasE ? 'on' : '');
-  $('b-ers-bar').style.width = clamp(d.ersPct || 0, 0, 100) + '%';
+  pintarErs('b-l-ers', 'b-ers-bar', d);
   setLight('b-l-pit', d.pitLimiter ? t('state.lim') : d.isInPit ? t('lb.pit') : '—',
     d.pitLimiter ? 'bad' : d.isInPit ? 'warn' : '');
   setTxt('b-trackpct', (clamp(d.trackPct || 0, 0, 1) * 100).toFixed(1) + '%');

@@ -1563,7 +1563,7 @@ certo, não uma falha. Os testes de memória escrevem em páginas
 
 Corre com `python tests\run_all.py`. Sai com codigo diferente de zero se
 algo falhar, e com codigo 2 (que nao e' falha) se o AC
-estiver a correr e os testes de memoria forem saltados. Sao 33 grupos.
+estiver a correr e os testes de memoria forem saltados. Sao 34 grupos.
 
 | Ficheiro | O que prova |
 |---|---|
@@ -1581,6 +1581,7 @@ estiver a correr e os testes de memoria forem saltados. Sao 33 grupos.
 | `test_tempos.js` | 35 casos de tempos e delta, sem browser (node) |
 | `test_tyres.js` | a vida do pneu e a escala dos valores (node) |
 | `test_combustivel.js` | voltas de combustivel e a percentagem (node) |
+| `test_ers.js` | o ERS: percentagem quando ha' maximo, JOULES quando nao ha', e nunca 0% com bateria dentro -- que era o que o F1 25 mostrava, com 1 105 744 J (node) |
 | `test_jogos.js` | as regras dos dois jogos no browser: embraiagem, ABS, vida do pneu, combustivel, clima, delta e as 81 capacidades -- sem nenhum jogo a correr (node) |
 | `auditar_frontend.py` | o frontend inteiro: ids, traduccoes, contraste, chaves CSS, movimento reduzido |
 | `verificar_html.py` | que o HTML fecha, que cada ecra e' filho do <body> e nao de outro ecra, que o ecra de espera tem saida, e que um ecra `aria-modal` nunca e' posto a `inert` -- o que se ve mas nao se clica, e nao da' erro nenhum |

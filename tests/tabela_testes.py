@@ -56,6 +56,9 @@ DESCRICAO = {
     "test_tempos.js": "35 casos de tempos e delta, sem browser",
     "test_tyres.js": "a vida do pneu e a escala dos valores",
     "test_combustivel.js": "voltas de combustivel e a percentagem",
+    "test_ers.js": ("o ERS: percentagem quando ha' maximo, JOULES quando "
+                    "nao ha', e nunca 0% com bateria dentro -- que era o "
+                    "que o F1 25 mostrava, com 1 105 744 J"),
     "auditar_frontend.py": ("o frontend inteiro: ids, traduccoes, contraste, "
                             "chaves CSS, movimento reduzido"),
     "verificar_html.py": ("que o HTML fecha, que cada ecra e' filho do "
