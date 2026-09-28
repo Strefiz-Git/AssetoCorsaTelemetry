@@ -649,6 +649,12 @@
        de o outro estar carregado daria um painel a meio. -->
 <script src="/jogos/seletor.js"></script>
 
+  <!-- O esquema das definicoes. ANTES do app.js, e pela mesma razao
+       do tempo.js: o app.js chama-o no arranque, no `loadDef()`, e um
+       esquema que ainda nao carregou faz o `Defs.validar` dar
+       undefined -- que e' pior do que um esquema vazio,
+       porque um `undefined` rebenta e um vazio so' repete. -->
+  <script src="/defs.js"></script>
 <script src="/app.js"></script>
 </body>
 </html>

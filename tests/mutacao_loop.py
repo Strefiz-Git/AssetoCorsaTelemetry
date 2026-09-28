@@ -40,43 +40,48 @@ MUTACOES = [
 
 ENV = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", PYTHONIOENCODING="utf-8")
 
-# AS MUTACOES E AS NEWLINES
-# --------------------------
-# As mutacoes escrevem-se com LF, e o ficheiro no disco pode estar com
-# CRLF. O `.gitattributes` deste repositorio tem `* text=auto` e o
-# `core.autocrlf` do Windows esta' a true, por isso um ficheiro versionado
-# chega ao disco com CRLF -- e uma mutacao escrita com LF nao aparece
-# NUNCA num ficheiro CRLF.
+# ---------------------------------------------------------------------------
+# AS FINAIS DE LINHA: PORQUE ISTO ESTA AQUI
 #
-# A terceira mutacao -- "o loop volta a terminar no nome, e volta a
-# esconder a falha" -- e' a unica que tem uma quebra de linha dentro, e
-# por isso era a unica a ser saltada. O script imprimia "??" e contava-a
-# como problema, mas o teste da suite nao a contava como falha, porque o
-# `run_all.py` tratava o codigo de saida... e o codigo de saida era 1.
-# Ou seja: a suite acusava. Mas quem corria `mutacao_loop.py` a mao via
-# cinco "OK" e um "??" e podia nao dar importancia ao "??".
+# O git guarda LF, e o Windows checked-out em CRLF. O `io.open(...,
+# newline='')` devolve o ficheiro tal e como esta, CRLF incluido, e uma
+# procura feita com `\n` nunca casa. A unica das cinco mutacoes que
+# falhava era a que tem uma ancora de DUAS LINHAS -- as outras quatro sao
+# de uma linha so, e uma linha casa com CRLF ou com LF sem Repair.
 #
-# Isto e' a Regra no 4, e a razao de o script ser COPIA: correr o teste
-# contra um ficheiro em que o codigo nao esta e' a forma mais facil de
-# um teste de mutacao passar sem provar nada. Ver `test_mutation.py`,
-# que tem a mesma regra pelo mesmo motivo.
+# A mutacao "o loop volta a terminar no nome" deixava de ser mutada, o
+# teste nao a exercise, e o script acabava com
 #
-# O que se passa agora: a procura e' feita sobre texto NORMALIZADO, e o
-# que vai para o disco tem as mesmas newlines que o ficheiro ja tinha.
-# Funciona com LF e com CRLF, e o resto do script fica igual.
-
-
-def _normaliza(t):
-    return t.replace("\r\n", "\n").replace("\r", "\n")
-
-
+#     nao encontrei o codigo a mutar
+#
+# que parece um erro do codigo a mutar e e' um erro de finais de linha.
+# As outras quatro continuavam a passar, entao a suite dava quase tudo
+# certo -- que e' a pior forma de isto acontecer.
+#
+# A leitura e' feita com `newline=''` para o ORIGINAL continuar a ter as
+# finais que tinha: se o teste devolvesse o ficheiro com LF quando o
+# disco tem CRLF, o `git status` mostraria um ficheiro alterado que
+# ninguem alterou. A busca e' que se faz sobre uma versao normalizada.
+#
+# E o "??" que este script imprime e' a parte que engana. O script
+# imprimia "OK" quatro vezes e "??" uma vez, e contava a "??" como
+# problema -- mas o `run_all.py` tratava o codigo de saida... e o codigo
+# de saida era 1. Ou seja: a suite acusava. Porem quem corria este
+# script a mao via cinco "OK" e um "??" e podia nao dar importancia ao
+# "??" que era a unica mutacao que nao estava a ser aplicada.
+# ---------------------------------------------------------------------------
 original = io.open(ALVO, encoding='utf-8', newline='').read()
-plano = _normaliza(original)
-# A newline do disco, para reescrever o ficheiro no mesmo formato em que
-# o encontrámos. Sem isto, guardar o resultado normalizado transformava
-# o ficheiro inteiro em LF, e o `git diff` no fim mostrava 662 linhas
-# alteradas.
-_newline_disco = "\r\n" if "\r\n" in original else "\n"
+original_nl = original.replace('\r\n', '\n')
+tem_crlf = original != original_nl
+if tem_crlf:
+    print("nota: %s tem CRLF. A busca e' feita sobre LF e o ficheiro e'"
+          " devolvido como estava." % ALVO)
+
+
+def escrever(texto_lf):
+    """Escreve o que se leu, com as finais de linha que tinha."""
+    io.open(ALVO, 'w', encoding='utf-8', newline='').write(
+        texto_lf.replace('\n', '\r\n') if tem_crlf else texto_lf)
 
 
 def correr():
@@ -95,16 +100,15 @@ print()
 
 problemas = []
 for desc, certo, partido in MUTACOES:
-    if certo not in plano:
+    if certo not in original_nl:
         problemas.append("  nao encontrei o codigo a mutar: %r" % certo[:50])
         print("  ??   %s" % desc)
         continue
-    io.open(ALVO, 'w', encoding='utf-8', newline='').write(
-        plano.replace(certo, partido, 1).replace("\n", _newline_disco))
+    escrever(original_nl.replace(certo, partido, 1))
     try:
         rc, _ = correr()
     finally:
-        io.open(ALVO, 'w', encoding='utf-8', newline='').write(original)
+        escrever(original_nl)
     apanhou = rc != 0
     print("  %s  %s" % ("OK   " if apanhou else "FALHOU", desc))
     if not apanhou:

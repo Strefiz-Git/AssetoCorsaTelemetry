@@ -67,6 +67,8 @@ DESCRICAO = {
     "mutacao_loop.py": "que esse teste morde, partindo o loop",
     "test_tempo.js": ("104 casos de clima, com os limiares das 37 cenas do "
                       "Pure Planner e o eixo do vento"),
+    "test_defs.js": ("o esquema das definicoes: so' entra o que esta' "
+                         "declarado, e a reposicao mantem a vista e o idioma"),
     "test_medir_tyrewear.py": "que a medicao do desgaste por volta faz sentido",
     "verificar_readme.py": ("que cada facto do README bate certo com o "
                               "codigo -- versao, porta, cadencia, nomes, escalas"),
