@@ -599,6 +599,33 @@
 <script src="/nucleo/tyres.js"></script>
 <script src="/nucleo/combustivel.js"></script>
 <script src="/nucleo/unidades.js"></script>
+<!-- O tempo.js volta para a lista. Estava em `static/` quando o
+     bloco do nucleo foi feito, e a reorganizacao levou o ficheiro
+     para `nucleo/` sem o trazer para o HTML.
+
+     O que acontecia, medido a correr os scripts pela ordem deste
+     ficheiro, sem browser: `global.Tempo` fica UNDEFINED. E o
+     `app.js` chama `Tempo.cenaDe()`, `Tempo.percentDe()`,
+     `Tempo.nivelDe()` e `Tempo.CHUVA_MAXIMA` SEM guarda nenhuma -- um
+     `TypeError` de "Cannot read properties of undefined" a cada
+     pintura do campo do tempo. As 37 cenas do Pure Planner e o eixo
+     do vento, todos mortos, e a unica pista de que a
+     reorganizacao tinha sido feita a meio.
+
+     O `ac.js` tem guarda, `if (!T) return null`, e isso e' o
+     engano maior: a guarda existe e o caminho que pinta o ecra nao
+     passa por ela. Um `if (!T)` num sitio que nao e' o do problema.
+
+     Fica ANTES dos modulos dos jogos, e nao por ordem alfabetica:
+     e' o `ac.js` que o le no topo do script,
+
+         const T = global.Tempo;
+
+     e um modulo que carregue antes de o script existir fica com o
+     `T` capturado como undefined PARA SEMPRE, mesmo que o script
+     venha a seguir. E' a mesma razao pela qual o seletor vem
+     depois dos dois modulos. -->
+<script src="/nucleo/tempo.js"></script>
 
 <!-- ============================================================ JOGOS
      A logica de cada jogo. Um modulo por jogo, e o app.js carrega
