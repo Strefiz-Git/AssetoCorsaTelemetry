@@ -152,5 +152,21 @@
     MAX_VOLTAS: MAX_VOLTAS
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
-  root.Pneus = api;
+  /* O nome e' `Tyres`, e era `Pneus`.
+   *
+   * Os quatro modulos do nucleo publicam pelo nome do proprio ficheiro:
+   *
+   *     tempo.js        -> Tempo
+   *     combustivel.js  -> Combustivel
+   *     jogo-base.js    -> JogoBase
+   *     tyres.js        -> Tyres        <-- este
+   *
+   * O `ac.js` lia `global.Tyres` e por isso `T_` era `undefined`. Ha'
+   * guarda, uma linha a seguir, e por isso nao rebentou: a vida do pneu
+   * mostrava "a medir" para sempre, e nada dizia que o modulo nao tinha
+   * carregado. Um `--` que parece uma medida.
+   *
+   * O `test_scripts.js` e' que apanha isto. Ver a Regra no `AGENTS.md`.
+   */
+  root.Tyres = api;
 })(typeof window !== 'undefined' ? window : globalThis);

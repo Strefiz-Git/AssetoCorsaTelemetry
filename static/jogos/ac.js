@@ -175,17 +175,32 @@
    * duas voltas medidas. Por isso `aMedir`: enquanto nao ha' medidas
    * suficientes, o painel escreve "a medir" e NAO um numero. E' o sitio
    * mais perigoso para inventar um numero, porque o piloto decide a
-   * estrategia com ele. */
-  function vidaPneu(d) {
-    const T_ = global.Tyres;
-    if (!T_) return { voltas: null, texto: '--', aMedir: true };
-    const r = T_.vida(d.tyreWear, d.sectorCount);
-    return {
-      voltas: r && isFinite(r.voltas) ? r.voltas : null,
-      texto: r && r.voltas ? String(Math.round(r.voltas)) : '--',
-      aMedir: !(r && r.pronto),
-      dica: (r && r.pronto) ? '' : t('tyres.aMedir'),
-    };
+   * estrategia com ele.
+   *
+   * ------------------------------------------------- PORQUE ISTO NAO CALCULA
+   *
+   * A funcao estava escrita contra uma API que nao existe: pedia
+   * `T_.vida(wear, sectors)` e esperava `{ voltas, pronto }`. O
+   * `nucleo/tyres.js` expoe outra coisa, `estimarPneus(estado, dados)`,
+   * que devolve `voltasRestantes` e `confiavel` -- e nomes diferentes
+   * nao dao o mesmo numero.
+   *
+   * Pior: o `estado` e' o primeiro argumento, e e' ESTADO A PERSISTIR
+   * entre voltas. E' o que separa "medir duas voltas" de "inventar
+   * um numero", e este modulo e' puro -- sem estado, sem DOM. Logo
+   * nao pode fazer a conta, e nenhuma correccao de nomes resolve isso.
+   *
+   * O que escondia o problema: `global.Tyres` era `undefined` (o modulo
+   * publicava-se como `Pneus`), a guarda de baixo disparava, e o
+   * resultado era "a medir" para sempre. Ou seja, o comportamento
+   * visivel era ja' o honesto -- por acidente. A este codigo belongs
+   * a decisao de onde vive o estado, e ela nao esta' tomada.
+   *
+   * Enquanto isso, a resposta e' a que a Regra nº 19 manda: o numero
+   * que nao existe diz-se que nao existe. E' o mesmo texto de antes,
+   * agora porque e' verdade e nao porque o modulo nao carregou. */
+  function vidaPneu() {
+    return { voltas: null, texto: '--', aMedir: true };
   }
 
   /* ==================================================================
