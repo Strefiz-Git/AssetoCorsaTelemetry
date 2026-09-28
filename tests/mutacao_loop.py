@@ -40,7 +40,41 @@ MUTACOES = [
 
 ENV = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", PYTHONIOENCODING="utf-8")
 
+# ---------------------------------------------------------------------------
+# AS FINAIS DE LINHA: PORQUE ISTO ESTA AQUI
+#
+# O git guarda LF, e o Windows checked-out em CRLF. O `io.open(...,
+# newline='')` devolve o ficheiro tal e como esta, CRLF incluido, e uma
+# procura feita com `\n` nunca casa. A unica das cinco mutacoes que
+# falhava era a que tem uma ancora de DUAS LINHAS -- as outras quatro sao
+# de uma linha so, e uma linha casa com CRLF ou com LF sem Repair.
+#
+# A mutacao "o loop volta a terminar no nome" deixava de ser mutada, o
+# teste nao a exercise, e o script acabava com
+#
+#     nao encontrei o codigo a mutar
+#
+# que parece um erro do codigo a mutar e e' um erro de finais de linha.
+# As outras quatro continuavam a passar, entao a suite dava quase tudo
+# certo -- que e' a pior forma de isto acontecer.
+#
+# A leitura e' feita com `newline=''` para o ORIGINAL continuar a ter as
+# finais que tinha: se o teste devolvesse o ficheiro com LF quando o
+# disco tem CRLF, o `git status` mostraria um ficheiro alterado que
+# ninguem alterou. A busca e' que se faz sobre uma versao normalizada.
+# ---------------------------------------------------------------------------
 original = io.open(ALVO, encoding='utf-8', newline='').read()
+original_nl = original.replace('\r\n', '\n')
+tem_crlf = original != original_nl
+if tem_crlf:
+    print("nota: %s tem CRLF. A busca e' feita sobre LF e o ficheiro e'"
+          " devolvido como estava." % ALVO)
+
+
+def escrever(texto_lf):
+    """Escreve o que se leu, com as finais de linha que tinha."""
+    io.open(ALVO, 'w', encoding='utf-8', newline='').write(
+        texto_lf.replace('\n', '\r\n') if tem_crlf else texto_lf)
 
 
 def correr():
@@ -59,16 +93,15 @@ print()
 
 problemas = []
 for desc, certo, partido in MUTACOES:
-    if certo not in original:
+    if certo not in original_nl:
         problemas.append("  nao encontrei o codigo a mutar: %r" % certo[:50])
         print("  ??   %s" % desc)
         continue
-    io.open(ALVO, 'w', encoding='utf-8', newline='').write(
-        original.replace(certo, partido, 1))
+    escrever(original_nl.replace(certo, partido, 1))
     try:
         rc, _ = correr()
     finally:
-        io.open(ALVO, 'w', encoding='utf-8', newline='').write(original)
+        escrever(original_nl)
     apanhou = rc != 0
     print("  %s  %s" % ("OK   " if apanhou else "FALHOU", desc))
     if not apanhou:
