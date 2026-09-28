@@ -1240,6 +1240,21 @@ podem.
 | `static/jogos/f125.js` | as regras do F1 25. Pura. |
 | `static/jogos/seletor.js` | a ponte: qual é o jogo activo, e o que ele consegue mostrar. |
 
+O que está dentro de `static/nucleo/`, que a tabela não descobre por si:
+
+| Ficheiro | O que decide |
+|---|---|
+| `tempos.js` | os tempos, a referência da volta e o delta |
+| `tempo.js` | as 37 cenas do clima e os seus limiares |
+| `tyres.js` | a vida do pneu, a partir de duas voltas medidas |
+| `combustivel.js` | as voltas de combustível que o depósito ainda dá |
+| `ers.js` | o ERS: percentagem quando há máximo, joules quando não há, e **nunca** `0 %` com bateria dentro |
+| `unidades.js` | a tabela de factos das unidades, por jogo — a que a Regra nº 24 manda consultar antes de escrever um número |
+| `jogo-base.js` | o que os dois módulos de jogo têm em comum |
+
+Todos se ligam por `<script>` no `index.html`, e não por `require` — o que
+é a diferença entre dois mundos e o que a Regra nº 28 trata.
+
 **Por que é que os módulos de jogo são puros.** Uma regra dentro do
 `app.js` só se pode testar com o jogo a correr e olhando para o ecrã. E
 os cortes do clima do AC estavam errados assim durante meses: via-se o
