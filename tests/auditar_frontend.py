@@ -261,6 +261,41 @@ if I18N:
     else:
         ok("as %d chaves novas desta sessao estao nas 4 linguas" % len(NOVAS))
 
+    # O QUE SE VE ANTES DE HAVER UM JOGO ESCOLHIDO nao pode dizer de que
+    # jogo se trata. Sao o titulo da pagina e o ecra' de espera, e os dois
+    # eram do AC herdado do painel de um jogo so' -- o titulo dizia
+    # "Telemetria AC" e o ecra' "A aguardar o Assetto Corsa" com o F1 25
+    # activo, ao lado de um rodape' que dizia "F1 25".
+    #
+    # Nao se resolve com uma lista de textos proibidos: a regra e' o
+    # contrario, e o que se procura e' o NOME de um jogo registado, que
+    # muda se a EA renomear o jogo. Acrescentar um terceiro jogo obriga a
+    # rever isto, e o teste diz qual e' o nome.
+    #
+    # A sigla "AC" conta com limites de palavra, senao "AC" dentro de uma
+    # palavra portuguesa dava um falso positivo em metade das frases.
+    ANTES = ["app.title", "boot.waiting"]
+    sys.path.insert(0, RAIZ)
+    from actelemetry.jogos import JOGOS as _JOGOS
+    nomes = [j.nome for j in _JOGOS.values()]
+    nomes += [j.id.upper() for j in _JOGOS.values()]
+    padroes = [(n, re.compile(r"(?<![\w-])%s(?![\w-])" % re.escape(n),
+                             re.IGNORECASE)) for n in nomes]
+    ruins = []
+    for k in ANTES:
+        for lang, d in I18N.items():
+            v = d.get(k, "")
+            if any(rx.search(v) for _n, rx in padroes):
+                ruins.append("%s/%s diz %r" % (k, lang, v))
+    if ruins:
+        ko("estes textos aparecem ANTES de escolher o jogo e nomeiam um: "
+           "%s.\n        O titulo e o ecra' de espera so' podem dizer "
+           "'o jogo' -- quem escolhe o F1 25 e' que nao the chamem AC"
+           % "; ".join(sorted(set(ruins))))
+    else:
+        ok("nem o titulo nem o ecra' de espera nomeiam um jogo, em nenhum "
+           "dos %d idiomas" % len(I18N))
+
     # Uma chave e' usada de QUATRO maneiras, e as primeiras versoes deste
     # teste viam menos. Duas davam 83 chaves "mortas" que nao estavam:
     #
@@ -376,6 +411,36 @@ if I18N:
     # do texto, e ninguem sabe porque.
     citadas = set(re.findall(r"'([^']+)'", js)) | set(
         re.findall(r"'([^']+)'", h))
+
+    # As chaves POR JOGO do rodape'. Sao as unicas cuja lista nao se
+    # escreve no codigo -- a interface faz `t('foot.src.' + id)`, para nao
+    # ter de repetir a lista de jogos num terceiro sitio -- e por isso uma
+    # busca estatica nao as encontra.
+    #
+    # Nao se resolve com uma lista de excecoes. Resolve-se conferindo que
+    # a lista existe e que e' a COMPLETA: o que interessa nao e' a chave
+    # aparecer no codigo, e' que o rodape' tenha uma frase para cada jogo
+    # registado, em cada idioma. Acrescentar um jogo sem a frase e' o
+    # caminho para voltar a ter "memoria do AC" no rodape' do F1 25, que
+    # foi o que aconteceu -- e um teste que accuses de "chave morta"
+    # apontaria para a traducacao, que e' a coisa certa a apagar.
+    sys.path.insert(0, RAIZ)
+    from actelemetry.jogos import ORDEM as JOGOS_REGISTADOS
+    POR_JOGO = sorted(k for k in base if k.startswith("foot.src."))
+    esperadas = sorted("foot.src." + g for g in JOGOS_REGISTADOS)
+    if POR_JOGO == esperadas:
+        ok("o rodape' tem uma frase para cada um dos %d jogos registados"
+           % len(JOGOS_REGISTADOS))
+    else:
+        ko("as frases do rodape' nao sao as dos jogos registados.\n"
+           "        no I18N:      %s\n"
+           "       _games_: %s\n"
+           "        (cada jogo registado precisa de 'foot.src.<id>', "
+           "e nenhuma que nao exista)" % (POR_JOGO, esperadas))
+    # e sao NOT-SE, o que nao e' um erro: a lista tem de bater com os
+    # jogos, nao com o que o auditor leu por acaso.
+    citadas |= set(esperadas)
+
     mortas = [k for k in base if k not in usadas and k not in citadas]
     naoProvaveis = [k for k in base if k not in usadas and k in citadas]
     if mortas:

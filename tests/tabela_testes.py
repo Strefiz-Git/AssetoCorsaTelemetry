@@ -59,6 +59,7 @@ DESCRICAO = {
     "auditar_frontend.py": ("o frontend inteiro: ids, traduccoes, contraste, "
                             "chaves CSS, movimento reduzido"),
     "mutacao_acessibilidade.py": "que a regra 2.3.3 morde, partindo o CSS",
+    "mutacao_rodape.py": "que o rodape' nao fica a dizer o jogo errado",
     "verificar_finitos.py": "que nenhum valor chega a NaN ou infinito",
     "test_mutation.py": "que os testes de cima falham quando o codigo esta partido",
     "mutacao_contrato.py": "que o contrato entre a app e o leitor e' mesmo verificado",

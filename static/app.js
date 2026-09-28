@@ -25,8 +25,8 @@ const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
  * foi. */
 const I18N = {
   'pt-PT': {
-    'app.title': 'Telemetria AC',
-    'boot.waiting': 'A aguardar o Assetto Corsa',
+    'app.title': 'Telemetria',
+    'boot.waiting': 'A aguardar o jogo',
     'boot.reading': 'A ler a telemetria directamente do jogo…',
 
     'menu.title': 'O que queres ver?',
@@ -103,7 +103,8 @@ const I18N = {
     'lb.time': 'TEMPO', 'lb.best': 'MELHOR', 'lb.gap': 'INT.',
     'lb.intTitle': 'Tempo até ao carro da frente. Na mesma volta é o tempo exacto que ele levou a passar pelo mesmo ponto da pista; fora isso é uma estimativa pelo ritmo da última volta dele.',
     'lb.penalty': 'Penalidade', 'lb.drs': 'DRS',
-    'foot.src': 'memória do AC, sem SimHub',
+    'foot.src.ac': 'memória partilhada, sem SimHub',
+    'foot.src.f125': 'UDP, sem SimHub',
     'status.live': 'AO VIVO', 'status.paused': 'EM PAUSA',
     'status.closed': 'JOGO ENCERRADO', 'status.stale': 'últimos valores',
     'sector': 'SETOR', 'lapCount': 'VOLTA',
@@ -166,7 +167,7 @@ const I18N = {
       'O Assetto Corsa manda o combustível em litros.',
   },
   'pt-BR': {
-    'app.title': 'Telemetria AC', 'boot.waiting': 'Aguardando o Assetto Corsa',
+    'app.title': 'Telemetria', 'boot.waiting': 'Aguardando o jogo',
     'boot.reading': 'Lendo a telemetria direto do jogo…',
 
     'menu.title': 'O que você quer ver?', 'menu.sub': 'Dá para mudar a qualquer momento nas configurações.',
@@ -238,7 +239,8 @@ const I18N = {
     'lb.time': 'TEMPO', 'lb.best': 'MELHOR', 'lb.gap': 'INT.',
     'lb.intTitle': 'Tempo até ao carro da frente. Na mesma volta é o tempo exacto que ele levou a passar pelo mesmo ponto da pista; fora isso é uma estimativa pelo ritmo da última volta dele.',
     'lb.penalty': 'Penalty', 'lb.drs': 'DRS',
-    'foot.src': 'memória do AC, sem SimHub',
+    'foot.src.ac': 'memória compartilhada, sem SimHub',
+    'foot.src.f125': 'UDP, sem SimHub',
     'status.live': 'AO VIVO', 'status.paused': 'EM PAUSA',
     'status.closed': 'JOGO ENCERRADO', 'status.stale': 'últimos valores',
     'sector': 'SETOR', 'lapCount': 'VOLTA',
@@ -300,7 +302,7 @@ const I18N = {
       'O Assetto Corsa manda o combustível em litros.',
   },
   'es': {
-    'app.title': 'Telemetría AC', 'boot.waiting': 'Esperando al Assetto Corsa',
+    'app.title': 'Telemetría', 'boot.waiting': 'Esperando al juego',
     'boot.reading': 'Leyendo la telemetría directamente del juego…',
 
     'menu.title': '¿Qué quieres ver?', 'menu.sub': 'Puedes cambiarlo cuando quieras en los ajustes.',
@@ -372,7 +374,8 @@ const I18N = {
     'lb.time': 'TIEMPO', 'lb.best': 'MEJOR', 'lb.gap': 'INT.',
     'lb.intTitle': 'Tiempo hasta el coche de delante. En la misma vuelta es el tiempo exacto que tardó en pasar por el mismo punto de la pista; si no, es una estimación según el ritmo de su última vuelta.',
     'lb.penalty': 'Penalización', 'lb.drs': 'DRS',
-    'foot.src': 'memoria del AC, sin SimHub',
+    'foot.src.ac': 'memoria compartida, sin SimHub',
+    'foot.src.f125': 'UDP, sin SimHub',
     'status.live': 'EN VIVO', 'status.paused': 'EN PAUSA',
     'status.closed': 'JUEGO CERRADO', 'status.stale': 'últimos valores',
     'sector': 'SECTOR', 'lapCount': 'VUELTA',
@@ -434,7 +437,7 @@ const I18N = {
       'El Assetto Corsa manda el combustible en litros.',
   },
   'en': {
-    'app.title': 'AC Telemetry', 'boot.waiting': 'Waiting for Assetto Corsa',
+    'app.title': 'Telemetry', 'boot.waiting': 'Waiting for the game',
     'boot.reading': 'Reading telemetry straight from the game…',
 
     'menu.title': 'What do you want to see?',
@@ -509,7 +512,8 @@ const I18N = {
     'lb.time': 'TIME', 'lb.best': 'BEST', 'lb.gap': 'INT.',
     'lb.intTitle': 'Time to the car ahead. On the same lap it is the exact time it took him to pass the same point on track; otherwise it is an estimate from the pace of his last lap.',
     'lb.penalty': 'Penalty', 'lb.drs': 'DRS',
-    'foot.src': 'AC memory, no SimHub',
+    'foot.src.ac': 'shared memory, no SimHub',
+    'foot.src.f125': 'UDP, no SimHub',
     'status.live': 'LIVE', 'status.paused': 'PAUSED',
     'status.closed': 'GAME CLOSED', 'status.stale': 'last values',
     'sector': 'SECTOR', 'lapCount': 'LAP',
@@ -2064,6 +2068,14 @@ function applyLang() {
   });
   document.title = t('app.title');
   applyUnits();
+  // O rodape' do jogo e' a unica linha que descreve COMO se le o jogo, e
+  // por isso e' escrita a mao em vez de levar `data-i18n`. Sem esta
+  // chamada, mudar de idioma deixava "shared memory, no SimHub" em
+  // ingles num painel em portugues -- e a troca de jogo voltava a ter de
+  // ficar aEtiqueta errada quando o painel tinha so' o AC.
+  if (typeof globalThis.AplicarJogoNaInterface === 'function') {
+    globalThis.AplicarJogoNaInterface();
+  }
   if (typeof syncDrsMarkUI === 'function') syncDrsMarkUI();
   if (typeof loadAcPathSettings === 'function') loadAcPathSettings();
 }
@@ -3273,13 +3285,40 @@ function mostrarJogoNaInterface() {
   const m = globalThis.Jogos.atual();
   const el = document.getElementById('foot-jogo');
   if (el && m) el.textContent = m.nome;
+
+  /* A SEGUNDA linha do rodape' tambem descreve o jogo, e por isso tambem
+   * e' por jogo. Era um texto fixo -- "memoria do AC, sem SimHub" nos
+   * quatro idiomas -- que ficava no ecra' com o F1 25 escolhido, ao lado
+   * de "F1 25" na primeira. Duas linhas a dizer de que jogo se trata, uma
+   * certa e outra errada, e a errada e' a que tem a forma de frase: e' a
+   * que se le sem reparar.
+   *
+   * A correccao e' `foot.src.<id>`, e nao texto tirado do modulo do jogo,
+   * porque a traducao vive em UM sitio (a skill `documentacao` diz que
+   * e' o `app.js`) e partida por jogos deixaria de se contar o I18N
+   * inteiro. E o `auditar_frontend.py` passa a exigir a chave nos quatro
+   * idiomas para cada jogo registado.
+   *
+   * Se a chave faltar, fica o texto cru do jogo em vez de uma frase de
+   * outro: e' feio, mas nao e' uma mentira. */
+  const id = globalThis.Jogos.idAtivo();
+  const info = (globalThis.Jogos.lista.jogos || [])
+    .find((j) => j.id === id);
+  const elSrc = document.getElementById('foot-src');
+  if (elSrc) {
+    const txt = t('foot.src.' + id);
+    // o `transporte` vem da lista e nao do modulo: `Jogos.atual()` sao
+    // as REGRAS do jogo, e nao os dados de como se le o jogo.
+    elSrc.textContent = (txt === 'foot.src.' + id)
+      ? ((info && info.transporte) || '')
+      : txt;
+  }
+
   document.querySelectorAll('#set-jogo button').forEach((b) => {
     b.classList.toggle('on', b.getAttribute('data-v') === globalThis.Jogos.idAtivo());
   });
   const nota = document.getElementById('set-jogo-nota');
   if (nota) {
-    const info = (globalThis.Jogos.lista.jogos || [])
-      .find((j) => j.id === globalThis.Jogos.idAtivo());
     nota.textContent = (info && info.instrucao) ? info.instrucao : '';
   }
 }

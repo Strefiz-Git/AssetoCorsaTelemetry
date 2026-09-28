@@ -19,10 +19,11 @@ import urllib.request
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # a RAIZ e' o que torna `actelemetry` importavel. Sem esta linha o
-# script so' via `tests/`, e a seccao 4d -- que importa o modulo das
-# definicoes -- falha com ModuleNotFoundError. E' a mesma linha que o
-# `verificar_readme.py` tem, e pelo mesmo motivo.
+# script so' via `tests/`, e qualquer bloco que importe o pacote -- a
+# seccao 3b e a 4d -- falha com ModuleNotFoundError. E' a mesma linha que
+# o `verificar_readme.py` tem, e pelo mesmo motivo.
 sys.path.insert(0, RAIZ)
+from actelemetry.jogos import JOGOS
 sys.stdout.reconfigure(encoding='utf-8')
 
 FALHAS = []
@@ -262,6 +263,72 @@ finally:
     parar(p)
 
 print()
+print("=== 3b. TODAS as rotas de TODOS os jogos, pelo caminho do browser ===")
+# A rota do mapa da pista devolvia os bytes do PNG em vez do dicionario
+# que o nucleo consome, e rebentava com
+#     AttributeError: 'bytes' object has no attribute 'get'
+# dentro do `_enviar_rota`. O `socketserver` fechava a ligacao sem
+# responder, o browser via um 502, e o painel caia no tracoado desenhado.
+#
+# Nao se notou porque ha' um caminho de reserva que da' sempre a pista
+# certa -- que e' o pior sitio para um bug estar: ondeHa' algo que
+# funciona, o que falha nao se ve.
+#
+# E nao se notou porque `verificar_servidor.py` conferia que as rotas
+# EXISTEM, e nao que uma rota responde. Este bloco e' a diferenca: mete
+# cada rota de cada jogo pelo HTTP a serio e pergunta o codigo.
+#
+# Deliberadamente NAO se escreve aqui a forma que a rota tem de ter.
+# Reestcrever o contrato aqui seria uma segunda copia que divergia da
+# primeira em silencio -- que e' a Regra no 19 com outro nome. O que se
+# mede e' o comportamento, e o `pedir()` abaixo e' o mesmo que o browser
+# faz.
+ROTAS_QUE_DEVEM_404 = ('/api/nao-existe',)  # controlo: uma rota a mais
+CODIGOS_OK = (200, 400, 404)
+
+for jogo in ('ac', 'f125'):
+    p, saida = arrancar(PORT + 2, jogo)
+    try:
+        jogo_mod = JOGOS[jogo]
+        rotas = jogo_mod.rotas() or {}
+        if not rotas:
+            # Nao e' um erro. O F1 25 nao tem rotas: a telemetria chega
+            # pelo socket UDP e nao por um pedido. Exigir que as tenha
+            # seria pedir um bug -- e o inverso, exigir que NAO as tenha,
+            # era um alarme falso no dia em que o F1 25 ganhasse uma.
+            ok(True, "%s: sem rotas proprias, e a telemetria vem do socket"
+               % jogo)
+        for caminho in sorted(rotas):
+            metodo = rotas[caminho][0]
+            if metodo != "GET":
+                # um POST sem corpo daria 400, que e' o mesmo que um
+                # "nao ha' nada para isto", e nao provaria a forma
+                continue
+            try:
+                st, _corpo = pedir(PORT + 2, caminho)
+            except Exception as e:
+                ok(False, "%s: %s fechou a ligacao sem responder (%s: %s). "
+                          "E' o sintoma de a rota devolver a forma errada -- "
+                          "o Handler faz r.get('body') e rebenta" %
+                          (jogo, caminho, type(e).__name__, e))
+                continue
+            ok(st in CODIGOS_OK,
+               "%s: %s responde %d" % (jogo, caminho, st))
+
+        # o controlo: uma rota que NAO existe tem de dar 404, e nao
+        # rebentar. Sem esta linha, um teste que so' percorre as rotas
+        # passava mesmo que o Handler estivesse partido para tudo.
+        try:
+            st, _c = pedir(PORT + 2, ROTAS_QUE_DEVEM_404[0])
+            ok(st == 404, "%s: uma rota a mais da 404, e nao uma excepcao"
+               % jogo)
+        except Exception as e:
+            ok(False, "%s: uma rota a mais rebentou em vez de dar 404 (%s)"
+               % (jogo, type(e).__name__))
+    finally:
+        parar(p)
+
+print()
 print('=== 3. o que o painel recebe, para os dois ===')
 for jogo in ('ac', 'f125'):
     p, saida = arrancar(PORT + 1, jogo)
@@ -337,6 +404,25 @@ try:
 finally:
     parar_ps1(PORTA2)
 
+# --- 4c-1) o `--jogo` errado tem de ser RAPIDO
+#
+# O script validava o jogo no servidor, e o servidor so' fala depois de
+# o ciclo da espera pela porta acabar. Esse ciclo fazia 30
+# `Get-NetTCPConnection`, e cada um leva 2 SEGUNDOS numa porta sem nada
+# (medido): 69 segundos para dizer "jogo desconhecido", numa janela que
+# nao dizia nada. Passou a validar no script, e a espera usa uma
+# ligacao TCP em vez do cmdlet.
+#
+# O limite e' generoso de proposito: 20 s, e o que se mede e' que a
+# resposta vem antes de o utilizador desistir. Medir o tempo certo
+#exactamente seria um teste que falha quando a maquina esta' ocupada, e
+# esse e' o pior sitio para um teste.
+t0 = time.time()
+rc = correr_ps1(PORTA2, ['-Jogo', 'nao-existe'])
+demorou = time.time() - t0
+ok(rc != 0 and demorou < 20,
+   "e um jogo inventado responde em %.1fs, e nao em 69" % demorou)
+
 # --- 4c) um jogo que nao existe NA LINHA DE COMANDO
 #
 # A primeira versao deste teste afirmava que o servidor tinha de
@@ -356,10 +442,6 @@ finally:
 #   alguem pode ter escrito a mao ou que pode ter ficado de um jogo que
 #   ja nao existe. Aí sim se cai no padrao -- e a verificado no
 #   `verificar_readme.py`.
-rc = correr_ps1(PORTA2, ['-Jogo', 'nao-existe'])
-ok(rc != 0,
-   "com um jogo inventado na linha de comando o arranque FALHA, e nao "
-   "arrancar com o jogo errado")
 ok(porta_livre(PORTA2),
    "e nao fica nenhum servidor a ocupar a porta")
 

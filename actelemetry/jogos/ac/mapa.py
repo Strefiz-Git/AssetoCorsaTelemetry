@@ -319,7 +319,26 @@ def rota_track_map(query):
 
 
 def rota_track_map_image(query):
-    """`/api/track-map-image` -- os bytes do PNG."""
+    """`/api/track-map-image` -- os bytes do PNG.
+
+    O `body` e' em BYTES e nao um dicionario porque o nucleo escolhe o
+    `ctype` que lhe for dado, e um PNG servido como
+    `application/json` nao aparece.
+
+    A forma do que se devolve e' `{"__status": ..., "body": ...}`, e nao
+    os bytes do PNGcrus. Devolvia os bytes directos, e o nucleo fazia
+    `r.get("body")` -- que rebenta com
+
+        AttributeError: 'bytes' object has no attribute 'get'
+
+    e o `socketserver` fechava a ligacao sem responder. O browser via um
+    502, e o painel caia no traçado desenhado, que da' sempre a pista
+    certa: um caminho de reserva que esconde que o caminho principal
+    esta partido. O mesmo que a Regra no 19, com o contrato entre o jogo
+    e o nucleo em vez do contrato entre a app e o leitor -- eigualmente nobody
+    o verificava, porque `verificar_servidor.py` so' conferia que a rota
+    EXISTE.
+    """
     from urllib.parse import parse_qs
     q = {k: v[0] for k, v in parse_qs(query).items()}
     track = q.get("track", "")
@@ -332,9 +351,10 @@ def rota_track_map_image(query):
     _ini, png_path = found
     try:
         with open(png_path, "rb") as f:
-            return f.read()
+            png = f.read()
     except OSError:
         return None
+    return {"__status": 200, "body": png, "ctype": "image/png"}
 
 
 def registar_rotas():

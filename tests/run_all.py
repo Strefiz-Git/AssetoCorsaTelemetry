@@ -47,6 +47,10 @@ SUITE = [
     ("as regras dos dois jogos", "node", "test_jogos.js"),
     ("o frontend aguenta-se de pe", "py", "auditar_frontend.py"),
     ("a regra 2.3.3 morde mesmo", "py", "mutacao_acessibilidade.py"),
+    # o rodape' e' a unica linha que diz COMO se le o jogo. A regra e'
+    # que nao fique a dizer "memoria do AC" com o F1 25 no ecra, e que o
+    # titulo e o ecra' de espera nao nomeiem um jogo antes de o escolher.
+    ("a regra do rodape' morde", "py", "mutacao_rodape.py"),
     ("valores nao finitos", "py", "verificar_finitos.py"),
     ("os testes mordem mesmo", "py", "test_mutation.py"),
     ("o contrato e' mesmo verificado", "py", "mutacao_contrato.py"),

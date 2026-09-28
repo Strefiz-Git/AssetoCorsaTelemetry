@@ -85,10 +85,13 @@ ficheiro, e **não se renumeram**: outros ficheiros citam-nas pelo número.
 | tempos de volta, delta, início de volta | 13, 14, 20 |
 | mapa e canvas | 10, 11, 16, 17 |
 | F1 25 (formatos, rodas, adversários) | 21, 22, 23, 24 |
+| texto que descreve o jogo (rodapé, título, ecrã de espera) | 25 |
+| rotas de um jogo, e o contrato com o núcleo | 26 |
+| `.bat` e `.ps1`, e o que demora | 27 |
 | testes que passam sem provar nada | 4, 12, 15, 19 |
 | dar uma causa ou uma conclusão | 9 |
 
-Uma Regra nova é a nº 25 e vai à tabela acima (skill `documentacao`).
+Uma Regra nova é a nº 28 e vai à tabela acima (skill `documentacao`).
 
 ---
 
@@ -1060,6 +1063,137 @@ máximo não é publicado (o ERS do F1 25 não diz quanto cabe), ou o valor
 é um **estado** e não uma quantidade (o ABS). Uma barra a 100 % seria
 mentir sobre a única coisa que um piloto quer saber a meio de uma curva.
 
+## Regra nº 25 — um texto herdado de um jogo não se repara
+
+Quando o F1 25 entrou, o painel deixou de ser de um jogo só. Três textos
+continuaram a ser do **Assetto Corsa**, e nenhum deles dava erro:
+
+| Onde | Dizia | Devia dizer |
+|---|---|---|
+| rodapé, linha 1 | `F1 25` | `F1 25` — esta estava certa |
+| rodapé, linha 2 | `memória do AC, sem SimHub` | o transporte do jogo activo |
+| título da página | `Telemetria AC` | `Telemetria` |
+| ecrã de espera | `A aguardar o Assetto Corsa` | `A aguardar o jogo` |
+
+Nenhum teste falhou. Nenhum erro na consola. O painel com o F1 25
+escolhido dizia, em simultâneo, **"F1 25"** e **"memória do AC"**.
+
+Porquê custa: **dois textos vizinhos, um certo e um errado, e o errado
+é o que tem a forma de frase.** O "F1 25" é um nome, e lê-se como uma
+etiqueta. "memória do AC, sem SimHub" é uma frase, e uma frase descreve
+a situação — lê-se sem reparar. A Regra nº 19 pelo avesso: um número
+plausível e errado é o pior resultado possível, e uma frase plausível e
+errada é o mesmo.
+
+O ecrã de espera e o título são o caso mais difícil, porque nomeavam um
+jogo **antes de haver um jogo escolhido**. Não há como estar certo: só se
+pode dizer "o jogo".
+
+**A regra:** quando o painel passa a ter mais do que um jogo, cada texto
+que **descreve o jogo** é por jogo, ou não é nada. E o que descreve o
+jogo não é só o número: é a origem dos dados, o título, e tudo o que
+aparece antes da escolha.
+
+Como se faz, por ordem:
+
+- A frase do rodapé é `foot.src.<id>`, nos **quatro** idiomas. Não é texto
+  tirado do módulo do jogo: a tradução vive num só sítio (o `app.js`) e
+  partida por jogos deixa de se contar o I18N inteiro.
+- A lista de ids **não se escreve** no `app.js` nem no `arrancar.ps1`. Sai
+  do registo, `actelemetry.jogos`. Uma lista escrita à mão é um segundo
+  sítio a saber os jogos, e diverge em silêncio no dia em que se
+  acrescenta um terceiro.
+- Se a chave faltar, escreve-se o transporte cru do jogo. É feio, e não
+  é mentira.
+- Como a linha é escrita à mão, `applyLang` chama
+  `AplicarJogoNaInterface()` — senão mudar de idioma deixa a etiqueta do
+  jogo na língua anterior.
+
+**O que verifica**, e ambas morrem (`python tests\mutacao_rodape.py`):
+
+- `auditar_frontend.py` confere que as chaves `foot.src.<id>` são
+  exactamente as dos jogos registados. Acrescentar um jogo sem a frase
+  falha o teste — e a falha aponta para a frase, que é a coisa a escrever.
+- E que `app.title` e `boot.waiting` não nomeiam nenhum jogo registado,
+  nos quatro idiomas. Procura-se o **nome** vindo do registo, não uma
+  lista de textos proibidos, porque o teste tem de sobreviver à EA renomear
+  o jogo.
+
+E uma segunda, mais geral, que é a mesma coisa noutro sítio:
+
+> **Uma rota de jogo tem de responder pelo caminho do browser.**
+> `verificar_servidor.py` §3b mete todas as rotas de todos os jogos por
+> HTTP e pergunta o código. Só pedia que **existissem**.
+
+## Regra nº 26 — uma rota que devolve a forma errada fecha a ligação
+
+`/api/track-map-image` devolvia os **bytes do PNG** em vez do dicionário
+`{"__status", "body"}` que o núcleo consome. O `_enviar_rota` fazia
+`r.get("body")` e rebentava:
+
+```
+AttributeError: 'bytes' object has no attribute 'get'
+```
+
+O `socketserver` fechava a ligação **sem responder**. O browser via um
+502, e o painel caía no traçado desenhado — que dá sempre a pista certa.
+
+Duas coisas difíceis de ver, juntas:
+
+1. **Havia um caminho de reserva que funciona.** O `map.png` do jogo
+   nunca carregou, e ninguém notou, porque o mapa desenhado a partir das
+   coordenadas é sempre correcto. Onde há algo que funciona, o que falha
+   não se vê.
+2. **A forma errada não dá 500.** Dá uma excepção dentro do handler, e o
+   `socketserver` transforma-a em ligação morta. O 500 é para quando se
+   apanha a excepção; aqui ninguém a apanha.
+
+O contrato entre um módulo de jogo e o núcleo é binário e não verificado —
+a Regra nº 19 outra vez, com o contrato do jogo em vez do contrato da
+app. **Por isso a correcção foi um teste, não uma linha:** §3b do
+`verificar_servidor.py`, que passa todas as rotas pelo caminho do browser
+e pergunta o código. Deliberadamente não reescreve a forma que a rota tem
+de ter — reescrevê-la aqui seria uma segunda cópia que divergia da
+primeira em silêncio.
+
+## Regra nº 27 — 30 chamadas de 2 segundos não são 9 segundos
+
+O `arrancar.ps1` espera que a porta responda com 30 tentativas de 300 ms,
+e dizia "O servidor NÃO arrancou em 9 segundos".
+
+O ciclo usava `Get-NetTCPConnection`. **Medido nesta máquina: 2,0 s por
+chamada** numa porta sem nada. Trinta vezes são **69 segundos**, e a
+mensagem dizia 9.
+
+O que acontecia: `INICIAR.bat 8765 f1251` — um carácter a mais, o erro
+mais provável de quem acabou de instalar — deixava a janela em silêncio
+durante um minuto, e no fim o único texto era um tempo que não era o
+tempo, seguido de um `servidor.log.err` que ninguém ia abrir. O argparse
+do servidor recusava o jogo **correctamente**; só chegava tarde demais
+para servir de alguma coisa.
+
+Duas correcções, ambas no `arrancar.ps1`:
+
+- **O jogo é validado no script, antes de arrancar.** Os ids são pedidos
+  ao registo, `actelemetry.jogos.ORDEM`, e não escritos à mão. Responde
+  em **1,0 s** e diz o que escrever.
+- **A espera usa uma ligação TCP**, `Porta-Aberta`, e não o cmdlet.
+  Sub-milissegundo com a porta fechada. E é a pergunta certa: o
+  `Get-NetTCPConnection` diz se a porta está em *LISTEN*, que é diferente
+  de haver quem responda.
+
+> **`Get-NetTCPConnection` é um cmdlet de inventário, não um teste de
+> conectividade.** Serve numa vez, antes de arrancar, para descobrir o
+> PID. Num ciclo de espera é 2 s por tentativa e o ciclo deixa de medir o
+> que diz medir.
+
+A espera que sobrou (2 chamadas de `parar.ps1`, 1 do passo 0) fica: são
+uma vez cada e o `Get-NetTCPConnection` é o que **dá** o PID, que a
+ligação TCP não dá.
+
+Verifica: `verificar_servidor.py` §4c-1 mede que um jogo inventado
+responde em menos de 20 s, e imprime os segundos que levou.
+
 ## Arquitetura
 
 O painel tem **dois jogos**, e a regra que organiza tudo e' uma so:
@@ -1201,7 +1335,7 @@ certo, não uma falha. Os testes de memória escrevem em páginas
 
 Corre com `python tests\run_all.py`. Sai com codigo diferente de zero se
 algo falhar, e com codigo 2 (que nao e' falha) se o AC
-estiver a correr e os testes de memoria forem saltados. Sao 28 grupos.
+estiver a correr e os testes de memoria forem saltados. Sao 29 grupos.
 
 | Ficheiro | O que prova |
 |---|---|
@@ -1222,6 +1356,7 @@ estiver a correr e os testes de memoria forem saltados. Sao 28 grupos.
 | `test_jogos.js` | as regras dos dois jogos no browser: embraiagem, ABS, vida do pneu, combustivel, clima, delta e as 81 capacidades -- sem nenhum jogo a correr (node) |
 | `auditar_frontend.py` | o frontend inteiro: ids, traduccoes, contraste, chaves CSS, movimento reduzido |
 | `mutacao_acessibilidade.py` | que a regra 2.3.3 morde, partindo o CSS |
+| `mutacao_rodape.py` | que o rodape' nao fica a dizer o jogo errado |
 | `verificar_finitos.py` | que nenhum valor chega a NaN ou infinito |
 | `test_mutation.py` | que os testes de cima falham quando o codigo esta partido |
 | `mutacao_contrato.py` | que o contrato entre a app e o leitor e' mesmo verificado |

@@ -556,6 +556,54 @@ jogo, e a pasta melhor estruturada.
   certo. O que **não** se verificou é o browser: ninguém abriu a página
   para ver o ecrã de escolha a funcionar.
 
+## 2026-09-28 (3.ª parte) — abrir o browser apanhou o que os testes nao apanhavam
+
+### Porque
+
+OUtilizador pediu para verificar tudo. A suite passava, e o browser nunca
+tinha sido aberto. A regra do `AGENTS.md` e' a do `sessao-de-trabalho`: a
+suite prova a logica, e o ecra' e' uma coisa diferente.
+
+### O que foi feito
+
+| Ficheiro | |
+|---|---|
+| `static/app.js`, `static/index.html` | o rodape' passa a dizer o transporte do jogo, e o titulo e o ecra' de espera deixam de nomear um jogo |
+| `arrancar.ps1` | valida o jogo em 1 s, e a espera pela porta deixa de levar 69 s |
+| `actelemetry/jogos/ac/mapa.py` | `/api/track-map-image` devolveva bytes e rebentava o handler |
+| `tests/auditar_frontend.py` | duas verificacoes novas, e uma delas le' o registo de jogos |
+| `tests/verificar_servidor.py` | §3b mete todas as rotas de todos os jogos por HTTP; §4c-1 mede o tempo |
+| `tests/mutacao_rodape.py` | prova que as duas verificacoes novas mordem |
+
+### Dificuldades
+
+1. **O rodape' dizia duas coisas, uma certa e outra errada.** Com o F1 25
+   escolhido, "F1 25" ao lado de "memoria do AC, sem SimHub". Sem erro na
+   consola e sem teste a falhar -- a errada e' a que tem a forma de frase,
+   e uma frase le-se sem reparar. Regra no 25.
+2. **A imagem do mapa da pista nunca carregou.** A rota devolvia os bytes
+   do PNG em vez do dicionario, o handler rebentava com
+   `AttributeError: 'bytes' object has no attribute 'get'`, e o
+   `socketserver` fechava a ligacao sem responder. Ninguem notou porque o
+   mapa desenhado da sempre a pista certa. Regra no 26.
+3. **O `Get-NetTCPConnection` leva 2,0 s numa porta sem nada.** O ciclo de
+   30 tentativas do `arrancar.ps1` prometia 9 segundos e levava 69. Com um
+   jogo escrito errado, a janela ficava um minuto em silencio. Regra no 27.
+4. **O `Start-Process` com redireccionamento e' o que prende um `run` do
+   Python**, porque o filho herda as duas pontas do pipe e o
+   `communicate()` fica a ler ate o servidor sair. `DEVNULL` no teste, e
+   o HTTP como prova de que arrancou.
+
+### Falta / não verificado
+
+- O F1 25 continua nunca lido do jogo a correr. E' o buraco da Regra no 4
+  e so `verify_real.py` com o jogo aberto o fecha.
+- O painel so' foi visto com o **AC** e com o **F1 25** sem ligacao. Nao ha
+  telemetria real de nenhum dos dois no ecra'.
+- A zona de DRS do Season Pack 2026 esta' declarada como capacidade e nao
+  desenhada no mapa.
+
+
 ## Resumo do que se aprendeu
 
 | Lição | Onde está registada |
