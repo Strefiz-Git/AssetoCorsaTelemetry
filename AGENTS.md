@@ -1623,6 +1623,7 @@ correr tambem nao prova nada quando o jogo nao esta a abrir.
 | `forma_mapa.py` | desenha as duas formas de transformar o mapa, para comparar |
 | `mapa.py` | grava um trajecto conduzido e desenha o mapa |
 | `mapa_todas_pistas.py` | mede o `map.ini` das 76 pistas |
+| `medir_bandeira.py` | ONDE ESTA A BANDEIRA DE PISTA DO F1 25, E PROVA QUE A POSICAO E' A CERTA. O painel mostra a bandeira do PROPRIO CARRO (`vehicleFIAFlags`) e nao a de pista, que vive no bitfield `vehicleFlags` -- e esse nao esta' no struct. Acrescentar um campo ao offset errado desloca tudo o que vem a seguir, sem erro nenhum (Regra no 19), e por isso este mede em vez de adivinhar. Precisa do jogo a conduzir |
 | `medir_tyrewear.py` | mede a queda do desgaste por volta, a conduzir |
 | `probe_layout.py` | despeja os valores e procura grupos de 4 -- a assinatura de uma temperatura |
 | `run_all.py` | NAO E' UM TESTE -- e' o que corre todos os outros, por ordem |

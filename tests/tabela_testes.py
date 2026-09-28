@@ -95,6 +95,15 @@ DESCRICAO = {
 
 # o que corre FORA da suite, e porque
 FORA = {
+    "medir_bandeira.py": ("ONDE ESTA A BANDEIRA DE PISTA DO F1 25, E PROVA "
+                          "QUE A POSICAO E' A CERTA. O painel mostra a "
+                          "bandeira do PROPRIO CARRO (`vehicleFIAFlags`) e "
+                          "nao a de pista, que vive no bitfield "
+                          "`vehicleFlags` -- e esse nao esta' no struct. "
+                          "Acrescentar um campo ao offset errado desloca "
+                          "tudo o que vem a seguir, sem erro nenhum "
+                          "(Regra no 19), e por isso este mede em vez de "
+                          "adivinhar. Precisa do jogo a conduzir"),
     "test_tempos.html": "os mesmos casos de tempos, para abrir no browser",
     "check_layout.js": "medidas no browser, para colar na consola",
     "check_acessibilidade.js": ("as 5 regras de acessibilidade, no browser. A "
