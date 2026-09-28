@@ -681,9 +681,36 @@ class Leitor:
         # aqui daria um dicionario vazio, e um painel de pneus vazio sem
         # erro nenhum e' o pior dos dois. A Regra no 14, ao contrario.
         d = d.cars[idx]
-        # O m_tyresWear e' 0 a 100 com 100 = NOVO, exactamente como o
-        # tyreWear da memoria do AC. Mesma direcao, portanto a mesma
-        # formula de vida do pneu serve aos dois sem converter nada.
+          # O `m_tyresWear` e' QUANTO JÁ FOI USADO, e nao quanto resta.
+          #
+          # MEDIDO, e nao deduzido: 2026-09-28, F1 25 a conduzir, C5,
+          # volta 5. O MFD do jogo lia 12 / 17 / 12 / 13 % e o painel
+          # 10.0 / 14.2 / 10.2 / 11.3 -- a mesma grandeza, roda a roda, e
+          # o FR o pior das duas maneiras. No mesmo instante o jogo dava
+          # `usableLife` 21 e `lifeSpan` 19, ou seja 2 voltas corridas:
+          #
+          #     2 de 21 = 9,5 % usado.  O medido e' 10,0 %.  Bate.
+          #
+          # Se fosse "quanto resta", 10,0 % de resto seriam 19 voltas
+          # gastas, e o jogo anunciaria "faltam 2" em vez de "faltam 19".
+          # E' aritmeticamente impossivel, e nao so improvavel:
+          #
+          # A MEDICAO INTEIRA: `docs/medicao-desgaste-f125.md`.
+          #
+          # O COMENTARIO QUE ESTAVA AQUI, e que estava ERRADO, dizia "0 a
+          # 100 com 100 = NOVO, exactamente como o `tyreWear` da memoria
+          # do AC. Mesma direcao, portanto a mesma formula de vida do pneu
+          # serve aos dois sem converter nada." Foi escrito por ANALOGIA
+          # com o AC, e a analogia e' o que falha: os dois campos chamam-
+          # se `tyreWear` e significam o contrario. E a consequencia nao era
+          # cosmetica -- a formula do AC e' `100 - wear` para obter o
+          # gasto, e aplicada aqui sem converter dava 10 % de gasto num
+          # pneu que o jogo diz que ainda tem 19 voltas de 21.
+          #
+          # A CORRECCAO QUE VEIO DA MEDICAO esta no desenho, e nao aqui:
+          # o painel mostrava este valor com a etiqueta de "aderencia" e
+          # pintava a vermelho o que fosse menor que 20 -- ou seja, os
+          # pneus NOVOS do F1 25. Ver `desgastePneu` em `jogos/f125.js`.
         desgaste = [None] * 4
         dano = [None] * 4
         travões = [None] * 4
