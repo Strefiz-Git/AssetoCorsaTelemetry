@@ -1,0 +1,15 @@
+.github
+.huskey
+.idea
+
+
+dev
+src
+
+.clang-format
+.eslintignore
+.prettierrc
+.travis.yml
+jest.config.js
+.tsconfig.json
+tslint.json
