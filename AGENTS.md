@@ -1346,6 +1346,25 @@ Duas decisões que ficaram escritas:
   que o `seletor.js` chama sob `if (global.X)`. Um teste que apita doze
   vezes quando há um problema é um teste que se ignora, e um teste
   ignorado é pior do que nenhum.
+- **E o nome procura-se por PALAVRA, não por `global.X`.** O `app.js`
+  consome o módulo dos pneus assim, e é legal:
+  `const r = Pneus.estimarPneus(S.pneuStint, { ... });`
+  — sem `global.` à frente. `root.Pneus = api` põe `Pneus` no objecto
+  global, e uma propriedade do objecto global *é* uma variável global.
+  A primeira versão deste teste via só `global.X` e disse que o `Pneus`
+  não tinha consumidor. Mudei o nome com essa informação, e a vida do
+  pneu passou a dar `Pneus is not defined` na pintura, **com a suite
+  toda a passar**. O `app.js` faz o mesmo com o combustível, e o estado
+  do stint e do depósito vive em `S`, no `app.js` — não havia nada por
+  ligar.
+
+> **O relatório de um teste é uma afirmação, e uma afirmação falsa que
+> leva a uma acção errada é pior do que não haver relatório.**
+
+Por isso a resposta distingue duas coisas que não são a mesma: usado
+**noutro** ficheiro — o global é consumido — e usado **só no ficheiro que
+o publica**, que é o `window.VOLTA_MINIMA_S` do `tempos.js`: usado quatro
+vezes no próprio ficheiro, publicado no global, e ninguém vai lá buscá-lo.
 
 ### O que o teste não apanha, e porque é o browser
 
@@ -1354,6 +1373,16 @@ função existe. Já aconteceu: `T_.vida(wear, sectors)` contra uma API que
 se chama `estimarPneus(estado, dados)` — nomes diferentes, e um estado
 persistente entre voltas que um módulo puro não pode ter. **Parse não é
 execução**, e só abrir o browser diz o resto.
+
+E a segunda limitação é a que me enganou: **uma leitura nua de um global
+que não existe não é detectada.** A secção 2 só vê `global.X`, e por isso
+se o `tyres.js` deixar de publicar `Pneus` o teste passa calado — e o
+browser dá `Pneus is not defined` na pintura. As duas limitações são a
+Regra nº 19 pelo avesso: um `undefined` que rebenta é melhor do que um
+zero plausível, mas não chega.
+
+O ficheiro diz as duas em código, na secção 4, para quem o ler não
+confiar no que ele não cobre.
 
 ### Regra prática
 

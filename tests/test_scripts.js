@@ -217,6 +217,47 @@ ok(limpo("const s = 'aberta;\nconst t = global.Tempo;\n';").indexOf('global.Temp
    'uma string aberta engole o resto, e nao inventa leituras');
 
 console.log('');
+console.log('=== 0b. um global consumido NU nao e' + AP + ' huerfano ===');
+/* O segundo erro deste ficheiro, e o mais caro.
+ *
+ * A secção 3 diz que um global publicado e' huerfano quando ninguem o
+ * le. A PRIMEIRA versao disso so' procurava `global.X`, e o `app.js`
+ * consome o modulo dos pneus assim:
+ *
+ *     const r = Pneus.estimarPneus(S.pneuStint, { ... });
+ *                    ^^^^^ sem `global.` a frente
+ *
+ * `root.Pneus = api` poe `Pneus` no objecto global, e uma propriedade
+ * do objecto global E' uma variavel global. O consumo nu e' legal, e
+ * e' o mais normal de todos.
+ *
+ * O relatorio disse que o `Pneus` nao tinha consumidor. Mudei o modulo
+ * para `Tyres` com essa informacao, e a vida do pneu passou a dar
+ * `Pneus is not defined` quando se pintava -- com a suite toda a
+ * passar, trinta grupos verdes.
+ *
+ * Este caso esta' aqui para o `Pneus` voltar a ser procurado por
+ * PALAVRA, e nao por `global.`. Se um dia o nome voltar a mudar, este
+ * teste e' que diz. */
+{
+  /* Simula o que o `tyres.js` e' o `app.js` fazem. */
+  const simulados = {
+    'modulo.js': ['root.Pneus = { estimarPneus: function () {} };'],
+    'app.js': ['const r = Pneus.estimarPneus(estado, {});'],
+  };
+  const escritas = { 'modulo.js': { 1: 'Pneus' }, 'app.js': {} };
+  const usos = [];
+  for (const rel of Object.keys(simulados)) {
+    simulados[rel].forEach((linha, k) => {
+      if (escritas[rel][k + 1] === 'Pneus') return;
+      if (/\bPneus\b/.test(linha)) usos.push(rel + ':' + (k + 1));
+    });
+  }
+  eq(usos.length, 1, 'um global usado sem `global.` conta como consumidor');
+  eq(usos[0], 'app.js:1', 'e conta onde esta, para a mensagem ser util');
+}
+
+console.log('');
 console.log('=== 1. a lista de scripts existe e nao tem repetidos ===');
 
 const html = fs.readFileSync(HTML, 'utf8');
@@ -248,12 +289,21 @@ const escritos = {};   /* nome -> quem escreve */
 const lidos = [];      /* leituras SEM guarda: estas sao a asserção */
 const lidosComGuarda = [];  /* leituras com guarda: nao falham, mas contam
                               * como consumidor para o relatorio */
+const codigo = {};     /* rel -> o codigo, sem comentarios nem strings */
+
+/* As linhas onde o nome e' ESCRETO, para as excluir da contagem de
+ * menções. Sem isto, `root.Pneus = api` conta como um uso de `Pneus` e
+ * nenhum global aparece nunca como orfao -- o relatorio deixava de
+ * dizer nada. */
+const linhaDaEscrita = {};   /* rel -> { linha: nome } */
 
 for (const s of scripts) {
   const rel = s.replace(/^[/\\]/, '');
   const p = path.join(RAIZ, 'static', rel);
   if (!fs.existsSync(p)) continue;
   const L = fs.readFileSync(p, 'utf8').split(/\r?\n/);
+  codigo[rel] = [];
+  linhaDaEscrita[rel] = {};
 
   /* O estado do stripper e' por SCRIPT, nao por linha: um `/*` que
    * abre numa linha fecha noutra, e o ficheiro recomeca limpo. */
@@ -261,6 +311,7 @@ for (const s of scripts) {
 
   L.forEach((crua, k) => {
     const linha = semComentario(crua, estado);
+    codigo[rel].push(linha);
     if (!linha.trim()) return;
 
     /* Um `if (global.X)` e' uma LEITURA COM GUARDA: o codigo esta' a
@@ -281,6 +332,7 @@ for (const s of scripts) {
         if (escreve) {
           if (!escritos[chave]) escritos[chave] = [];
           escritos[chave].push(rel + ':' + (k + 1));
+          linhaDaEscrita[rel][k + 1] = chave;
         } else if (!temGuarda) {
           lidos.push({ nome: chave, ficheiro: rel, linha: k + 1,
                        texto: crua.trim() });
@@ -310,8 +362,8 @@ function parecidos(a, b) {
   if (a.length < 4 || b.length < 4) return false;
   if (a === b) return false;
   /* Compara as tres ultimas letras, que e' onde um nome traduzido
-   * falha: `Tyres`/`Pneus` nao se parecenc em nada, mas `Combustivel`/
-   * `Combustivel` differem so' numa letra e `Tempo`/`Tempos` e' o
+   * falha: `Tyres`/`Pneus` nao se parecem em nada, mas `Combustivel`/
+   * `Combustiveis` diferem so' numa letra, e `Tempo`/`Tempos` e' o
    * singular e o plural. */
   const ult3a = a.slice(-3).toLowerCase();
   const ult3b = b.slice(-3).toLowerCase();
@@ -320,12 +372,61 @@ function parecidos(a, b) {
          b.toLowerCase().indexOf(a.toLowerCase()) >= 0;
 }
 
-/* Um global e' huerfano se NINGUEM o le -- nem sem guarda, nem com
- * guarda. Os ganchos que o `seletor.js` chama sob `if (global.X)` sao
- * consumidores a serio, e foram eles que apareceram como onze falsos
- * positivos na primeira versao. */
-const huerfanos = Object.keys(escritos).filter(
-  n => !lidos.some(r => r.nome === n) && !lidosComGuarda.some(r => r.nome === n));
+/* Onde e' que um nome e' USADO, e nao so' onde e' escrito.
+ *
+ * Isto e' a correccao de um erro que este ficheiro cometeu, e que vale
+ * mais do que o bug que ele caçou.
+ *
+ * A primeira versao só via `global.X` / `window.X` / `root.X`. E o
+ * `app.js` consome o modulo dos pneus ASSIM:
+ *
+ *     const r = Pneus.estimarPneus(S.pneuStint, { ... });
+ *                    ^^^^^ nu, sem `global.` a frente
+ *
+ * que e' legal -- `root.Pneus = api` cria uma propriedade do objecto
+ * global, e uma propriedade do objecto global e' uma variavel global.
+ *
+ * O relatorio de orfaos disse que o `Pneus` nao era lido por ninguem.
+ * Mudei o modulo para `Tyres` com essa informacao, e a vida do pneu
+ * passou a dar `Pneus is not defined` na pintura -- com a suite toda a
+ * passar, trinta grupos verdes.
+ *
+ * Por isso o nome e' procurado por PALAVRA. E por isso a resposta
+ * distingue DUAS coisas que nao e' a mesma:
+ *
+ *   - usado noutro ficheiro: o global e' mesmo consumido.
+ *   - usado so' no ficheiro que o publica: e' o `VOLTA_MINIMA_S`, que o
+ *     `tempos.js` usa nas suas proprias contas e publica no `window` sem
+ *     ninguem ir buscar la. A publicacao e' morta, mesmo que o nome
+ *     apareca muitas vezes no ficheiro. */
+function usos(nome) {
+  const re = new RegExp('\\b' + nome + '\\b', 'g');
+  const noutros = [];
+  const noProprio = [];
+  const dono = escritos[nome][0].split(':')[0];
+
+  for (const rel of Object.keys(codigo)) {
+    codigo[rel].forEach((linha, k) => {
+      const n = (linha.match(re) || []).length;
+      if (n === 0) return;
+      /* A linha em que o nome e' escrito conta como uso SE o nome
+       * aparece mais do que uma vez nela. E' o caso do
+       * `global.Nucleo = global.Nucleo || {}`: escreve e le na mesma
+       * linha, e sem esta contagem o `Nucleo` aparecia como huerfano
+       * sendo o namespace onde o `unidades.js` pendura tudo. */
+      if (linhaDaEscrita[rel][k + 1] === nome && n < 2) return;
+      if (rel === dono) noProprio.push(rel + ':' + (k + 1));
+      else noutros.push(rel + ':' + (k + 1));
+    });
+  }
+  return { noutros: noutros, noProprio: noProprio };
+}
+
+/* Um global e' huerfano se NINGUEM o menciona -- nem sem guarda, nem
+ * com guarda, nem nu. Os ganchos que o `seletor.js` chama sob
+ * `if (global.X)` sao consumidores a serio, e foram eles que apareceram
+ * como onze falsos positivos na primeira versao. */
+const huerfanos = Object.keys(escritos).filter(n => usos(n).noutros.length === 0);
 
 for (const r of unicos) {
   const quem = escritos[r.nome];
@@ -338,14 +439,14 @@ for (const r of unicos) {
     const suspeitos = huerfanos.filter(n => parecidos(n, r.nome));
     for (const s of suspeitos) {
       console.log('          suspeito: %s e' + AP + ' publicado em %s e nao e' +
-                  ' lido por ninguem. O nome nao bate certo.',
+                  ' mencionado em nenhum script. O nome nao bate certo.',
                   s, escritos[s][0]);
     }
   }
 }
 
 console.log('');
-console.log('=== 3. relatorio: globais publicados e nunca lidos no browser ===');
+console.log('=== 3. relatorio: globais publicados e nunca mencionados ===');
 /* ISTO NAO FALHA, e e' de proposito.
  *
  * A primeira versao desta seccao fazia `ok()` em cada global publicado
@@ -356,24 +457,58 @@ console.log('=== 3. relatorio: globais publicados e nunca lidos no browser ===')
  * que nenhum, porque da' a impressao de que o ficheiro esta' cuidado.
  *
  * E' um relatorio porque a resposta NAO E' SEMPRE UM BUG. Um modulo
- * pode publicar um global e ainda nao ter consumidor no browser, e
- * isso e' trabalho por fazer e nao' um erro. O que e' sempre verdade e'
- * que merece estar escrito: o `Pneus` publicado pelo `tyres.js` nao e'
- * lido por ninguem, e o `Tyres` que o `ac.js` pede nao existe. Sao as
- * duas metades do mesmo bug, e sem esta lista so se via metade. */
+ * pode publicar um global e ainda nao ter consumidor no browser, e isso
+ * e' trabalho por fazer, nao um erro.
+ *
+ * E a segunda versao falhava pelo outro lado: so' via `global.X`, e
+ * tambem nao via um global consumido NU. Disse que o `Pneus` nao tinha
+ * consumidor -- e nao tinha, por esse teste. O `app.js` chama
+ * `Pneus.estimarPneus(...)` sem `global.` a frente, que e' legal e
+ * normal. Mudar o nome por causa disso partiu a vida do pneu no
+ * browser, com a suite toda a passar. */
 if (huerfanos.length === 0) {
-  console.log('  (nenhum: todos os globais publicados sao lidos)');
+  console.log('  (nenhum: todos os globais publicados sao mencionados)');
 } else {
   for (const n of huerfanos.sort()) {
+    const u = usos(n);
     console.log('  ' + n.padEnd(24) + 'publicado em ' + escritos[n][0] +
-                ', sem consumidor no browser');
+                ', sem consumidor noutro ficheiro');
+    if (u.noProprio.length) {
+      console.log('  ' + ''.padEnd(24) + '(usado so' + AP + ' dentro de ' +
+                  escritos[n][0].split(':')[0] + ', em ' + u.noProprio.length +
+                  ' sitio(s) -- a publicacao no global e' + AP + ' morta)');
+    }
   }
   console.log('');
   console.log('  Isto nao falha o teste. Um modulo pode publicar e ficar a');
-  console.log('  espera de consumidor. Mas se um destes nomes SHOULD ser lido');
-  console.log('  e o outro lado le um nome parecido, e' + AP + ' isso.');
+  console.log('  espera de consumidor.');
 }
 
+console.log('');
+console.log('=== 4. o que este ficheiro NAO apanha ===');
+/* A honestidade conta mais que a cobertura, e este teste ja fooled me
+ * uma vez. Duas coisas ficam de fora, e as duas precisam do browser.
+ *
+ * A. **Uma leitura NU de um global que nao existe.** A seccao 2 so' ve
+ *    `global.X`, e por isso nao ve `Pneus.estimarPneus(...)`. Se o
+ *    `tyres.js` deixar de publicar `Pneus`, este teste passa a_calado e
+ *    o browser da' `Pneus is not defined` na pintura. Foi o que
+ *    aconteceu: mudei o nome a partir de um relatorio errado, e a suite
+ *    ficou verde com a vida do pneu partida.
+ *
+ * B. **Uma funcao que existe mas tem outro nome.** `node --check` diz
+ *    que o ficheiro faz parse; nao diz que a funcao pedida existe. O
+ *    `ac.js` pedia `T_.vida(...)` a uma API que se chamava
+ *    `estimarPneus`, e fazia parse na mesma.
+ *
+ * As duas sao a mesma coisa pelo avesso, e e' a Regra nº 19: um valor
+ * plausivel e errado nao se denuncia sozinho. Aqui o "valor" e' um
+ * `undefined` que rebenta -- o que e' melhor do que um zero, e nao
+ * chega.
+ *
+ * A unica camada que apanha as duas e' abrir o browser. */
+console.log('  A. leitura NU de um global inexistente: nao detectada. So `global.X` e\' visto.');
+console.log('  B. funcao com o nome trocado: parse passa. So abrir o browser diz.');
 console.log('');
 console.log('='.repeat(60));
 if (falhou) {

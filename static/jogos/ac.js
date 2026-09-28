@@ -162,7 +162,7 @@
     return Array.isArray(v) ? v.slice(0, 4) : [null, null, null, null];
   }
 
-  /* A vida do pneu: ESTIMADA.
+  /* A vida do pneu NAO e' calculada aqui, e essa e' a resposta certa.
    *
    * O AC nao publica a vida do composto. Nem pela memoria partilhada,
    * nem pela API: o enum `CS` do `acsys.py` tem 73 campos e nenhum e' o
@@ -171,34 +171,36 @@
    * diferente, com dez pontos de diferenca medidos lado a lado no mesmo
    * instante.
    *
-   * A conta e' do `nucleo/tyres.js`, e so' devolve um numero depois de
-   * duas voltas medidas. Por isso `aMedir`: enquanto nao ha' medidas
-   * suficientes, o painel escreve "a medir" e NAO um numero. E' o sitio
-   * mais perigoso para inventar um numero, porque o piloto decide a
-   * estrategia com ele.
+   * A conta existe e funciona, mas e' do `nucleo/tyres.js` e e'
+   * ESTADAVEL: `estimarPneus(estado, dados)` devolve o estado novo, e
+   * sem duas voltas medidas nao ha' nada a dizer. Por isso o estado do
+   * stint vive em `S.pneuStint`, no `app.js`, e e' o `app.js` que
+   * chama:
    *
-   * ------------------------------------------------- PORQUE ISTO NAO CALCULA
+   *     const r = Pneus.estimarPneus(S.pneuStint, { ... });
+   *     S.pneuStint = r.estado;
    *
-   * A funcao estava escrita contra uma API que nao existe: pedia
-   * `T_.vida(wear, sectors)` e esperava `{ voltas, pronto }`. O
-   * `nucleo/tyres.js` expoe outra coisa, `estimarPneus(estado, dados)`,
-   * que devolve `voltasRestantes` e `confiavel` -- e nomes diferentes
-   * nao dao o mesmo numero.
+   * Este modulo e' puro e nao tem estado -- nao tem onde guardar o
+   * `estado`, e por isso nao tem como fazer a conta. Logo NAO ha'
+   * `vidaPneu` aqui.
    *
-   * Pior: o `estado` e' o primeiro argumento, e e' ESTADO A PERSISTIR
-   * entre voltas. E' o que separa "medir duas voltas" de "inventar
-   * um numero", e este modulo e' puro -- sem estado, sem DOM. Logo
-   * nao pode fazer a conta, e nenhuma correccao de nomes resolve isso.
+   * Havia, e era uma segunda copia do que o `app.js` faz, escrita contra
+   * uma API com outro nome -- `vida(wear, sectors)` em vez de
+   * `estimarPneus(estado, dados)` -- e outra forma de resposta:
+   * `{voltas, pronto}` em vez de `{voltasRestantes, confiavel}`.
+   * Duas copias de uma regra divergem em silencio: a Regra nº 19 com
+   * outro nome. A segunda estava errada desde que o modulo foi escrito,
+   * e nunca chegou a correr, porque o `app.js` nao a chama.
    *
-   * O que escondia o problema: `global.Tyres` era `undefined` (o modulo
-   * publicava-se como `Pneus`), a guarda de baixo disparava, e o
-   * resultado era "a medir" para sempre. Ou seja, o comportamento
-   * visivel era ja' o honesto -- por acidente. A este codigo belongs
-   * a decisao de onde vive o estado, e ela nao esta' tomada.
+   * O que fica e' a capacidade, declarada abaixo como `auto`: quem
+   * decide se mostra e' a interface, e no AC a interface mede. No F1 25
+   * o modulo traz o numero do jogo (`m_lifeSpan`) e por isso e' `on`.
    *
-   * Enquanto isso, a resposta e' a que a Regra nº 19 manda: o numero
-   * que nao existe diz-se que nao existe. E' o mesmo texto de antes,
-   * agora porque e' verdade e nao porque o modulo nao carregou. */
+   * A funcao fica porque o `nucleo/jogo-base.js` exige que TODOS os
+   * modulos a tenham, e um modulo sem ela falha o contrato. Devolve o
+   * mesmo que a omissao do contrato devolveria -- e e' de proposito que
+   * seja a mesma, e nao um numero: este modulo nao tem onde guardar o
+   * estado do stint, e um numero aqui seria inventado. */
   function vidaPneu() {
     return { voltas: null, texto: '--', aMedir: true };
   }
