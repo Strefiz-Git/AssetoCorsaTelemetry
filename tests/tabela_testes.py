@@ -59,10 +59,14 @@ DESCRICAO = {
     "auditar_frontend.py": ("o frontend inteiro: ids, traduccoes, contraste, "
                             "chaves CSS, movimento reduzido"),
     "verificar_html.py": ("que o HTML fecha, que cada ecra e' filho do "
-                          "<body> e nao de outro ecra, e que o ecra de "
-                          "espera tem saida -- o que ninguem media"),
-    "mutacao_html.py": ("que essa verificacao morde: um `</div>` comido, o "
-                        "botao da espera apagado, e o botao fora do ecra"),
+                          "<body> e nao de outro ecra, que o ecra de "
+                          "espera tem saida, e que um ecra `aria-modal` "
+                          "nunca e' posto a `inert` -- o que se ve mas "
+                          "nao se clica, e nao da' erro nenhum"),
+    "mutacao_html.py": ("que essas verificacoes mordem, cada uma pela "
+                        "RAZAO certa: um `</div>` comido, o botao da "
+                        "espera apagado, o botao fora do ecra, e o ecra "
+                        "de escolha posto a `inert`"),
     "mutacao_acessibilidade.py": "que a regra 2.3.3 morde, partindo o CSS",
     "mutacao_rodape.py": "que o rodape' nao fica a dizer o jogo errado",
     "verificar_finitos.py": "que nenhum valor chega a NaN ou infinito",

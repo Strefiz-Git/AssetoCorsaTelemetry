@@ -1431,6 +1431,78 @@ ecra de escolha deixava o ecra a vazio, sem painel e sem espera.
 
 O `z-index` nao se mexeu. O que se mexeu foi quem esconde quem.
 
+### O `inert` no sítio errado: um ecrã que se vê e não se pode clicar
+
+Isto foi o meu erro, e é o mais instructive de todos os que estão aqui.
+
+O `abrirEcraJogos()` levava uma linha a mais, que eu escrevi para
+"marcar o ecrã como modal":
+
+```javascript
+$('jogos').inert = true;      // ERRADO
+```
+
+`inert` **não** é "isto é modal". É **"isto não aceita cliques nem
+foco"**. O ecrã de escolha ficou inutilizável: os cartões tinham 453×181,
+visíveis, e um clique no centro acertava o `<body>` em vez do botão.
+
+Medido no browser, com o ecrã aberto:
+
+```
+ecraJogosTemInert   true     <-- o culpado
+painelTemInert      false    <-- e devia ser este
+pontoNoCentro       <BODY class="">
+oPontoEoBotao       false
+```
+
+O modelo estava a três linhas de distância, no `showMenu()`:
+
+```javascript
+$('app').inert = true;        // a APLICAÇÃO de baixo, não o menu
+```
+
+**Um ecrã `aria-modal` tem de ser interativo** — é ele que tem os botões.
+O que não entra na tabulação é o que está **por baixo**.
+
+> **`inert` nunca em si. `inert` no que está por baixo de um modal.**
+
+E o que o torna instrutivo é que **não dá erro nenhum**: os ids existem
+todos, o ecrã tem tamanho, o HTML fecha bem, e os 33 grupos da suite
+passam. Um `inert` no sítio errado é invisível para tudo o que não abrir o
+browser e clicar. E a correção anterior — ligar o botão do cabeçalho — era
+necessária e não chegava, porque eu não tinha medido nada.
+
+**O que se confirmou, no browser, ponta a ponta:** o clique no centro do
+cartão de jogo chega ao cartão; o botão do ecrã de espera, a 139×44, é
+alcançado; escolhendo um jogo, o cartão guarda `acjogo` e o menu de vista
+abre; escolhendo a vista, o painel aparece e a espera volta com o botão.
+
+### O teste
+
+A regra é verificável **sem browser**, e essa é a parte que importa: o
+`aria-modal` está no HTML, o `inert` está no JS, e a regra é *nunca os dois
+no mesmo elemento*. Não prova que o clique chega — para isso é o browser
+— mas apanha a confusão exacta que fez o bug, e deixa-a escrita.
+
+E o `mutacao_html.py` confirma que a regra morde, em quatro mutações, cada
+uma pela **razão certa**:
+
+```
+o `</div>` da .boot-box desaparece   -> nenhuma etiqueta fecha fora de sitio
+o botao do ecra de espera e apagado  -> os 50 ids que o JS pede existem todos
+o botao sai de dentro do ecra       -> nenhuma etiqueta fecha fora de sitio
+o ecra de escolha fica inert        -> `#jogos` e modal e nao pode ficar inert
+```
+
+A última linha importa mais do que parece. **Na primeira versão as quatro
+mutações passavam, e a quarta era detectada pela razão errada** — acusava
+uma etiqueta em vez do `inert`, porque as mutações se acumulavam e a
+terceira tinha deixado o HTML partido. Por isso o script restaura antes
+de cada mutação, e imprime a acusação de cada uma: um teste que falha
+pelo motivo errado não prova nada, e é pior do que um que falha pelo
+certo, porque dá a sensação de que a regra pega quando quem a escreveu
+não sabe o que ela apanha.
+
 ---
 
 
@@ -1511,8 +1583,8 @@ estiver a correr e os testes de memoria forem saltados. Sao 33 grupos.
 | `test_combustivel.js` | voltas de combustivel e a percentagem (node) |
 | `test_jogos.js` | as regras dos dois jogos no browser: embraiagem, ABS, vida do pneu, combustivel, clima, delta e as 81 capacidades -- sem nenhum jogo a correr (node) |
 | `auditar_frontend.py` | o frontend inteiro: ids, traduccoes, contraste, chaves CSS, movimento reduzido |
-| `verificar_html.py` | que o HTML fecha, que cada ecra e' filho do <body> e nao de outro ecra, e que o ecra de espera tem saida -- o que ninguem media |
-| `mutacao_html.py` | que essa verificacao morde: um `</div>` comido, o botao da espera apagado, e o botao fora do ecra |
+| `verificar_html.py` | que o HTML fecha, que cada ecra e' filho do <body> e nao de outro ecra, que o ecra de espera tem saida, e que um ecra `aria-modal` nunca e' posto a `inert` -- o que se ve mas nao se clica, e nao da' erro nenhum |
+| `mutacao_html.py` | que essas verificacoes mordem, cada uma pela RAZAO certa: um `</div>` comido, o botao da espera apagado, o botao fora do ecra, e o ecra de escolha posto a `inert` |
 | `mutacao_acessibilidade.py` | que a regra 2.3.3 morde, partindo o CSS |
 | `mutacao_rodape.py` | que o rodape' nao fica a dizer o jogo errado |
 | `verificar_finitos.py` | que nenhum valor chega a NaN ou infinito |

@@ -3363,7 +3363,23 @@ function abrirEcraJogos(nota) {
   const e = document.getElementById('jogos');
   if (e) e.classList.remove('hidden');
   $('boot').classList.add('hidden');
-  $('jogos').inert = true;
+  /* `inert` e' "isto nao aceita cliques nem foco". NAO e' uma marcacao
+   * de "isto e' modal" -- e o `showMenu()` tem o modelo, e e' o contrario
+   * disto:
+   *
+   *     $('app').inert = true;      // a APLICACAO de baixo
+   *
+   * Um ecra `aria-modal` tem de ser INTERACTIVEL, e o que esta' por baixo
+   * e' que nao entra na tabulacao. Tive-o ao contrario, e o resultado foi
+   * um ecra de escolha que se via e nao se podia clicar: os cartoes tinham
+   * 453x181 e o clique no centro acertava o `<body>`.
+   *
+   * Nao da' erro nenhum, que e' o que faz isto passar sem o dizer: os ids
+   * existem todos, o ecra tem tamanho, e os 33 grupos da suite passam.
+   * Um `inert` no sitio errado e' invisivel para tudo o que nao abrir o
+   * browser e clicar. */
+  $('app').inert = true;
+  $('jogos').inert = false;
   if (globalThis.FecharGavetaAberta) globalThis.FecharGavetaAberta();
 }
 /* Fechar o ecra de escolha VOLTA ao ecra de espera, e nao ao painel.
@@ -3376,7 +3392,7 @@ function abrirEcraJogos(nota) {
 function fecharEcraJogos() {
   const e = document.getElementById('jogos');
   if (e) e.classList.add('hidden');
-  $('jogos').inert = false;
+  $('app').inert = false;
   $('boot').classList.remove('hidden');
 }
 

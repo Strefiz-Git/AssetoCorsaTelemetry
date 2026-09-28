@@ -161,8 +161,53 @@ ok(a.pai.get('jogos') != 'boot',
    'pai real: %s' % a.pai.get('jogos'))
 
 print('')
+print("=== 5. um ecra modal nunca e' posto a `inert` ===")
+# O BUG QUE ESTA REGRA APANHA
+#
+# Escrevi `$('jogos').inert = true;` dentro de `abrirEcraJogos()`, e o ecra
+# de escolha ficou INUTILIZAVEL: os cartoes tinham 453x181 e um clique no
+# centro acertava o `<body>`.
+#
+# `inert` NAO e' "isto e' modal". E' "isto nao aceita cliques nem foco". O
+# ecra que tem os botoes tem de ser INTERACTIVEL, e o que nao entra na
+# tabulacao e' o que esta' POR BAIXO -- que e' o que o `showMenu()` faz,
+# com `$('app').inert = true`.
+#
+# E nao da' erro nenhum, que e' o que faz isto passar sem o dizer: os ids
+# existem todos, o ecra tem tamanho, e os 33 grupos da suite passam. Um
+# `inert` no sitio errado so se ve a clicar. Mas a CONFUSAO fica escrita, e
+# e' verificavel sem browser: o `aria-modal` esta' no HTML, o `inert` esta'
+# no JS, e a regra e' "nunca os dois no mesmo elemento".
+modais = set()
+for m in re.finditer(r'<[^>]*\bid="([^"]+)"[^>]*>', bruto):
+    if 'aria-modal="true"' in m.group(0):
+        modais.add(m.group(1))
+ok(modais, 'o HTML marca %d ecra(s) como modal: %s'
+   % (len(modais), ', '.join(sorted(modais))))
+
+alvos = {}
+for k, linha in enumerate(js.split('\n'), 1):
+    sem = re.sub(r'/\*.*?\*/', '', linha)
+    sem = re.sub(r'//.*', '', sem)
+    for m in re.finditer(r"\$\('([\w-]+)'\)\.inert\s*=\s*true", sem):
+        alvos.setdefault(m.group(1), []).append(k)
+
+for mid in sorted(modais):
+    if mid in alvos:
+        ok(False, '`#%s` e modal e nao pode ficar inert' % mid,
+           'JS linha(s) %s -- o ecra fica sem cliques, e sem erro nenhum'
+           % ', '.join(str(n) for n in alvos[mid]))
+    else:
+        ok(True, '`#%s` e modal e nunca fica inert' % mid)
+
+for mid in sorted(modais):
+    falado = bool(re.search(r"\$\('%s'\)" % re.escape(mid), js))
+    ok(falado, '`#%s` e falado pelo JS, que e o que o fecha' % mid)
+
+print('')
 print('=' * 60)
 if falhou:
     print('!!! %d FALHA(S)' % len(falhou))
     sys.exit(1)
-print('ok: o HTML fecha, ninguem esta dentro de ninguem, e a espera tem saida.')
+print('ok: o HTML fecha, ninguem esta dentro de ninguem, a espera tem saida, '
+      'e nenhum modal fica inert.')
