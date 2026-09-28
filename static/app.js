@@ -1856,6 +1856,24 @@ function tempDoPneu(d) {
   return t || { principal: null, secundario: null };
 }
 
+/* O combustivel, TIDO AO MODULO DO JOGO, pela razao da temperatura: os
+ * dois modulos ja' devolvem `{txt, pct, laps, unidade}` com a unidade
+ * certa -- `L` no AC e `kg` no F1 25 -- e a pintura nao usava nada
+ * disso. Lia `d.fuelL`, que no F1 25 nao existe, e escrevia "0.0 L" com
+ * 7,34 quilos no deposito.
+ *
+ * E o pior resultado possivel: mostrava ZERO LITROS com o tanque cheio, e
+ * "0" parece um numero que ninguem questiona. E' pior do que o "0%" do
+ * ERS, porque aqui o valor certo -- 7,34 -- ESTAVA NO PAYLOAD.
+ *
+ * Regra no 24: a unidade nunca se converte para ser mostrada, escreve-se a
+ * que o jogo manda. E Regra no 22: quem traduz e' o modulo. */
+function combustivelDoJogo(d) {
+  const m = globalThis.Jogos && globalThis.Jogos.atual();
+  if (!m || !m.combustivel) return null;
+  return m.combustivel(d) || null;
+}
+
 function renderTyres(hostId, d) {
   for (let i = 0; i < 4; i++) {
     // O numero grande e' o `principal` do modulo do jogo, e o pequeno e' o
@@ -1869,13 +1887,19 @@ function renderTyres(hostId, d) {
     // com a medida que a sustenta. Um comentario aqui a justificar uma
     // decisao que pertence ao modulo fica do lado errado, e daqui a um ano
     // ninguem sabe se a medida ainda se aplica ao jogo novo. Regra no 22.
-    const t = tempDoPneu(d);
-    const core = (t.principal && t.principal[i]) || 0;
+    // NUNCA `t`. O `t` deste ficheiro e' a funcao de traducao, e e' usada
+    // dezenas de vezes: `const t = ...` aqui escondia-a, e o
+    // `t('tyres.surface')` duas linhas abaixo rebentava com
+    // "t is not a function" -- o que ABORTA O RENDER INTEIRO a meio, e o
+    // painel ficava com o pneu 0 pintada e nada mais. Nem desgaste, nem
+    // pressao, nem combustivel, nem setores. Foi lido como "faltam coisas".
+    const tPneu = tempDoPneu(d);
+    const core = (tPneu.principal && tPneu.principal[i]) || 0;
     setTxt(hostId + '-t' + i, core ? fmtTemp(core) + unidadeTemp() : '--');
     const te = $(hostId + '-t' + i);
     if (te) te.style.color = tempColor(core);
     // o outro numero, ao lado da pressao, em corpo pequeno
-    const sup = (t.secundario && t.secundario[i]) || 0;
+    const sup = (tPneu.secundario && tPneu.secundario[i]) || 0;
     setTxt(hostId + '-s' + i, sup ? fmtTemp(sup) + '°' : '--');
     const se = $(hostId + '-s' + i);
     if (se) se.title = t('tyres.surface');
@@ -2033,10 +2057,18 @@ function renderCombustivel(d) {
   // para a cor, e tem de ser a mesma nos dois: se cada um normalizasse
   // a seu jeito, um dia uma delas recebia 0 e a outra null, e a cor
   // dizia 'acabou o combustivel' no frame em que o alerta calava.
-  const pct = (typeof d.fuelPct === 'number' && isFinite(d.fuelPct))
-    ? d.fuelPct : null;
+  // A percentagem vem do MODULO, que a calcula a partir da unidade do
+  // jogo: `7.34 / 110` no F1 25 e `7.34 / 100` no AC dao numeros
+  // diferentes, e so' um deles e' o que o jogo esta' a mostrar.
+  const pct = (comb && typeof comb.pct === 'number') ? comb.pct
+    : ((typeof d.fuelPct === 'number' && isFinite(d.fuelPct)) ? d.fuelPct : null);
   const r = Combustivel.estimarCombustivel(S.combustivel, {
-    litros: d.fuelL,
+    // A QUANTIDADE e' a do modulo, na UNIDADE do jogo. Passar `d.fuelL`
+    // mandava ZERO ao estimador no F1 25, e a estimativa de voltas ficava
+    // sempre a `a medir` sem razao nenhuma. A unidade e' a do jogo porque
+    // o estimador mede uma RACAO -- quanto por volta -- e uma razao de
+    // quilos por volta e' valida como uma de litros.
+    quanto: (comb && comb.txt && comb.txt !== '--') ? Number(comb.txt) : null,
     voltas: d.lap,
     connected: !!d.connected
   }, pct);
@@ -2982,10 +3014,17 @@ function render(d) {
   renderBrakeBias(d);
 
   // combustivel
-  setTxt('fuel-pct', Math.round(d.fuelPct || 0));
-  $('fuel-bar').style.width = clamp(d.fuelPct || 0, 0, 100) + '%';
-  setTxt('fuel-l', (d.fuelL || 0).toFixed(1) + ' L');
-  renderCombustivel(d);
+  //
+  // A quantidade e a UNIDADE sao do modulo do jogo. Antes era
+  // `d.fuelL || 0` e a letra "L" escrita a mao, e no F1 25 -- que manda
+  // QUILOS -- dava "0.0 L" com 7,34 kg no deposito. Ver
+  // `combustivelDoJogo()`.
+  const comb = combustivelDoJogo(d);
+  const pctComb = (comb && typeof comb.pct === 'number') ? comb.pct : d.fuelPct;
+  setTxt('fuel-pct', Math.round(pctComb || 0));
+  $('fuel-bar').style.width = clamp(pctComb || 0, 0, 100) + '%';
+  setTxt('fuel-l', comb ? comb.txt + ' ' + comb.unidade : '—');
+  renderCombustivel(d, comb);
   setTxt('temps', fmtTemp(d.airTemp || 0) + ' / ' + fmtTemp(d.roadTemp || 0) + ' ' + tUnit());
   const pe = $('pen-time');
   if (pe) {
@@ -3053,7 +3092,12 @@ function render(d) {
   setTxt('m-pen', d.penaltyTime > 0 ? '+' + d.penaltyTime + ' s' : (d.penaltiesEnabled ? t('fuel.none') : '—'));
   setTxt('m-drs', !d.hasDRS ? '—' : dr.on ? t('drs.open') : dr.avail ? t('drs.avail') : t('drs.off'));
   setTxt('m-brake', (d.brakeTemp || []).map((v) => fmtTemp(v)).join(' ') || '—');
-  setTxt('m-fuel', Math.round(d.fuelPct || 0) + '% · ' + (d.fuelL || 0).toFixed(0) + ' L');
+  // O combustivel tambem vem do modulo, e pela mesma razao do modo
+  // central: `d.fuelL` no F1 25 dava "0 L" com 7,34 kg no deposito.
+  const mComb = combustivelDoJogo(d);
+  setTxt('m-fuel', mComb
+    ? Math.round(mComb.pct || 0) + '% · ' + mComb.txt + ' ' + mComb.unidade
+    : '—');
   renderTyres('tyres3', d);
 
   lastD = d;

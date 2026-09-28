@@ -724,6 +724,70 @@ Corrigido em tres pontos:
 
 
 
+## 2026-09-28 (5.ª parte) — um nome de variável que escondia a função de tradução
+
+O que se passou: escrevi `const t = tempDoPneu(d);` dentro do
+`renderTyres`, e **`t` é a função de tradução do ficheiro inteiro**. Duas
+linhas abaixo, `t('tyres.surface')` rebentava com
+`TypeError: t is not a function` — e o `render` é uma função só, portanto
+**abortava a meio**.
+
+O que se via no ecrã era um cartão de pneus com a roda 0 pintada e as
+outras três vazias, sem desgaste e sem pressão, o combustível a dizer
+"0.0 L" e os setores a "—". Foi lido como "faltam coisas".
+
+Não faltava nada: era uma excepção a abortar a pintura. E a suite estava
+**verde**, 34 de 34, porque isto só rebenta com o jogo a correr.
+
+Medido, com o jogo a correr, depois de corrigido:
+
+```
+roda 0: temp=98°C  desgaste=10.0  sup=73°  pressao=25.4 psi
+roda 1: temp=102°C desgaste=9.9   sup=82°  pressao=25.6 psi
+roda 2: temp=95°C  desgaste=7.7   sup=63°  pressao=22.6 psi
+roda 3: temp=99°C  desgaste=9.1   sup=87°  pressao=22.9 psi
+```
+
+E o que a consola disse, que é a razão de isto ser uma lição e não um
+incidente:
+
+```
+TypeError: t is not a function
+    at renderTyres (app.js:1881:24)
+    at render        (app.js:2980:3)
+```
+
+### O combustível, que era o mesmo bug pelo outro lado
+
+`setTxt('fuel-l', (d.fuelL || 0).toFixed(1) + ' L')` lia `d.fuelL`, que o
+F1 25 não publica: envia `fuelKg`. O ecrã mostrava **"0.0 L" com 7,34
+quilos no depósito**, e o `m-fuel` do modo misto tinha a mesma linha.
+
+Os **dois** módulos já devolviam `{txt, pct, laps, unidade}` com a
+unidade certa, e a pintura não usava nada disso. A correcção foi o mesmo
+arranjo da temperatura: `combustivelDoJogo(d)`, e a pintura deixa de saber
+nomes de campos. E no estimador o parâmetro passou de `litros` para
+`quanto`, porque o que interessa é a **ração** por volta, e uma ração de
+quilos por volta é válida como uma de litros.
+
+Isto é a **Regra nº 22** a ser violada em dois sítios ao mesmo tempo, e a
+ser lido como um problema de dados.
+
+### O que ficou aprendido
+
+- **Um nome curto não é um nome seguro.** `t` é uma função usada dezenas de
+  vezes no ficheiro; terminar uma variável local não muda nada, o ficheiro
+  continua a fazer parse, e `node --check` não diz nada.
+- **A excepção que aborta o render é o pior tipo de bug**: não mostra um
+  campo a zeros, mostra os campos **de antes da linha** pintados e os de
+  depois a vazios. Lê-se como um dado em falta.
+- **A pista: um cartão meio pintado tem sempre uma excepção por trás.** A
+  consola disse-o em dois segundos; ler o DOM errou o sítio, e durante esse
+  tempo a estrutura da página e o `requestAnimationFrame` da aba de fundo
+  pareceram a causa.
+
+---
+
 ## Resumo do que se aprendeu
 
 | Lição | Onde está registada |
@@ -734,6 +798,7 @@ Corrigido em tres pontos:
 | Um teste auto-consistente não valida o mundo real | AGENTS.md, regra nº 4 |
 | Escalas verificadas, não supostas | AGENTS.md, regra nº 5 |
 | ctypes: handles, FILE_MAP vs PAGE, arrays | AGENTS.md, regra nº 6 |
+| Os dois jogos dizem a mesma coisa, e não cada um a sua maneira | AGENTS.md, regra nº 30 |
 
 A lição maior: **quatro dos bugs mais caros apareceram por validar a
 estrutura contra si própria em vez de contra dados reais.** A verificação
