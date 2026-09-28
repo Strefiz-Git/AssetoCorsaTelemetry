@@ -691,6 +691,66 @@ a causa sem o dado é pior do que dizer "não sei".
 | CLASSIFICAÇÃO | a nossa app, página `v2` | **precisa da app instalada** |
 | zona de DRS | `drsAvailable` medido numa volta | **Regra nº 11** |
 
+### Os campos que o AC publica e nós não lemos
+
+Isto não veio da memória partilhada: veio de **ler o código de um HUD de
+terceiros** que usa a *outra* interface do jogo, a API Lua, campo a campo.
+É a Regra nº 15 pelo outro lado — uma lista de campos que **eu** escrevi não
+prova o que não existe, mas ler o código de alguém que usa a interface
+complementar prova o que existe.
+
+Vinte e cinco campos que o jogo dá, que não estão em nenhum documento do
+projecto nem em nenhuma linha de código nosso. Estão aqui para se avaliar
+um a um, e **não** foram acrescentados: acrescentá-los todos seria
+transformar um levantamento num envio de campos a meio.
+
+**Os que interessam**
+
+| campo | o que é | porque interessa |
+|---|---|---|
+| `wheel.tyreOptimumTemperature` | a temperatura ideal daquele pneu | **a resposta do jogo** à pergunta que os cortes de cor fazem ao contrário (ver §6 e [`pneu-fisica-ac.md`](pneu-fisica-ac.md)) |
+| `wheel.tyreInsideTemperature` | zona interior | o AC tem **três** zonas por pneu; o painel lê as da *shared memory*, que são outras |
+| `wheel.tyreMiddleTemperature` | zona do meio | idem |
+| `wheel.tyreOutsideTemperature` | zona exterior | idem |
+| `wheel.discTemperature` | temperatura do disco | o painel mostra `brakeTemp`, que é outra leitura |
+| `ac.getSim().cpuOccupancy` | ocupação da CPU | diagnóstico de porquê a sessão engasga |
+| `ac.getSim().physicsLate` | a física atrasada | idem, e é o sintoma de o jogo estar a arrastar |
+
+Sobre a temperatura ideal há mais do que um número: o HUD também lê
+`min_ideal_temp` e `max_ideal_temp` de **tabelas LUT** indexadas por
+`ac.getTyresName()` — ou seja, **a faixa ideal é por pneu**, e um valor
+único é a simplificação dela.
+
+**O que é campo morto — e este aviso é o mais importante da lista**
+
+`ac.getCar().bestLapSplits` e `car.bestSplits` **são sempre 0**, e não é
+inferência nossa: é o *changelog* do próprio HUD, escrito duas vezes em
+versões diferentes:
+
+> `ac.getCar(<any>).bestLapSplits is always 0`
+
+Ao lado de `racePosition`, `sessionID`, `rpmLimiter` e `previousLapTimeMs`,
+que são reais e ainda não temos. **O `bestLapSplits` não se acrescenta** — é
+a mesma armadilha do `ERSPercent` da Regra nº 7: um campo definido, e que
+daria zeros plausíveis.
+
+**Como foi feito o levantamento**
+
+Varreu-se o texto de `ac_info/` (204 ficheiros) à procura de leituras do
+jogo — `ac.getCar().X`, `ac.getSim().X`, `car.X`, `wheel.X` — e cruzou-se
+com os nossos documentos e com o código do servidor. Das 45 leituras do
+jogo que aparecem, 25 não estavam registadas. Os `m_` do F1 25, na
+especificação da EA, deram **zero** por omissão: estão todos no protocolo.
+
+A primeira versão do relatório deu 1600 nomes, e quase todos eram a API de
+interface do Content Manager (`addButton`, `addOnClickedListener`) e
+variáveis locais dos apps. Um relatório com 1600 linhas é ruído, e ruído
+dá a impressão de trabalho feito sem que o trabalho exista. A pergunta
+certa é estreita: **o que é que se lê do jogo**.
+
+**Isto foi extraído antes de os ficheiros serem apagados**, e é a razão de
+`ac_info/` não custar nada em conhecimento.
+
 ---
 
 ## 14. As regras, todas juntas
