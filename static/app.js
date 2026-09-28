@@ -386,19 +386,76 @@ function t(k) {
   return k;
 }
 
-/* ------------------------------------------------------------ definicoes */
+/* ------------------------------------------------------------ definicoes
+ *
+ * A LISTA e as omissões não estão aqui: estão em `defs.js`, que é puro e
+ * corre no node. Este ficheiro só tem o que é do navegador — a chave de
+ * armazenamento e o `try` do `JSON.parse`.
+ *
+ * O que muda, e porquê:
+ *
+ * Antes era
+ *
+ *     DEF = Object.assign({}, DEFAULTS, JSON.parse(raw));
+ *
+ * que aceita o que vier. Medido no browser, com valores inventados no
+ * `localStorage`:
+ *
+ *     temp: 'banana'    -> ficava em Celsius, sem dizer nada
+ *     speed: 'knots'    -> ficava em km/h, sem dizer nada
+ *     lang: 'fr'        -> caía para português, com aviso (esse está tratado)
+ *     chaveInventada:42 -> sobrevivia, e voltava a ser gravada em cada save
+ *
+ * Um valor inventado também podia ser do TIPO errado: um `fps: "30"`
+ * passava como texto, e o `DEF.fps === 60` passava a ser falso, o botão
+ * dos 60 fps deixava de ficar aceso e o SSE ia pedir 60 Hz a um
+ * servidor que não dava. Três sítios, uma causa, nada a dizer.
+ *
+ * `Defs.validar` só deixa passar valores declarados, e devolve o valor
+ * DECLARADO — o `30` do esquema, não a string que estava guardada.
+ * As chaves que não estão no esquema não entram, o que também impede o
+ * ficheiro no `localStorage` de crescer sozinho com o que foi removido.
+ *
+ * O `ac_path` NÃO entra nisto: vive em `ac_settings.json`, no servidor,
+ * e é lido por um caminho próprio. Ver o `AGENTS.md`, e a fase que
+ * falta. */
 const DEF_KEY = 'acdef.v1';
-const DEFAULTS = { mode: null, temp: 'C', speed: 'kmh', lang: 'pt-PT', map: 'on', fps: 60, mapFlipX: false, mapFlipZ: false, mapView: 'inteira' };
-let DEF = Object.assign({}, DEFAULTS);
+let DEF = Defs.validar({});
 
 function loadDef() {
+  let bruto = null;
   try {
-    const raw = localStorage.getItem(DEF_KEY);
-    if (raw) DEF = Object.assign({}, DEFAULTS, JSON.parse(raw));
-  } catch (e) { /* ignora */ }
+    bruto = localStorage.getItem(DEF_KEY);
+  } catch (e) { /* sem armazenamento: as omissões servem */ }
+  if (!bruto) { DEF = Defs.validar({}); return; }
+  try {
+    DEF = Defs.validar(JSON.parse(bruto));
+  } catch (e) {
+    // JSON illegível. Não é a mesma coisa que um valor inválido: aqui
+    // não há nada para validar, e o painel precisa de uma omissão legal
+    // para não pintar lixo.
+    DEF = Defs.validar({});
+  }
 }
+
 function saveDef() {
   try { localStorage.setItem(DEF_KEY, JSON.stringify(DEF)); } catch (e) { /* ignora */ }
+}
+
+/* "Repor predefinições" volta tudo às omissões — menos a VISTA e o
+ * IDIOMA, que estão marcados com `manterNoReset` no esquema.
+ *
+ * O que NÃO é tocado, e é a razão de isto ser uma função e não um
+ * `localStorage.clear()`:
+ *
+ *   `acmap.v3`     o mapa desenhado, por pista. Desenhá-lo é conduzir.
+ *   `ac_settings.json`  a pasta do AC, que vive no servidor.
+ *
+ * Um `localStorage.clear()` apagava o mapa, e o utilizador perdia o
+ * traçado de todas as pistas por causa de um botão nas definições. */
+function resetDef() {
+  DEF = Defs.repor(DEF);
+  saveDef();
 }
 
 /* ------------------------------------------------------------ unidades */
