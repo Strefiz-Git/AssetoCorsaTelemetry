@@ -885,25 +885,179 @@ não a apresentar como facto enquanto não a houver visto.
 
 ---
 
+## Regra nº 21 — o F1 25 tem DOIS formatos, e a EA mudou um tipo a meio
+
+O F1 25 com o **2026 Season Pack** não é um jogo novo: é o mesmo jogo com
+o formato UDP **2026** em vez de 2025. E a diferença **não** é só o número
+de carros.
+
+A forma de saber qual está a correr é o `m_packetFormat` do cabeçalho.
+**Não** pelo `m_gameYear`: com o Season Pack o jogo continua a dizer `25`.
+
+E há **quatro** mudanças de tipo, e cada uma muda o tamanho do bloco de
+cada carro — o que desloca todos os carros a seguir. É a Regra nº 3 outra
+vez, com a diferença de que aqui a mudança é **oficial** e por isso mesmo
+é mais fácil de cair: lê-se o ficheiro novo, vê-se que tem 24 carros, e
+assume-se que a diferença é só o número.
+
+| o que mudou | 2025 | 2026 | no bloco de um carro |
+|---|---|---|---|
+| carros por packet | 22 | 24 | — |
+| `m_driverId`, `m_networkId`, `m_teamId` | `uint8` | **`uint16`** | **+3** |
+| `m_teamId` (Lobby e Time Trial) | `uint8` | **`uint16`** | +1 |
+| `m_engineTemperature` | `uint16` | **`uint8`** | **−1** |
+| `m_ersHarvestLimitPerLap` | — | **novo** `float` | +4 |
+| forças G | `float` | **`int16`**, dividir por **1000** | −6 |
+
+Medido com `ctypes` (`tests/test_f125_parser.py`): os **33** tamanhos
+declarados pela EA batem ao byte, nos dois formatos.
+
+> **A struct de um packet é escolhida pelo `m_packetFormat`, e só por ele.**
+> E um formato que não se conhece — o menu deixa escolher 2023 e 2024 —
+> é **recusado**, nunca adivinhado. Ler os bytes a partir do offset errado
+> daria números plausíveis, e um número plausível não se denuncia sozinho
+> (Regra nº 19).
+
+E `Car Telemetry`, de que o painel depende, é **um dos que mudaram de
+tamanho**. Azar com sorte.
+
+## Regra nº 22 — no F1 25 a ordem das rodas é RL, RR, FL, FR
+
+**Todos** os arrays de 4 do F1 25 são nesta ordem. O Assetto Corsa usa
+`[FL, FR, RL, RR]`.
+
+```
+F1 25:  0 = RL   1 = RR   2 = FL   3 = FR
+painel: 0 = FL   1 = FR   2 = RL   3 = RR
+```
+
+São as duas ordens lado a lado, e as duas desenham uma grelha 2×2 quase
+simétrica. Um painel ao contrário **não dá erro nenhum**: descobre-se a
+conduzir, a comparar com o carro, e depois de estragar um stint.
+
+Isto vale para as temperaturas, pressões, desgaste, dano, bolhas, forças,
+camber, e o escorregamento.
+
+> **A tradução acontece uma vez, na fronteira — em `jogos/f125.js`, no
+> `_quatro()` — e nunca dentro da lógica de desenho.** Nenhum outro sítio
+> sabe qual é a ordem.
+
+E **cada teste põe um valor diferente em cada canto.** Com os quatro
+iguais, uma ordem errada é indistinguível de uma ordem certa, e o teste
+passa com o painel ao contrário.
+
+**Isto aconteceu.** As temperaturas dos travões ficaram de fora da
+tradução — as outras três estavam feitas — e ninguém notou, porque quatro
+números muito parecidos não denunciam nada. O `test_jogos.js` apanhou-o
+depois de o mesmo bug estar no receptor Python.
+
+## Regra nº 23 — telemetria restrita põe a zero os adversários
+
+O `m_yourTelemetry` nas opções do jogo é **Restrito** por omissão. Com ele
+em restrito, o jogo põe a **zero** o combustível, o ERS e todo o dano
+**dos outros carros**.
+
+Ou seja: **metade da telemetria dos adversários é zero, e zero é
+plausível.** Um painel que diz "sem ERS" está a mentir.
+
+Para os ver inteiros: *Settings → Telemetry Settings → Your Telemetry →
+Public*. Para o **carro do jogador os dados vêm sempre**, qualquer que
+seja a definição.
+
+O receptor publica também a **marca** de que estão escondidos, e o painel
+diz isso em vez de mostrar os zeros. É a Regra nº 19 com uma origem
+diferente: no AC é a nossa app que não preenche; aqui é o próprio jogo a
+esconder.
+
+## Regra nº 24 — três campos com o mesmo nome e unidades diferentes
+
+Ao passar de um jogo para o outro, estes **não** se copiam:
+
+| | Assetto Corsa | F1 25 |
+|---|---|---|
+| embraiagem | fracção **0.0 a 1.0**, e 1.0 = **embraiada** | **0 a 100**, e 100 = embraiada |
+| ABS | **nível de ajuste** 0.0 a 1.0 | **ON/OFF**, um `uint8` |
+| TC | **nível de ajuste** 0.0 a 1.0 | **modo**: 0 off, 1 médio, 2 cheio |
+| combustível | **litros** | **quilogramas** |
+| bias de travão | **fracção 0.0 a 1.0** | **percentagem 0 a 100** |
+| ERS | `kersCurrentKJ` em **kilojoules** | `ersStoreEnergy` em **joules** |
+| volante | **ângulo em radianos**, limite desconhecido | **−1 a 1 normalizado**, limite escrito |
+| zonas do pneu | **três** (interior, meio, exterior) | **duas** (superfície, interior) |
+| vida do pneu | **não existe** — estimada | **`m_lifeSpan`**, lida |
+
+> **A unidade nunca se converte: escreve-se a unidade que o jogo manda.**
+> 42,5 quilos não são 42,5 litros, e escolher uma das unidades e mostrar
+> o número na outra é um número plausível e errado — o pior resultado
+> possível, porque ninguém o questiona. (Regra nº 8, com mais uma linha.)
+
+E por isso é que a resposta de um módulo traz **`txt` separado de `pct`**.
+Ha casos em que se escreve um número e **não** se pode pintar uma barra: o
+máximo não é publicado (o ERS do F1 25 não diz quanto cabe), ou o valor
+é um **estado** e não uma quantidade (o ABS). Uma barra a 100 % seria
+mentir sobre a única coisa que um piloto quer saber a meio de uma curva.
+
 ## Arquitetura
+
+O painel tem **dois jogos**, e a regra que organiza tudo e' uma so:
+
+> **O núcleo não sabe qual é o jogo. Sabe o que um jogo tem de ter.**
+
+### No servidor
 
 | Ficheiro | Responsabilidade |
 |---|---|
-| `acshm.py` | structs do AC, mapeamento, `snapshot()`, `Opponents`. **Só leitura.** |
-| `server.py` | HTTP + SSE. Um thread lê a 200 Hz, cada cliente recebe ao ritmo que pediu. |
-| `static/app.js` | desenho, mapa, gráfico de pedais, 4 idiomas, definições, estado. |
-| `static/tempos.js` | matemática das voltas e do delta. **Pura**, sem DOM nem estado — por isso corre no node e é testada. |
-| `static/index.html` / `style.css` | estrutura, três modos, definições e paleta. |
+| `server.py` | **só a linha de comando.** O `--jogo`, a porta, o `--bind`, e o que se imprime no terminal. |
+| `actelemetry/hub.py` | o estado partilhado: um thread lê o jogo, vários clientes leem. **Não sabe qual é o jogo.** |
+| `actelemetry/http.py` | HTTP e SSE. **Não sabe qual é o jogo.** Serve o que o jogo registou em `jogo.rotas()`. |
+| `actelemetry/defs.py` | onde se guardam as definições, e onde está o frontend. **O único sítio do servidor que escreve em disco.** |
+| `actelemetry/jogos/base.py` | o que um jogo tem de cumprir, e a **lista canónica de 81 capacidades**. |
+| `actelemetry/jogos/__init__.py` | o registo dos jogos, e a lista que o ecrã de escolha mostra. |
+| `actelemetry/jogos/ac/` | o Assetto Corsa: `jogo.py` (a fachada), `logica.py` (capacidades), `mapa.py` (o `map.png` e o `map.ini`). O leitor continua no `acshm.py`. |
+| `actelemetry/jogos/f125/` | o F1 25: `protocolo.py` (as structs e as tabelas), `receptor.py` (o socket), `logica.py` (as regras), `jogo.py` (a fachada). |
 
-Fluxo de dados:
+Fluxo de dados, **nos dois jogos**:
 
 ```
-AC -> memória partilhada -> Hub (200 Hz) -> SSE telemetria (?fps=N, 5..60)
-                                            -> SSE adversários (10 Hz)
+jogo -> leitor (200 Hz) -> Hub -> SSE telemetria (?fps=N, 5..60)
+                                 -> SSE adversários (10 Hz)
 ```
 
-O `Hub` tem um lock e só um thread lê a memória, para não haver leituras
-concorrentes da mesma página.
+O `Hub` tem um lock e só um thread lê. E **é o que impede a troca a
+quente de ficar a meio**: o leitor antigo é fechado antes do novo abrir,
+porque o socket do F1 25 fica na porta 20777 e dois em simultâneo não
+podem.
+
+### No browser
+
+| Ficheiro | Responsabilidade |
+|---|---|
+| `static/index.html` | estrutura, três modos, o ecrã de escolha, `data-i18n`. **Sem lógica.** |
+| `static/app.js` | o frontend: DOM, canvas, 4 idiomas, definições, SSE. **Sem regras de jogo.** |
+| `static/nucleo/` | a matemática que é **igual** nos dois jogos. Puras, sem DOM. |
+| `static/jogos/ac.js` | as regras do Assetto Corsa. Pura. |
+| `static/jogos/f125.js` | as regras do F1 25. Pura. |
+| `static/jogos/seletor.js` | a ponte: qual é o jogo activo, e o que ele consegue mostrar. |
+
+**Por que é que os módulos de jogo são puros.** Uma regra dentro do
+`app.js` só se pode testar com o jogo a correr e olhando para o ecrã. E
+os cortes do clima do AC estavam errados assim durante meses: via-se o
+resultado no ecrã, e ver catorze valores a cada alteração não é um teste.
+`tests/test_jogos.js` cobre agora **145 casos dos dois módulos** sem
+nenhum deles a correr.
+
+### As três camadas, e porque não se misturam
+
+| camada | sabe | não sabe |
+|---|---|---|
+| **núcleo** | que há leitores, e que devolvem dicionários | o que é telemetria, e de que jogo |
+| **jogo** | os campos do seu jogo, e as unidades deles | o que se pinta no ecrã |
+| **frontend** | ids, cores, canvas, idiomas | as unidades, e o que cada campo significa |
+
+Uma regra de jogo no `app.js` é uma regra que só se testa com o jogo a
+correr. Uma unidade no frontend é uma unidade que se copia para os dois
+jogos e se torna errata num deles. E um `if (jogo === 'f125')`
+espalhado pelo `app.js` é um segundo sítio a saber de jogos, e os dois
+divergem.
 
 ---
 
@@ -918,19 +1072,51 @@ concorrentes da mesma página.
   SemiBold 600, Bold 700, Black 900**. **Não usar `ExtraBold` (800) nem
   `Medium` (500)** — não existem e o browser cai na fonte do sistema.
 - `tyreTemp*`, `brakeTemp` e afins estão em arrays de 4 na ordem
-  `[FL, FR, RL, RR]`.
+  `[FL, FR, RL, RR]` **no AC**. No F1 25 o jogo manda `[RL, RR, FL, FR]`
+  e a tradução está em `jogos/f125.js` — Regra nº 22.
+- **A ordem das rodas converte-se uma vez, na fronteira, e nunca
+  dentro da lógica de desenho.** E nenhum array de 4 chega ao painel
+  sem passar pela tradução do módulo do jogo.
 
 ---
 
 ## Ao mexer no frontend
 
+**A regra que decide onde vai uma linha nova:** se é verdade nos dois
+jogos, vai para `static/nucleo/`. Se é verdade só num, vai para o módulo
+ desse jogo. Se é sobre ids, cores, canvas ou idiomas, vai para o
+`app.js`. **Uma regra de jogo no `app.js` está no sítio errado**, e o
+preço é não se poder testar sem o jogo a correr.
+
+Ao acrescentar um campo que só um dos jogos tem:
+
+1. escreve-o no `snapshot()` desse jogo (`actelemetry/jogos/*/…`);
+2. declara a capacidade em **três** sítios, ou o painel esconde mal:
+   `jogos/base.py` (o que o jogo publica), `jogos/<id>.js` (o que o
+   painel pinta) e o `data-cap` no `index.html`, se houver um elemento
+   para esconder;
+3. corre `python tests\test_f125_parser.py` e `node tests\test_jogos.js`
+   — o primeiro confere o servidor, o segundo o browser, e cada um
+   acusa uma lista de capacidades incompleta.
+
+O resto do que se sabe:
+
 - Recarregar a página **não** apaga o mapa: está no `localStorage`
-  (chave `acmap.v2`, no plano X-Z). Para limpar de propósito, usar o botão **limpar**.
+  (chave `acmap.v3`, no plano X-Z). Para limpar de propósito, usar o botão
+  **limpar**.
 - Ao mudar de pista o mapa é invalidado automaticamente.
 - O `acshm.py` expõe `x`, `y` (altitude) e `z`. O plano da pista é X-Z;
-  um mapa feito com X e Y parece uma pista e não é.
+  um mapa feito com X e Y parece uma pista e não é. **O F1 25 é igual**:
+  o `m_worldPositionY` é a altitude, e a pista está no plano X-Z.
 - Se mudar o layout, verificar nos três tamanhos: ecrã largo (3×2),
   tablet (2 colunas) e telemóvel (1 coluna).
+- **O `I18N` não pode ter comentários dentro.** O `auditar_frontend.py`
+  faz `eval` do literal em Python para contar as chaves, e um comentário
+  em JavaScript não é Python. Bastou um `/* */` para o teste parar de
+  avaliar o I18N inteiro e dizer "não consegui avaliar o I18N" — uma
+  mensagem que não aponta para a causa.
+- As chaves de tradução dos dois jogos estão nos **quatro** idiomas, e
+  não é vaidade: o auditor acusa uma chave num idioma e não nos outros.
 
 ---
 
@@ -951,7 +1137,7 @@ certo, não uma falha. Os testes de memória escrevem em páginas
 
 Corre com `python tests\run_all.py`. Sai com codigo diferente de zero se
 algo falhar, e com codigo 2 (que nao e' falha) se o AC
-estiver a correr e os testes de memoria forem saltados. Sao 27 grupos.
+estiver a correr e os testes de memoria forem saltados. Sao 28 grupos.
 
 | Ficheiro | O que prova |
 |---|---|
@@ -981,6 +1167,7 @@ estiver a correr e os testes de memoria forem saltados. Sao 27 grupos.
 | `test_medir_tyrewear.py` | que a medicao do desgaste por volta faz sentido |
 | `verificar_readme.py` | que cada facto do README bate certo com o codigo -- versao, porta, cadencia, nomes, escalas |
 | `verificar_texto.py` | que nao entrou texto torto nem caracteres estranhos |
+| `mutacao_texto.py` | que a regra do TAB dentro de uma palavra morde, partindo o AGENTS.md |
 | `verificar_commits.py` | que as mensagens de commit nao tem BOM nem caracteres estranhos |
 
 ### Fora da suite, e porque

@@ -70,6 +70,12 @@ JOGOS_JS = [ler('static', 'jogos', n) for n in
             if n.endswith('.js')]
 RUN = ler('tests', 'run_all.py')
 AG = ler('AGENTS.md')
+HTTP = ler('actelemetry', 'http.py')
+RECEPTOR = ler('actelemetry', 'jogos', 'f125', 'receptor.py')
+PROTOCOLO = ler('actelemetry', 'jogos', 'f125', 'protocolo.py')
+F125JS = ler('static', 'jogos', 'f125.js')
+BASE_PY = ler('actelemetry', 'jogos', 'base.py')
+JOGOS = ler('actelemetry', 'jogos', '__init__.py')
 
 problemas = []
 ok = 0
@@ -253,6 +259,151 @@ for ps in ('arrancar.ps1', 'parar.ps1'):
 
 print()
 print("=" * 62)
+# ===================================================================
+# OS DOIS JOGOS
+# ===================================================================
+# O README passou a descrever dois jogos, e cada afirmação nova é um
+# facto que se pode conferir no código. Sem esta secção, "o painel serve
+# o F1 25" podia ser verdade no README e falsa no programa — e é a mesma
+# classe de mentira que a Regra no 19, com o README no lugar do payload.
+print()
+print("=== 13. os dois jogos ===")
+chk('F1 25' in R, "o README menciona o F1 25")
+chk('Assetto Corsa' in R, "e o Assetto Corsa")
+# O registo importa-se, e nao se le. Ler o codigo-fonte e contar os
+# caracteres dava "2369 jogos registados", que e' verdade nenhuma; e nao
+# prova que o ficheiro importe sem erro, que ler o texto nao prova.
+try:
+    sys.path.insert(0, RAIZ)
+    from actelemetry.jogos import JOGOS as REGISTO, obter
+    chk(len(REGISTO) >= 2,
+        "e o servidor tem %d jogos registados: %s"
+        % (len(REGISTO), sorted(REGISTO)))
+    chk('f125' in REGISTO, "o F1 25 está registado com o id f125")
+    chk('ac' in REGISTO, "e o AC com o id ac")
+    chk(obter('F125') is not None,
+        "e o id pode-se pedir em qualquer caixa, porque quem escreve o "
+        "ficheiro de definicoes tambem o escreve a mao")
+    chk(obter('nao-existe') is None,
+        "e um id inventado da None, e o servidor cai no padrao em vez "
+        "de impedir o arranque")
+    # A instrucao que o painel mostra vem do JOGO, nao do transporte.
+    instrucoes = {j: obter(j).estado_leitor().get('instrucao', '')
+                  for j in sorted(REGISTO)}
+    vazias = [k for k, v in instrucoes.items() if not v]
+    chk(not vazias, "os dois jogos trazem a instrucao de arranque %s"
+        % (vazias or ''))
+    distintas = len(set(instrucoes.values())) == len(instrucoes)
+    chk(distintas,
+        "e as instrucoes sao DIFERENTES entre os jogos, que e' o que "
+        "evita seguir a instrucao do jogo errado")
+except Exception as e:
+    chk(False, "o registo dos jogos importa: %s" % e)
+
+# A porta do UDP tem de ser a mesma em tres sitios: o README, o receptor
+# que abre o socket, e a instrucao que o painel mostra. Regra no 16 com
+# o eixo trocado -- tres copias de um numero divergem em silencio.
+UDP = '20777'
+chk(UDP in R, "o README diz a porta do UDP")
+chk(UDP in RECEPTOR, "e o receptor escuta nessa porta")
+chk(any(UDP in v for v in instrucoes.values()),
+    "e e a que o painel mostra na instrucao")
+
+# Os dois documentos existem e o README aponta para eles.
+for doc in ('docs/f1-25.md', 'docs/assetto-corsa.md'):
+    chk(os.path.isfile(os.path.join(RAIZ, doc)),
+        "%s existe" % doc)
+    chk(doc in R, "e o README aponta para %s" % doc)
+
+# E o que cada jogo tem de mostrar, comparado com o que o código diz.
+# Escrever no README "o F1 25 dá a vida do pneu" quando o código diz
+# "auto" seria um README que promete o que o painel não mostra.
+# As listas de capacidades sao escritas por um script, e por isso uma
+# delas usa aspas duplas e a outra simples. Apontar o teste para uma das
+# formas e' assumir a forma em vez de ler -- que e' o que este ficheiro
+# diz no topo, e o que a regra no 4 avisa. Normalizam-se os dois lados.
+def _sem_aspas(t):
+    return t.replace('"', "'")
+
+
+CAPS_AC = _sem_aspas(ler('actelemetry', 'jogos', 'ac', 'logica.py'))
+CAPS_F1 = _sem_aspas(ler('actelemetry', 'jogos', 'f125', 'logica.py'))
+BASE = _sem_aspas(BASE_PY)
+
+# Cada linha e' uma promessa do README, conferida no codigo que a cumpre.
+for chave, valor, quem, txt in (
+        ('vidaPneu', 'on', 'o F1 25', 'dá mesmo a vida do pneu'),
+        ('vidaPneu', 'auto', 'o AC', 'é mesmo estimada'),
+        ('nivelAbs', 'off', 'o F1 25', 'não dá percentagem de ABS'),
+        ('nivelAbs', 'on', 'o AC', 'dá mesmo a percentagem'),
+        ('estadoTempo', 'off', 'o AC', 'não publica o estado do tempo'),
+        ('tempo', 'on', 'o F1 25', 'publica o tempo'),
+        ('combustivel', 'on', 'os dois', 'publicam o combustível'),
+):
+    fonte = CAPS_AC if quem == 'o AC' else CAPS_F1
+    if quem == 'os dois':
+        chk("'%s': '%s'" % (chave, valor) in CAPS_AC
+            and "'%s': '%s'" % (chave, valor) in CAPS_F1, txt)
+        continue
+    chk("'%s': '%s'" % (chave, valor) in fonte, "%s %s" % (quem, txt))
+
+# E a lista canonica tem de ter a chave, senao a capacidade nao esta
+# escrita em lado nenhum e o painel esconde o campo por omissao.
+for chave in ('vidaPneu', 'nivelAbs', 'estadoTempo', 'tempo'):
+    chk("'%s'" % chave in BASE, "a lista canonica tem a chave %s" % chave)
+chk("'%s'" % 'jogo' in BASE, "e a lista canonica tem o `jogo` declarado como "
+                          "metadata, e nao como capacidade")
+
+# A ordem das rodas. O README diz que o F1 25 usa RL RR FL FR, e a
+# ordem e' uma tabela no protocolo e no modulo do browser. Três sítios.
+chk('RL' in PROTOCOLO and "'RL', 'RR', 'FL', 'FR'" in PROTOCOLO.replace('"', "'"),
+    "o protocolo do F1 25 tem a ordem RL RR FL FR")
+# O modulo do browser tem a ordem do PAINEL -- e e' a unica em que o
+# painel pensa. O que tem de estar la e' a TABELA DE TRADUCAO, que e'
+# a regra que converte a ordem do jogo na do painel.
+#
+# A verificacao anterior procurava a ordem do JOGO no modulo, nao a
+# encontrou, e falhava. O que ela afirmava, traduzido, e' que o painel
+# mostrava os pneus ao contrario -- e a unica forma de a fazer passar
+# seria escrever a ordem errada no modulo. Um teste que so passa com o
+# codigo partido e' pior do que nao ter teste.
+chk("'FL', 'FR', 'RL', 'RR'" in _sem_aspas(F125JS),
+    "e o modulo do browser tem a ordem do PAINEL")
+chk(re.search(r"TRADUCAO\s*=\s*Object\.freeze\(\[\s*2\s*,\s*3\s*,\s*0\s*,\s*1\s*\]\)",
+              F125JS) is not None,
+    "e a tabela que traduz a ordem do jogo para essa: RL->2 RR->3 FL->0 FR->1")
+# E a traducao do Python esta' em `protocolo.py`, e o receptor IMPORTA-A.
+# Isso e' o que interessa: uma tabela e' uma tabela, e duas copias
+# divergem em silencio. O mesmo teste (`test_jogos.js` do browser e
+# `test_f125_parser.py` do Python) confere as duas pontas, e por isso as
+# duas tem de dizer a mesma coisa.
+chk(re.search(r"TRADUCAO\s*=\s*\{\s*0:\s*2\s*,\s*1:\s*3\s*,\s*2:\s*0\s*,\s*3:\s*1\s*\}",
+              PROTOCOLO) is not None,
+    "e o Python declara a traducao uma vez, em protocolo.py")
+chk(re.search(r"from\s+\.protocolo\s+import[^)]*TRADUCAO", RECEPTOR,
+              re.S) is not None,
+    "e o receptor importa-a em vez de ter uma segunda copia")
+# o protocolo declara tambem a ordem do JOGO, que e' a que a traducao
+# traduz
+chk(re.search(r"ORDEM_F1\s*=\s*\(\s*\"RL\"\s*,\s*\"RR\"\s*,\s*"
+              r"\"FL\"\s*,\s*\"FR\"\s*\)", PROTOCOLO) is not None,
+    "e a ordem do jogo esta escrita ao lado da traducao, que e' onde se "
+    "confere uma com a outra")
+chk('TRADUCAO' in RECEPTOR or 'traducao' in RECEPTOR,
+    "e o receptor traduz a ordem para a do painel")
+
+# A escolha do jogo tem de existir nos dois sitios: o ecra e as
+# definições. Um botão que abre o ecra e nada mais é uma saída sem
+# entrada, e alguém que já escolheu fica preso.
+chk('jogos-lista' in HTML, "o ecra de escolha existe no HTML")
+chk('set-jogo' in HTML, "e há uma escolha de jogo nas definições")
+chk('btn-jogo' in HTML, "e há um botão para voltar ao ecra")
+for rota, porque in (("/api/game", "o POST que troca de jogo"),
+                     ("/api/games", "a lista dos jogos"),
+                     ("/api/capabilities", "as capacidades do jogo activo"),
+                     ("/api/diagnostics", "o diagnostico")):
+    chk(rota in HTTP, "e o servidor tem %s (%s)" % (rota, porque))
+
 if problemas:
     print("!!! %d FALHA(S) de %d" % (len(problemas), ok + len(problemas)))
     for p in problemas:

@@ -69,6 +69,8 @@ DESCRICAO = {
     "test_medir_tyrewear.py": "que a medicao do desgaste por volta faz sentido",
     "verificar_readme.py": ("que cada facto do README bate certo com o "
                               "codigo -- versao, porta, cadencia, nomes, escalas"),
+    "mutacao_texto.py": ("que a regra do TAB dentro de uma palavra "
+                            "morde, partindo o AGENTS.md"),
     "verificar_texto.py": "que nao entrou texto torto nem caracteres estranhos",
     "verificar_commits.py": "que as mensagens de commit nao tem BOM nem caracteres estranhos",
 }

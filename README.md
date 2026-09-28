@@ -1,9 +1,58 @@
-# Assetto Corsa Telemetry
+# Telemetria de corridas
 
-Painel de telemetria do **Assetto Corsa** no browser, a ler a memória
-partilhada do jogo e a mostrá-la a **60 fps**.
+Painel de telemetria no browser, a ler **directamente do jogo** e a
+mostrá-la a **60 fps**. Serve dois:
 
-Não usa o SimHub. Sem limite de 10 fps, sem licença, sem plugin.
+| | como lê | adversários |
+|---|---|---|
+| **Assetto Corsa** | memória partilhada do Windows | precisa da nossa app, instalada **dentro** do jogo |
+| **F1 25** | datagramas **UDP** na porta 20777 | vêm no próprio protocolo, sem instalar nada |
+
+Escolhe-se o jogo ao abrir a página, e troca-se nas definições sem
+reiniciar nada.
+
+O Assetto Corsa **não usa o SimHub**: sem limite de 10 fps, sem licença,
+sem plugin. O F1 25 não passa por ninguém, porque a telemetria é um UDP
+que o jogo manda para onde se quiser.
+
+![paleta](https://img.shields.io/badge/paleta-F1-FFD700) ![licença](https://img.shields.io/badge/licença-MIT-blue)
+
+---
+
+## Os dois jogos, e o que muda entre eles
+
+Não é o mesmo painel com números diferentes. Cada jogo traz as suas
+regras, e elas estão em módulos separados — `static/jogos/ac.js` e
+`static/jogos/f125.js` — porque uma regra dentro do frontend só se pode
+testar com o jogo a correr e olhando para o ecrã.
+
+O que muda, e que está medido ou na documentação do jogo:
+
+| | Assetto Corsa | F1 25 |
+|---|---|---|
+| embraiagem | fracção 0–1, e 1,0 = **embraiada** | **0–100**, e 100 = embraiada |
+| ABS | **nível** 0–1, medido em 0,13 → "ABS 13%" | **ligado/desligado**, sem percentagem |
+| combustível | **litros** | **quilogramas** |
+| bias de travão | fracção 0–1 | **percentagem** 0–100 |
+| volante | ângulo em radianos, limite desconhecido | **−1 a 1**, limite escrito |
+| ordem das rodas | `FL FR RL RR` | **`RL RR FL FR`** — traduzida |
+| vida do pneu | **não existe**, é estimada de duas voltas | **`m_lifeSpan`**, lida |
+| tempo e chuva | **não publica**; deduz-se da aderência | **`m_weather`**, chuva e previsão |
+| zona de DRS | dois flags que mediram 98,9% e 18,5% | **os metros que faltam** |
+| delta | calculado contra uma volta de referência | **vem do jogo** |
+
+E o que o F1 25 dá e o AC não: o **setup** inteiro, a idade e a vida do
+pneu, bolhas, o desgaste dos seis componentes do motor, o ângulo real da
+roda, o escorregamento em *ratio* e em ângulo, o estado do céu com
+previsão, e os adversários **sem instalar nada**.
+
+Cada jogo só mostra o que publica. O que não existe fica escondido, e o
+que existe mas é uma estimativa fica esbatido — "não existe" e "ainda
+não sei" são coisas diferentes, e esconder a segunda seria mentir.
+
+A telemetria dos dois jogos está escrita em
+[`docs/assetto-corsa.md`](docs/assetto-corsa.md) e
+[`docs/f1-25.md`](docs/f1-25.md).
 
 ![paleta](https://img.shields.io/badge/paleta-F1-FFD700) ![licença](https://img.shields.io/badge/licença-MIT-blue)
 
@@ -19,12 +68,38 @@ depurar, por isso está aqui em detalhe.
 
 | | |
 |---|---|
-| Sistema | Windows — o Assetto Corsa é só Windows |
+| Sistema | Windows para o Assetto Corsa. O F1 25 é cross-platform, mas o servidor também |
 | Python | 3.8 ou superior — [python.org](https://www.python.org/downloads/) |
 | Dependências | **nenhuma** — só a biblioteca standard, não há `pip install` |
-| Node | só para correr os testes. O dashboard funciona sem ele |
+| Node | só para correr os testes. O painel funciona sem ele |
 
 O `ctypes` e o `http.server` já vêm com o Python.
+
+### F1 25 — nada para instalar
+
+Se jogas F1 25, **é só arrancar o servidor e abrir a página**. O painel
+espera na porta 20777 e aparece quando o jogo começa a mandar.
+
+Para ligar a telemetria no jogo: *Settings → Telemetry Settings*, e
+
+| opção | valor |
+|---|---|
+| UDP Telemetry | **On** |
+| UDP IP Address | `127.0.0.1` |
+| UDP Port | `20777` |
+| UDP Send Rate | **60 Hz** |
+| UDP Format | `2025` (ou `2026` com o Season Pack 2026) |
+| Your Telemetry | **Public**, se quiseres ver os adversários |
+
+**Your Telemetry em *Restricted* põe a zero o combustível, o ERS e todo o
+dano dos outros carros.** É a definição de omissão, e o painel avisa
+quando está assim — porque zero é um número plausível, e "sem ERS" seria
+uma mentira. Para o teu carro os dados vêm sempre.
+
+Só há telemetria **a conduzir**. Nos menus não sai nada, e o painel
+escreve "EM PAUSA" ou "JOGO ENCERRADO" em vez de mostrar zeros.
+
+### Assetto Corsa — um passo a mais
 
 ### Passo 1 — instalar a app no jogo
 
@@ -182,7 +257,7 @@ faculdade, não — e o endereço do servidor é adivinhável.
 Para fechar:
 
 ```
-python server.py --bind 127.0.0.1 --port 8765
+python server.py --bind 127.0.0.1 --porta 8765
 ```
 
 Com `--bind 127.0.0.1` só este PC responde; o endereço de rede deixa de
@@ -214,7 +289,7 @@ ligação.
 ### Opções do servidor
 
 ```
-python server.py --port 9000        # mudar a porta
+python server.py --porta 9000        # mudar a porta
 python server.py --rate 400         # amostrar mais depressa (predefinição: 200)
 python server.py --bind 127.0.0.1   # só este PC
 python server.py --abrir            # abre o browser assim que a porta aceita ligações

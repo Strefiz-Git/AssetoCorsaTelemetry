@@ -53,7 +53,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 
 # O nucleo do painel. O server.py passou a ser so' a linha de comando, e
 # o que serve o HTTP e' ctelemetry/http.py -- que nao sabe qual e' o
-# jogo. Ver 	ests/test_handler.py, que faz a mesma mudanca.
+# jogo. Ver `tests/test_handler.py`, que faz a mesma mudanca.
 from actelemetry.http import Handler  # noqa: E402
 from actelemetry.defs import STATIC  # noqa: E402
 
