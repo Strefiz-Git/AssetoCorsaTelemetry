@@ -47,6 +47,25 @@ DESCRICAO = {
     "test_handler.py": "que um cliente que cancela nao enche a consola",
     "test_payload.py": ("que o `/api/state` tem o que o painel precisa, "
                         "clima incluido -- o meio da ligacao"),
+    "medir_pneu_f125.py": (
+        "FORA: precisa do F1 25 a conduzir. Descobre se o `m_tyresWear` e'"
+        " quanto ja foi usado ou quanto resta, medindo o desgaste ao mesmo"
+        " tempo que as voltas que faltam -- e as duas coisas nao podem"
+        " descer. A medicao que ele fez esta em"
+        " `docs/medicao-desgaste-f125.md`"
+    ),
+    "comparar_spec.py": (
+        "que o `protocolo.py` tem TODOS os campos que a EA publica, e nao"
+        " so os que ele proprio inventou -- a outra metade da Regra no 4,"
+        " porque o `test_f125_parser.py` so confirma os tamanhos contra o"
+        " proprio protocolo. Sai a vermelho se a EA acrescentar um campo."
+    ),
+    "texto_pdf.py": (
+        "FORA: precisa de um PDF concreto e de o texto sair legivel."
+        " Nao ha `pypdf` nem `pdftotext` nesta maquina, e este le um"
+        " PDF so com `zlib`. E' a ferramenta que permitiu ler os"
+        " cabecalhos das especificacoes da EA"
+    ),
     "test_f125_parser.py": ("o F1 25 nos DOIS formatos: os 33 tamanhos, a ordem "
                             "das rodas, o truque dos minutos, o /1000 das "
                             "forcas G, e o formato desconhecido recusado"),

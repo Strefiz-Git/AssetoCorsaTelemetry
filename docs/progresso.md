@@ -910,6 +910,61 @@ nenhum do projecto — 0 ocorrências da curva, do `vKM` e do `DY0` em
 
 ---
 
+## 2026-09-28 (8.ª parte) — o protocolo confere com a spec da EA, campo a campo
+
+### Porque
+
+O `test_f125_parser.py` confirma que os 33 tamanhos batem ao byte, mas
+**contra o próprio protocolo**. É a Regra nº 4: um teste auto-consistente
+passa com o protocolo errado, desde que o protocolo esteja coerente
+consigo. Metade do buraco estava por fechar.
+
+### O que foi feito
+
+| Ficheiro | o que mudou |
+|---|---|
+| `tests/comparar_spec.py` | **novo, e na suite.** Compara os 372 campos `m_` da spec com os nomes do `protocolo.py`. Sai a vermelho se a EA acrescentar um campo |
+| `tests/texto_pdf.py` | **novo, fora da suite.** Lê um PDF só com `zlib` — não há `pypdf` nem `pdftotext` nesta máquina |
+| `docs/f1-25.md` | o resultado, com o `m_driverId` da spec ao lado do nosso |
+| `ac_info/` (4 GB) | **apagado**, depois de extraído e verificado |
+| `resources/…/f1-2021-udp-main/` | **apagado** — spec de 2021, superada; recuperável por `git checkout` |
+
+### Dificuldades
+
+1. **Não sabia ler os PDFs, e disse-o em vez de adivinhar.** Sem
+   `pypdf`, sem `PyPDF2`, sem `pdftotext`. Escrevi o extractor, e ele
+   chegou ao cabeçalho — *Version 1.2, Added F2 Driver IDs* — mas **não**
+   às tabelas de campos. Um resultado a meio é resultado, não é falha a
+   ignorar.
+2. **A spec também estava em texto simples**, e eu não tinha olhado. O
+   `2026 Season Pack Telemetry Output Structures (1).txt` é a fonte
+   pesquisável, e resolve o que o PDF não resolvia. Isto é a segunda vez
+   nesta sessão que só de **listar** o que existe se descobre a fonte
+   certa — e a listagem é o passo que o meu Reflexo pulou duas vezes.
+3. **A comparação deu 37 buracos e eram mentira.** Nenhuns: o protocolo
+   usa `posX` e a spec diz `m_worldPositionX`. Metade dos "37" era o mesmo
+   campo com outro nome.
+4. **O mapa estava no sentido errado.** Traduzia a spec para o nosso nome
+   *depois* de subtrair, em vez de antes — e acusava buracos que o mapa
+   já resolvia. De 37 para 6 com o sentido certo, e para **0** com as
+   entradas certas.
+
+### Falta / não verificado
+
+- **Um campo por decidir, e está declarado:** o `m_sliProNativeSupport` é
+  o suporte do jogo para um ecrã de LEDs externo. Não se acrescenta — um
+  painel não escreve para LEDs — mas fica no `ACEITOS` com o motivo, para
+  que o vermelho do teste signifique buraco **novo** e não este.
+- **A nota de revisão do *Season 8* só a headline.** O documento diz
+  *Version 1.2 — Added F2 Driver IDs* e o nosso `m_driverId` é `u16` em
+  2026, o que bate. Mas o texto do Season 8 não foi lido campo a campo.
+- **`ac_info/` apagado é irreversível.** Estava no `.gitignore`, sem
+  histórico e sem remoto. A verificação antes de apagar foi: 16 de 16
+  valores extraídos no commit anterior, e **zero** campos `m_` por
+extrair. O resto dos 4 GB eram 3 944 MB de texturas `.dds` do SimHub.
+
+---
+
 ## Resumo do que se aprendeu
 
 | Lição | Onde está registada |
