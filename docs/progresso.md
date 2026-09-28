@@ -604,6 +604,90 @@ suite prova a logica, e o ecra' e' uma coisa diferente.
   desenhada no mapa.
 
 
+## 2026-09-28 (4. parte) - dois modulos nunca chegaram ao browser
+
+O `feat/f125` reorganizou o `static/` em `nucleo/` e `jogos/`. Fez-lo
+bem: os modulos de jogo ficaram puros e ha' agora 145 casos de regras a
+correr sem nenhum jogo a correr. Mas a reorganizacao **esqueceu-se de um
+`<script>`**, e foi preciso abrir o browser para dar com isso.
+
+### O que se encontrou
+
+| | Sintoma | Causa |
+|---|---|---|
+| o tempo | `TypeError` a cada pintura do campo do tempo | `nucleo/tempo.js` nao esta' na lista do HTML, e o `app.js` chama `Tempo.cenaDe()` sem guarda |
+| a vida do pneu | "a medir" para sempre, sem dizer nada | `nucleo/tyres.js` publica `Pneus`, o `ac.js` le `global.Tyres` |
+
+O primeiro rebenta. O segundo nao rebenta -- e por isso e' o pior, porque
+um `--` que parece uma medida e' indistinguivel de um `--` que nao ha.
+
+**Nenhum dos dois apanhou os testes.** E' o ponto: um modulo carregado
+por `require` traz as dependencias que o FICHEIRO declara; um modulo
+carregado por `<script>` so' tem as que o HTML LISTA. Sao worlds
+diferentes, e o `test_jogos.js` vive no primeiro. Regra no 28.
+
+### O que se fez
+
+- O `tempo.js` voltou a lista de scripts, **antes** dos modulos dos jogos,
+  e nao por ordem alfabetica: e' o `ac.js` que o le no topo do script
+  (`const T = global.Tempo;`), e um modulo que carregue antes fica com o
+  `T` capturado como `undefined` PARA SEMPRE.
+- O `tyres.js` passou a publicar `Tyres`, que e' o nome dos outros tres
+  (`tempo.js` -> `Tempo`, `combustivel.js` -> `Combustivel`,
+  `jogo-base.js` -> `JogoBase`).
+- `tests/test_scripts.js`, novo: confere **estaticamente** que cada
+  script da lista existe, e que cada global lido sem guarda e' escrito
+  por algum deles. Sem browser e sem executar nada.
+
+### Dificuldades
+
+1. **A correccao do `Pneus` para o `Tyres` rebentou o `test_jogos.js`.**
+   `T_.vida is not a function`. A guarda que escondia o nome errado
+   deixou de proteger, e apareceu um terceiro erro: a `vidaPneu` do
+   `ac.js` foi escrita contra uma API que nao existe. O `nucleo/tyres.js`
+   expoe
+   `estimarPneus(estado, dados)` e devolve `voltasRestantes`; o `ac.js`
+   pedia `vida(wear, sectors)` e esperava `{ voltas, pronto }`. Nomes
+   diferentes nao dao o mesmo numero -- e o `estado` e' persistente
+   entre voltas, coisa que um modulo puro nao pode ter.
+   **Ficou a dizer que nao sabe**, que e' o que ja fazia, e a diferenca
+   e' que agora e' verdade. A vida do pneu do AC esta' por ligar, e a
+   decisao de onde vive o estado nao esta' tomada.
+2. **O stripper de comentarios do teste novo tinha um erro de
+   precedencia** e escondeu-o bem. Escrito sem parenteses,
+   `if (!dentro && c === '"' || c === "'")` le-se como
+   `(!dentro && c === '"') || (c === "'")`, e entao um apostrofo DENTRO de
+   um comentario abria uma string, engolia o resto da linha, e o fecho do
+   comentario deixava de contar. O comentario continuava "aberto" ate ao
+   fim do ficheiro. Descobriu-o a mutacao: a falha apontava para uma
+   linha de comentario em vez do `ac.js` que le o global a serio.
+3. **A seccao que reporta os globais órfãos deu onze falsos positivos** --
+   os ganchos que o `seletor.js` chama sob `if (global.X)`, que por isso
+   nunca entravam na lista de leituras. Passou a ser relatorio e nao
+   falha. Um teste que apita doze vezes quando ha' um problema e' um
+   teste que se ignora, e um teste ignorado e' pior do que nenhum.
+
+### Falta / não verificado
+
+- **A vida do pneu do AC nao esta' ligada**, e agora sabe-se porquê. O
+  `app.js` nao consome o `nucleo/tyres.js` em lado nenhum, e o `estado`
+  que a estimativa precisa vive em lado nenhum. O F1 25 tem `m_lifeSpan`
+  lido, e por isso o f125 mostra um numero que o AC nao mostra.
+- **`MontarDefinicoesJogo` nao tem consumidor.** O `app.js` publica o
+  gancho em 3403 e o `seletor.js` nunca o chama -- o `aplicar()` dele
+  chama `AplicarIdioma`, `AplicarUnidades`, `RepintarTudo` e
+  `AplicarJogoNaInterface`, e nao aquele. Trocar de jogo pelo selector
+  pode nao reconstruir as definicoes do jogo. Nao foi verificado no
+  browser.
+- **`JogoBase`, `Combustivel` e `VOLTA_MINIMA_S` tambem nao tem
+  consumidor** no browser. O `jogo-base.js` e' o contrato que cada modulo
+  de jogo tem de cumprir, e nao esta' ligado a lado nenhum: e' a
+  ferramenta que teria apanhado o `Tyres`/`Pneus`.
+- O `feat/f125` nao foi fundido com o `definicoes`. A fusao de ensaio da
+  conflito em `AGENTS.md`, `index.html` e `mutacao_loop.py`; o `app.js`
+  funde sozinho e o bloco do `Defs.validar` sobrevive no sitio certo.
+
+
 ## Resumo do que se aprendeu
 
 | Lição | Onde está registada |

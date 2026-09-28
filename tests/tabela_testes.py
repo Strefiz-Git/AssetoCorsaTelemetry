@@ -40,7 +40,7 @@ DESCRICAO = {
     "test_opponents.py": ("o struct de 128 carros: ordem dos campos, m/s para "
                           "km/h, tempos, filtro de carros vazios"),
     "compilar.py": ("que os `.py` compilam -- apanha erro de sintaxe"),
-    "verificar_js.py": "que os 15 `.js` fazem parse no node",
+    "verificar_js.py": "que os 20 `.js` fazem parse no node",
     "test_contrato.py": "que a app e o leitor falam a mesma linguagem",
     "verificar_servidor.py": ("o SISTEMA ligado: arranca com os dois "
                               "jogos, a troca a quente, e as rotas"),
@@ -74,6 +74,9 @@ DESCRICAO = {
                             "morde, partindo o AGENTS.md"),
     "verificar_texto.py": "que nao entrou texto torto nem caracteres estranhos",
     "verificar_commits.py": "que as mensagens de commit nao tem BOM nem caracteres estranhos",
+    "test_scripts.js": ("que os scripts que o index.html lista chegam ao "
+                        "browser, e que cada global lido sem guarda e' "
+                        "escrito -- sem browser, e sem executar nada"),
 }
 
 # o que corre FORA da suite, e porque

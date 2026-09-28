@@ -62,6 +62,11 @@ SUITE = [
     ("texto sem caracteres estranhos", "py", "verificar_texto.py"),
     ("a regra do TAB morde", "py", "mutacao_texto.py"),
     ("mensagens de commit limpas", "py", "verificar_commits.py"),
+    # O `index.html` diz WHICH scripts entram no browser, e so' o browser
+    # le essa lista. O `require` de um teste traz as dependencias que o
+    # FICHEIRO declara, e nao as que o HTML lista -- por isso e' que um
+    # modulo pode faltar no HTML e todos os testes passarem. Ver a Regra.
+    ("os scripts chegam todos ao browser", "node", "test_scripts.js"),
 ]
 
 # codigo 2 = "o jogo esta a correr, nao se pode testar". Nao e' falha: e

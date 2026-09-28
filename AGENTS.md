@@ -88,10 +88,11 @@ ficheiro, e **não se renumeram**: outros ficheiros citam-nas pelo número.
 | texto que descreve o jogo (rodapé, título, ecrã de espera) | 25 |
 | rotas de um jogo, e o contrato com o núcleo | 26 |
 | `.bat` e `.ps1`, e o que demora | 27 |
+| `<script src>`, globais entre ficheiros, e módulos que não chegam ao browser | 28 |
 | testes que passam sem provar nada | 4, 12, 15, 19 |
 | dar uma causa ou uma conclusão | 9 |
 
-Uma Regra nova é a nº 28 e vai à tabela acima (skill `documentacao`).
+Uma Regra nova é a nº 29 e vai à tabela acima (skill `documentacao`).
 
 ---
 
@@ -1278,6 +1279,90 @@ divergem.
 
 ---
 
+## Regra nº 28 — o `require` de um teste e um `<script>` são worlds diferentes
+
+O painel é feito de módulos que se registam num global e se lêem uns aos
+outros. O `jogos/ac.js` abre com:
+
+```javascript
+const U = global.NucleoUnidades;
+const T = global.Tempo;
+```
+
+e o `app.js` chama `Tempo.cenaDe(v, w)` a cada pintura. **Isto só
+funciona se o `index.html` trouxer o ficheiro que cria o global.** A
+dependência não está escrita em lado nenhum: está na lista de `<script>`,
+que é a única coisa que o browser lê.
+
+Um módulo carregado por `require` traz as dependências que **o ficheiro**
+declara. Um módulo carregado por `<script>` só tem as que o **HTML**
+lista. São worlds diferentes, e é por isso que `test_jogos.js` passa com
+um `global.Tempo` que o browser nunca vai ter: o `require` arrasta o
+`tempo.js` como dependência, e esconde precisamente o bug.
+
+### O que aconteceu, no `feat/f125`
+
+O `tempo.js` foi movido de `static/` para `static/nucleo/` e ficou de
+fora da lista do HTML. O `app.js` chama-o **sem guarda nenhuma**:
+
+```javascript
+const cena = Tempo.cenaDe(v, w);      // TypeError a cada pintura
+```
+
+O `ac.js` **tem** guarda, `if (!T) return null`, e isso é o engano
+maior: a guarda existe, e o caminho que pinta o ecrã não passa por ela.
+Um `if (!T)` no sítio que não é o do problema.
+
+O título do commit que reconstruiu o `static/` era, literalmente,
+*"o browser nunca tinha sido aberto"*. Não era um comentário a respeito:
+era a razão.
+
+E o mesmo branch tinha `nucleo/tyres.js` a publicar `root.Pneus` com o
+`ac.js` a ler `global.Tyres`. Aqui não rebentou — havia guarda — e por
+isso foi pior: a vida do pneu mostrava `a medir` para sempre, e nada
+disse que o módulo não tinha carregado.
+
+### A regra
+
+> **Um global lido sem guarda tem de ser escrito por algum script que o
+> `index.html` liste. E a lista de scripts é uma asserção, não um
+> arquivo de inclui.**
+
+`tests/test_scripts.js` confere isso **estaticamente**, sem browser e sem
+executar nada: lê o `index.html`, lê cada script, e compara o que cada um
+escreve com o que cada um lê. Deliberadamente não executa, porque
+executar seria voltar ao mundo do `require`.
+
+Duas decisões que ficaram escritas:
+
+- **A ordem não é verificada, e é de propósito.** O `app.js` publica
+  `globalThis.RepintarTudo` no fim do ficheiro e chama, antes disso,
+  funções que o `seletor.js` só invoca quando o utilizador troca de
+  jogo. Uma regra de ordem fio-a-fio daria falsos positivos nesses
+  ganchos. O que interessa é o nome.
+- **Globais publicados e nunca lidos são um relatório, não uma falha.** Um
+  módulo pode publicar e ficar à espera de consumidor. A primeira versão
+  fazia `ok()` em cada um e dava **onze falsos positivos** — os ganchos
+  que o `seletor.js` chama sob `if (global.X)`. Um teste que apita doze
+  vezes quando há um problema é um teste que se ignora, e um teste
+  ignorado é pior do que nenhum.
+
+### O que o teste não apanha, e porque é o browser
+
+`node --check` confirma que o ficheiro faz parse. Não confirma que a
+função existe. Já aconteceu: `T_.vida(wear, sectors)` contra uma API que
+se chama `estimarPneus(estado, dados)` — nomes diferentes, e um estado
+persistente entre voltas que um módulo puro não pode ter. **Parse não é
+execução**, e só abrir o browser diz o resto.
+
+### Regra prática
+
+Ao mover, renomear ou dividir um ficheiro em `static/`, abrir o browser.
+E ao acrescentar um `<script>`, confirmar que o ficheiro está no disco
+— um `/defs.js` apagado dá `null`, não dá erro, e é um 404 silencioso.
+
+---
+
 ## Ao mexer no frontend
 
 **A regra que decide onde vai uma linha nova:** se é verdade nos dois
@@ -1335,7 +1420,7 @@ certo, não uma falha. Os testes de memória escrevem em páginas
 
 Corre com `python tests\run_all.py`. Sai com codigo diferente de zero se
 algo falhar, e com codigo 2 (que nao e' falha) se o AC
-estiver a correr e os testes de memoria forem saltados. Sao 29 grupos.
+estiver a correr e os testes de memoria forem saltados. Sao 30 grupos.
 
 | Ficheiro | O que prova |
 |---|---|
@@ -1345,7 +1430,7 @@ estiver a correr e os testes de memoria forem saltados. Sao 29 grupos.
 | `test_opponents.py` | o struct de 128 carros: ordem dos campos, m/s para km/h, tempos, filtro de carros vazios |
 | `test_f125_parser.py` | o F1 25 nos DOIS formatos: os 33 tamanhos, a ordem das rodas, o truque dos minutos, o /1000 das forcas G, e o formato desconhecido recusado |
 | `compilar.py` | que os `.py` compilam -- apanha erro de sintaxe |
-| `verificar_js.py` | que os 15 `.js` fazem parse no node |
+| `verificar_js.py` | que os 20 `.js` fazem parse no node |
 | `test_contrato.py` | que a app e o leitor falam a mesma linguagem |
 | `test_handler.py` | que um cliente que cancela nao enche a consola |
 | `verificar_servidor.py` | o SISTEMA ligado: arranca com os dois jogos, a troca a quente, e as rotas |
@@ -1368,6 +1453,7 @@ estiver a correr e os testes de memoria forem saltados. Sao 29 grupos.
 | `verificar_texto.py` | que nao entrou texto torto nem caracteres estranhos |
 | `mutacao_texto.py` | que a regra do TAB dentro de uma palavra morde, partindo o AGENTS.md |
 | `verificar_commits.py` | que as mensagens de commit nao tem BOM nem caracteres estranhos |
+| `test_scripts.js` | que os scripts que o index.html lista chegam ao browser, e que cada global lido sem guarda e' escrito -- sem browser, e sem executar nada (node) |
 
 ### Fora da suite, e porque
 
